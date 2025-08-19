@@ -887,6 +887,29 @@ body {
   hyphens: auto;
   line-height: 1.4;
   max-width: none;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.stacked-bar-btn {
+  background: none !important;
+  color: #333 !important;
+  border: 1px solid #333 !important;
+  border-radius: 4px !important;
+  padding: 0px 8px !important;
+  font-size: 10px !important;
+  cursor: pointer !important;
+  white-space: nowrap;
+  margin-left: auto;
+  transition: all 0.2s ease;
+}
+
+.stacked-bar-btn:hover {
+  background: #333 !important;
+  color: white !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .column-header:first-of-type {
@@ -1227,7 +1250,7 @@ body {
 .modern-decrypt-button:active:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 
-    0 8px 16px rgba(255, 255, 255, 0.15)),
+    0 8px 16px rgba(255, 255, 255, 0.15),
     0 0 0 1px rgba(255, 255, 255, 0.15);
 }
 

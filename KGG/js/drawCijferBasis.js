@@ -600,14 +600,6 @@ function createTable(container, data, tableName, currentYear, scenarioName, scen
     // Add stacked bar button
     const stackedBarButton = notesCell.append('button')
       .attr('class', 'stacked-bar-btn')
-      .style('background', 'none')
-      .style('color', '#333')
-      .style('border', '1px solid #333')
-      .style('border-radius', '4px')
-      .style('padding', '0px 8px')
-      .style('font-size', '10px')
-      .style('cursor', 'pointer')
-      .style('margin-left', '180px')
       .text('Toon Staafdiagram')
       .on('click', function(event) {
         event.stopPropagation(); // Prevent the row click event

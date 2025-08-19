@@ -265,7 +265,25 @@ function updateExistingTables(currentYear, selectedScenarioName, selectedScenari
           cells[3].textContent = formatNumber(scenarioTotal);
           cells[4].textContent = formatNumber(subtotalDifference, true);
           cells[4].className = subtotalDifference >= 0 ? 'positive-value' : (subtotalDifference < 0 ? 'negative-value' : 'neutral-value');
-          // cells[5] is the notes column - keep empty for topcat rows
+          // cells[5] is the notes column - ensure it has the stacked bar button
+          if (!cells[5].querySelector('.stacked-bar-btn')) {
+            const button = document.createElement('button');
+            button.className = 'stacked-bar-btn';
+            button.style.background = 'none';
+            button.style.color = 'white';
+            button.style.border = 'none';
+            button.style.borderRadius = '4px';
+            button.style.padding = '4px 8px';
+            button.style.fontSize = '10px';
+            button.style.cursor = 'pointer';
+            button.style.marginLeft = '5px';
+            button.textContent = 'STAAFDIAGRAM';
+            button.onclick = function(event) {
+              event.stopPropagation();
+              showCijferBasisStackedBarGraph(topcatName, topcatData, title);
+            };
+            cells[5].appendChild(button);
+          }
         }
       }
       
@@ -575,9 +593,26 @@ function createTable(container, data, tableName, currentYear, scenarioName, scen
       .attr('class', subtotalDifference >= 0 ? 'positive-value' : (subtotalDifference < 0 ? 'negative-value' : 'neutral-value'))
       .text(formatNumber(subtotalDifference, true));
     
-    topcatRow.append('td')
+    const notesCell = topcatRow.append('td')
       .attr('class', 'notes-cell')
-      .text(''); // Empty notes cell for topcat row
+      .style('position', 'relative');
+    
+    // Add stacked bar button
+    const stackedBarButton = notesCell.append('button')
+      .attr('class', 'stacked-bar-btn')
+      .style('background', 'none')
+      .style('color', '#333')
+      .style('border', '1px solid #333')
+      .style('border-radius', '4px')
+      .style('padding', '0px 8px')
+      .style('font-size', '10px')
+      .style('cursor', 'pointer')
+      .style('margin-left', '180px')
+      .text('Toon Staafdiagram')
+      .on('click', function(event) {
+        event.stopPropagation(); // Prevent the row click event
+        showCijferBasisStackedBarGraph(topcatName, topcatData, title);
+      });
     
     // Add subcat rows
     topcatData.forEach(row => {
@@ -878,7 +913,7 @@ function createCijferBasisPopup(graphData, scenarios, availableYears, subcatName
     .style('box-shadow', '0 4px 10px rgba(0,0,0,0.2)')
     .style('border-radius', '10px')
     .style('width', '1100px')
-    .style('height', '750px')
+    .style('height', '720px')
     .style('background-color', '#f9f9f9');
 
   const svg = popup.append('svg')
@@ -891,14 +926,14 @@ function createCijferBasisPopup(graphData, scenarios, availableYears, subcatName
 
   // Add header
   canvas.append('text')
-    .attr('x', 100)
+    .attr('x', 75)
     .attr('y', 40)
     .style('font-size', '16px')
     .style('font-weight', '600')
     .text(`${subcatName} - ${tableTitle}`);
 
   canvas.append('text')
-    .attr('x', 100)
+    .attr('x', 75)
     .attr('y', 65)
     .style('font-size', '12px')
     .style('fill', '#666')
@@ -931,7 +966,7 @@ function createCijferBasisPopup(graphData, scenarios, availableYears, subcatName
     .style('pointer-events', 'none');
 
   // Add unit toggle in top right (left of close button)
-  const TOGGLE_X = CLOSE_X - 145; // Position left of close button (adjusted for wider label spacing)
+  const TOGGLE_X = CLOSE_X - 140; // Position left of close button (adjusted for wider label spacing)
   const TOGGLE_Y = CLOSE_Y + 5;   // Align with close button
   
   const popupToggleGroup = canvas.append('g')
@@ -1069,10 +1104,10 @@ function drawCijferBasisLineGraph(canvas, graphData, scenarios, availableYears) 
   const graphGroup = canvas.append('g').attr('class', 'line-graph-content');
 
   // Graph dimensions and positioning
-  const graphWidth = 900;
+  const graphWidth = 950;
   const graphHeight = 280;
-  const shiftX = 100;
-  const graphTop = 110;
+  const shiftX = 75;
+  const graphTop = 100;
   const graphBottom = graphTop + graphHeight;
 
   // Define colors for each scenario based on drawLineGraphFlowClick.js categories
@@ -1320,7 +1355,7 @@ function drawCijferBasisLineGraph(canvas, graphData, scenarios, availableYears) 
   // Add Y-axis title
   const unit = (typeof currentUnit !== 'undefined' && currentUnit === 'TWh') ? 'TWh' : 'PJ';
   graphGroup.append('text')
-    .attr('transform', `translate(${shiftX - 60}, ${(graphBottom + graphTop) / 2}) rotate(-90)`)
+    .attr('transform', `translate(${shiftX - 50}, ${(graphBottom + graphTop) / 2}) rotate(-90)`)
     .style('text-anchor', 'middle')
     .style('font-size', '13px')
     .text(`Waarde (${unit})`);
@@ -1359,7 +1394,7 @@ function drawCijferBasisLineGraph(canvas, graphData, scenarios, availableYears) 
 // Function to draw the legend with checkboxes
 function drawCijferBasisLegend(graphGroup, scenarios, scenarioColors, scenarioSymbols, updateGraphFunction, graphBottom) {
   const legend = graphGroup.append('g')
-    .attr('transform', `translate(100, ${graphBottom + 50})`);
+    .attr('transform', `translate(75, ${graphBottom + 40})`);
 
   // legend.append('text')
   //   .attr('x', 0)
@@ -1382,10 +1417,10 @@ function drawCijferBasisLegend(graphGroup, scenarios, scenarioColors, scenarioSy
       });
   }
 
-  // Calculate layout
+  // Calculate layout - more compact with optimized spacing
   const itemsPerColumn = Math.ceil(scenarios.length / 2);
-  const columnWidth = 400;
-  const itemHeight = 25;
+  const columnWidth = 450;
+  const itemHeight = 22;
 
   // Add legend items
   const legendItems = legend.selectAll('.cijfer-legend-item')
@@ -1441,8 +1476,8 @@ function drawCijferBasisLegend(graphGroup, scenarios, scenarioColors, scenarioSy
   // Add text label
   legendItems.append('text')
     .attr('x', 45)
-    .attr('y', 12)
-    .style('font-size', '11px')
+    .attr('y', 11)
+    .style('font-size', '10px')
     .text(d => d.title)
     .style('pointer-events', 'none');
 
@@ -1633,6 +1668,818 @@ function drawCijferBasisUnitToggle() {
     .style('font-size', '15px')
     .style('font-weight', 400)
     .text('TWh');
+}
+
+// Function to show stacked bar popup for a clicked topcat row (subtotal row)
+function showCijferBasisStackedBarGraph(topcatName, topcatData, tableTitle, passedYear = null) {
+  // Close any existing popup
+  closeCijferBasisPopup();
+  
+  // Use global active year if no year is passed, or use passed year
+  const currentYear = passedYear || (globalActiveYear?.id || '2030');
+  
+  // Get the keten name from the first row in topcatData
+  const ketenName = topcatData.length > 0 ? topcatData[0].keten : '';
+  
+  // Extract all scenarios
+  const scenarios = [
+    { id: 'reference', name: 'reference', title: 'NPE2023 Cijferbasis' },
+    { id: 'OP - CO2-opslag 40', name: 'OP - CO2-opslag 40', title: 'PBL | TVKN | Pragmatisch Ruim 40' },
+    { id: 'OptimistischSelectiefFossilCarbonPenalty', name: 'OptimistischSelectiefFossilCarbonPenalty', title: 'PBL | TVKN | Specifiek Ruim 20' },
+    { id: 'PP_CCS_30_in_2050', name: 'PP_CCS_30_in_2050', title: 'PBL | TVKN | Pragmatisch Beperkt 30' },
+    { id: 'A_ADAPT', name: 'A_ADAPT', title: 'TNO | ADAPT' },
+    { id: 'C_TRANSFORM', name: 'C_TRANSFORM', title: 'TNO | TRANSFORM' },
+    { id: 'B_TRANSFORM - Competitief en import', name: 'B_TRANSFORM - Competitief en import', title: 'TNO | TRANSFORM | Competitief & Import' },
+    { id: 'D_TRANSFORM - Minder competitief', name: 'D_TRANSFORM - Minder competitief', title: 'TNO | TRANSFORM | Minder Competitief' },
+    { id: 'E_TRANSFORM - Minder competitief en import', name: 'E_TRANSFORM - Minder competitief en import', title: 'TNO | TRANSFORM | Minder Competitief & Import' },
+    { id: 'WLO1', name: 'WLO1', title: 'PBL | WLO | Hoog Snel' },
+    { id: 'WLO2', name: 'WLO2', title: 'PBL | WLO | Laag Snel' },
+    { id: 'WLO3', name: 'WLO3', title: 'PBL | WLO | Hoog Vertraagd' },
+    { id: 'WLO4', name: 'WLO4', title: 'PBL | WLO | Laag Vertraagd' },
+    { id: 'ii3050_v3_koersvaste_middenweg', name: 'ii3050_v3_koersvaste_middenweg', title: 'NBNL | II3050 v3 | Koersvaste Middenweg' },
+    { id: 'ii3050_v3_eigen_vermogen', name: 'ii3050_v3_eigen_vermogen', title: 'NBNL | II3050 v3 | Eigen Vermogen' },
+    { id: 'ii3050_v3_gezamenlijke_balans', name: 'ii3050_v3_gezamenlijke_balans', title: 'NBNL | II3050 v3 | Gezamenlijke Balans' },
+    { id: 'ii3050_v3_horizon_aanvoer', name: 'ii3050_v3_horizon_aanvoer', title: 'NBNL | II3050 v3 | Horizon Aanvoer' },
+    { id: 'ii3050_v2_nationale_drijfveren', name: 'ii3050_v2_nationale_drijfveren', title: 'NBNL | II3050 v2 | Nationale Drijfveren' },
+    { id: 'ii3050_v2_internationale_ambitie', name: 'ii3050_v2_internationale_ambitie', title: 'NBNL | II3050 v2 | Internationale Ambitie' }
+  ];
+  
+  // Prepare stacked bar data for each scenario
+  const stackedBarData = {};
+  scenarios.forEach(scenario => {
+    stackedBarData[scenario.id] = [];
+    topcatData.forEach(row => {
+      if (!row.subcat || row.subcat === '') return;
+      
+      const key = scenario.id === 'reference' ? currentYear : `${scenario.id}_${currentYear}`;
+      const value = row[key];
+      if (value !== undefined && value !== null && value !== '') {
+        const numValue = parseFloat(value) || 0;
+        // Convert PJ to TWh if needed
+        const convertedValue = (typeof currentUnit !== 'undefined' && currentUnit === 'TWh') ? numValue / 3.6 : numValue;
+        stackedBarData[scenario.id].push({
+          name: row.subcat,
+          value: convertedValue,
+          unit: row.unit
+        });
+      }
+    });
+  });
+  
+  createCijferBasisStackedBarPopup(stackedBarData, scenarios, topcatName, ketenName, tableTitle, currentYear, topcatData);
+}
+
+// Function to create the stacked bar popup structure
+function createCijferBasisStackedBarPopup(stackedBarData, scenarios, topcatName, ketenName, tableTitle, currentYear, originalData) {
+  // Create popup container
+  const popup = d3.select('body').append('div')
+    .attr('id', 'cijferBasisPopup')
+    .style('position', 'fixed')
+    .style('top', '0')
+    .style('left', '0')
+    .style('width', '100%')
+    .style('height', '100%')
+    .style('background-color', 'rgba(0,0,0,0.5)')
+    .style('z-index', '10000')
+    .style('display', 'flex')
+    .style('justify-content', 'center')
+    .style('align-items', 'center')
+    .on('click', closeCijferBasisPopup);
+  
+  const popupContent = popup.append('div')
+    .style('background-color', 'white')
+    .style('border-radius', '10px')
+    .style('padding', '20px')
+    .style('box-shadow', '0 4px 20px rgba(0,0,0,0.3)')
+    .style('width', '95vw')
+    .style('max-width', '1100px')
+    .style('max-height', '780px')
+    .style('overflow-y', 'hidden')
+    .style('position', 'relative')
+    .on('click', function(event) {
+      event.stopPropagation();
+    });
+  
+  // Close button
+  popupContent.append('button')
+    .style('position', 'absolute')
+    .style('top', '10px')
+    .style('right', '0px')
+    .style('background', 'none')
+    .style('border', 'none')
+    .style('font-size', '40px')
+    .style('font-weight', '100')
+    .style('cursor', 'pointer')
+    .style('color', '#666')
+    .text('×')
+    .on('click', closeCijferBasisPopup);
+  
+  // Title with dynamic year
+  const titleElement = popupContent.append('h3')
+    .attr('id', 'stackedBarTitle')
+    .style('margin-top', '20px')
+    .style('margin-left', '40px')
+    .style('font-size', '20px')
+    .style('font-weight', '400')
+    .style('color', '#333')
+    .text(`${topcatName} - Staafdiagram (${currentYear})`);
+  
+  popupContent.append('p')
+    .style('color', '#666')
+    .style('margin-bottom', '15px')
+    .style('margin-left', '40px')
+    .text(`${tableTitle} | ${ketenName}`);
+
+  // Control panel container for buttons and legend
+  const controlPanel = popupContent.append('div')
+    .style('display', 'flex')
+    .style('justify-content', 'space-between')
+    .style('align-items', 'flex-start')
+    .style('margin-bottom', '20px')
+    .style('margin-top', '50px')
+    .style('margin-left', '100px')
+    .style('margin-right', '40px')
+    .style('flex-wrap', 'wrap');
+
+  // Left side: Year and unit selection buttons
+  const buttonContainer = controlPanel.append('div')
+    .style('display', 'flex')
+    .style('flex-direction', 'column')
+    .style('gap', '20px');
+
+  // Year selection buttons
+  const yearButtonContainer = buttonContainer.append('div')
+    .style('display', 'flex')
+    .style('align-items', 'center')
+    .style('gap', '10px');
+  
+  yearButtonContainer.append('span')
+    .style('font-weight', 'bold')
+    .style('color', '#333')
+    .style('font-size', '13px')
+    .style('margin-right', '15px')
+    .text('Jaar');
+  
+  const availableYears = ['2030', '2035', '2040', '2050'];
+  let selectedYear = currentYear;
+  
+  availableYears.forEach(year => {
+    const yearButton = yearButtonContainer.append('button')
+      .attr('class', `year-btn-${year}`)
+      .style('background', year === selectedYear ? '#333' : '#ffffff')
+      .style('color', year === selectedYear ? 'white' : '#333')
+      .style('border', year === selectedYear ? '2px solid #333' : '2px solid #ddd')
+      .style('padding', '10px 16px')
+      .style('border-radius', '8px')
+      .style('cursor', 'pointer')
+      .style('font-size', '12px')
+      .style('font-weight', '600')
+      .style('font-family', 'system-ui, -apple-system, sans-serif')
+      .style('height', '30px')
+      .style('min-width', '60px')
+      .style('display', 'flex')
+      .style('align-items', 'center')
+      .style('justify-content', 'center')
+      .style('transition', 'all 0.2s ease')
+      // .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)')
+      .text(year)
+      .on('mouseover', function() {
+        if (year !== selectedYear) {
+          d3.select(this)
+            .style('background', '#f8f9fa')
+            .style('border', '2px solid #333')
+            .style('transform', 'translateY(-1px)')
+            // .style('box-shadow', '0 4px 8px rgba(0,0,0,0.15)');
+        }
+      })
+      .on('mouseout', function() {
+        if (year !== selectedYear) {
+          d3.select(this)
+            .style('background', '#ffffff')
+            .style('border', '2px solid #ddd')
+            .style('transform', 'translateY(0)')
+            // .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)');
+        }
+      })
+      .on('click', function() {
+        selectedYear = year;
+        // Update year button styles
+        availableYears.forEach(y => {
+          const btn = yearButtonContainer.select(`.year-btn-${y}`);
+          btn.style('background', y === selectedYear ? '#333' : '#ffffff')
+             .style('color', y === selectedYear ? 'white' : '#333')
+             .style('border', y === selectedYear ? '2px solid #333' : '2px solid #ddd')
+             .style('transform', 'translateY(0)')
+            //  .style('box-shadow', y === selectedYear ? '0 2px 8px rgba(0,123,255,0.3)' : '0 2px 4px rgba(0,0,0,0.1)');
+        });
+        // Update title
+        titleElement.text(`${topcatName} - Staafdiagram (${selectedYear})`);
+        // Update the chart
+        updateStackedBarPopup(selectedYear);
+      });
+  });
+  
+  // Unit toggle
+  const unitToggleContainer = buttonContainer.append('div')
+    .style('display', 'flex')
+    .style('align-items', 'center')
+    .style('gap', '0px');
+
+  unitToggleContainer.append('span')
+    .style('font-weight', 'bold')
+    .style('color', '#333')
+    .style('font-size', '13px')
+    .style('margin-right', '15px')
+    .text('Unit');
+  
+  const unitToggle = unitToggleContainer.append('div')
+    .style('display', 'inline-flex')
+    .style('background', '#ffffff')
+    .style('margin-left','10px')
+    // .style('border', '2px solid #ddd')
+    // .style('border-radius', '8px')
+    .style('padding', '2px')
+    // .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)');
+  
+  const pjButton = unitToggle.append('button')
+    .style('background', (typeof currentUnit === 'undefined' || currentUnit === 'PJ') ? '#333' : 'transparent')
+    .style('color', (typeof currentUnit === 'undefined' || currentUnit === 'PJ') ? 'white' : '#333')
+    .style('border', 'none')
+    .style('padding', '8px 16px')
+    .style('border-radius', '6px')
+    .style('cursor', 'pointer')
+    .style('margin-right', '2px')
+    .style('font-size', '13px')
+    .style('font-weight', '600')
+    .style('font-family', 'system-ui, -apple-system, sans-serif')
+    .style('height', '36px')
+    .style('min-width', '50px')
+    .style('display', 'flex')
+    .style('align-items', 'center')
+    .style('justify-content', 'center')
+    .style('transition', 'all 0.2s ease')
+    .text('PJ')
+    .on('mouseover', function() {
+      if (currentUnit !== 'PJ') {
+        d3.select(this).style('background', '#f8f9fa');
+      }
+    })
+    .on('mouseout', function() {
+      if (currentUnit !== 'PJ') {
+        d3.select(this).style('background', 'transparent');
+      }
+    })
+    .on('click', function() {
+      currentUnit = 'PJ';
+      updateStackedBarPopup(selectedYear);
+    });
+  
+  const twhButton = unitToggle.append('button')
+    .style('background', (typeof currentUnit !== 'undefined' && currentUnit === 'TWh') ? '#333' : 'transparent')
+    .style('color', (typeof currentUnit !== 'undefined' && currentUnit === 'TWh') ? 'white' : '#333')
+    .style('border', 'none')
+    .style('padding', '8px 16px')
+    .style('cursor', 'pointer')
+    .style('font-size', '13px')
+    .style('font-weight', '600')
+    .style('font-family', 'system-ui, -apple-system, sans-serif')
+    .style('height', '36px')
+    .style('min-width', '50px')
+    .style('display', 'flex')
+    .style('align-items', 'center')
+    .style('justify-content', 'center')
+    .style('transition', 'all 0.2s ease')
+    .text('TWh')
+    .on('mouseover', function() {
+      if (currentUnit !== 'TWh') {
+        d3.select(this).style('background', '#f8f9fa');
+      }
+    })
+    .on('mouseout', function() {
+      if (currentUnit !== 'TWh') {
+        d3.select(this).style('background', 'transparent');
+      }
+    })
+    .on('click', function() {
+      currentUnit = 'TWh';
+      updateStackedBarPopup(selectedYear);
+    });
+
+  // Right side: Legend placeholder (will be populated by the chart function)
+  const legendContainer = controlPanel.append('div')
+    .attr('id', 'legendContainer')
+    .style('min-width', '300px')
+    .style('max-width', '400px');
+  
+  // Create single SVG for everything
+  const svgContainer = popupContent.append('div')
+    .attr('id', 'stackedBarContainer')
+    .style('width', '100%')
+    .style('height', '550px')
+    .style('margin-left', '40px')
+    .style('margin-right', '40px');
+  
+  function updateStackedBarPopup(yearToUse = selectedYear) {
+    // Clear existing content
+    svgContainer.selectAll('*').remove();
+    
+    // Update button styles
+    pjButton
+      .style('background', (typeof currentUnit === 'undefined' || currentUnit === 'PJ') ? '#333' : 'transparent')
+      .style('color', (typeof currentUnit === 'undefined' || currentUnit === 'PJ') ? 'white' : '#333');
+    
+    twhButton
+      .style('background', (typeof currentUnit !== 'undefined' && currentUnit === 'TWh') ? '#333' : 'transparent')
+      .style('color', (typeof currentUnit !== 'undefined' && currentUnit === 'TWh') ? 'white' : '#333');
+    
+    // Recalculate data with current unit and selected year
+    const recalculatedData = {};
+    scenarios.forEach(scenario => {
+      recalculatedData[scenario.id] = [];
+      originalData.forEach(row => {
+        if (!row.subcat || row.subcat === '') return;
+        
+        const key = scenario.id === 'reference' ? yearToUse : `${scenario.id}_${yearToUse}`;
+        const value = row[key];
+        if (value !== undefined && value !== null && value !== '') {
+          const numValue = parseFloat(value) || 0;
+          const convertedValue = (typeof currentUnit !== 'undefined' && currentUnit === 'TWh') ? numValue / 3.6 : numValue;
+          recalculatedData[scenario.id].push({
+            name: row.subcat,
+            value: convertedValue,
+            unit: row.unit
+          });
+        }
+      });
+    });
+    
+    drawStackedBarsForScenarios(svgContainer, recalculatedData, scenarios);
+    
+    // Update cijferbasis tables if they exist
+    if (typeof updateCijferBasisTables === 'function') {
+      updateCijferBasisTables();
+    }
+  }
+  
+  // Initial draw
+  updateStackedBarPopup(selectedYear);
+}
+
+// Function to draw stacked bars for all scenarios on single SVG
+function drawStackedBarsForScenarios(container, stackedBarData, scenarios) {
+  // Get container dimensions
+  const containerElement = container.node();
+  const containerWidth = containerElement.getBoundingClientRect().width;
+  
+  // Calculate dimensions with padding
+  const padding = 40; // Padding from edges
+  const availableWidth = containerWidth - (padding * 2);
+  
+  // Chart dimensions
+  const margin = { top: 80, right: 20, bottom: 280, left: 130 };
+  const chartWidth = availableWidth - margin.left - margin.right;
+  const chartHeight = 160;
+  
+  // Calculate optimal spacing and bar widths
+  const totalScenarios = scenarios.length;
+  const groupSpacing = 25;
+  const barSpacing = 3;
+  
+  // Calculate bar width dynamically
+  const numGroups = 4;
+  const totalSpacingWidth = (numGroups - 1) * groupSpacing + (totalScenarios - 1) * barSpacing;
+  const barWidth = Math.min(80, (chartWidth - totalSpacingWidth) / totalScenarios);
+  
+  // Group scenarios with professional color scheme
+  const scenarioGroups = [
+    { 
+      name: 'NPE', 
+      scenarios: scenarios.filter(s => s.id === 'reference'),
+      color: '#2c3e50', // Dark blue-gray
+      lightColor: '#ecf0f1' // Light gray
+    },
+    { 
+      name: 'PBL', 
+      scenarios: scenarios.filter(s => s.title.startsWith('PBL')),
+      color: '#27ae60', // Professional green
+      lightColor: '#d5f4e6' // Light green
+    },
+    { 
+      name: 'TNO', 
+      scenarios: scenarios.filter(s => s.title.startsWith('TNO')),
+      color: '#3498db', // Professional blue
+      lightColor: '#d6eaf8' // Light blue
+    },
+    { 
+      name: 'NBNL', 
+      scenarios: scenarios.filter(s => s.title.startsWith('NBNL')),
+      color: '#e67e22', // Professional orange
+      lightColor: '#fdeaa7' // Light orange
+    }
+  ];
+  
+  const svgHeight = chartHeight + margin.top + margin.bottom;
+  
+  const svg = container.append('svg')
+    .attr('width', containerWidth)
+    .attr('height', svgHeight)
+    .style('background', '#FFF'); // Light background
+  
+  const g = svg.append('g')
+    .attr('transform', `translate(${margin.left},${margin.top})`);
+
+  // Create legend in the external container
+  const legendContainer = d3.select('#legendContainer');
+  legendContainer.selectAll('*').remove(); // Clear previous legend
+  
+  // Get all unique subcat names and their units for color coding
+  const allSubcats = [...new Set(
+    Object.values(stackedBarData)
+      .flat()
+      .map(d => d.name)
+  )];
+  
+  // Create unit-based color mapping
+  const getColorForUnit = (unit) => {
+    if (!unit) return unitLabelColors['default'];
+    
+    const colorConfig = unitLabelColors[unit.toLowerCase()] || unitLabelColors['default'];
+    
+    if (typeof colorConfig === 'string') {
+      if (colorConfig.startsWith('diagonal-stripes-')) {
+        // For striped patterns, use the first color
+        const hexPattern = /#[0-9A-Fa-f]{3,6}/g;
+        const colors = colorConfig.match(hexPattern);
+        return colors && colors.length > 0 ? colors[0] : unitLabelColors['default'];
+      }
+      return colorConfig;
+    } else if (typeof colorConfig === 'object' && colorConfig.bg) {
+      return colorConfig.bg;
+    }
+    return unitLabelColors['default'];
+  };
+  
+  // Create unit-based color mapping with shade variations for duplicates
+  const unitColorMap = new Map();
+  const unitCounters = new Map();
+  
+  // First pass: identify all units and count occurrences
+  allSubcats.forEach(subcatName => {
+    for (const scenarioData of Object.values(stackedBarData)) {
+      const item = scenarioData.find(d => d.name === subcatName);
+      if (item && item.unit) {
+        const baseColor = getColorForUnit(item.unit);
+        if (!unitCounters.has(baseColor)) {
+          unitCounters.set(baseColor, []);
+        }
+        if (!unitCounters.get(baseColor).includes(subcatName)) {
+          unitCounters.get(baseColor).push(subcatName);
+        }
+        break;
+      }
+    }
+  });
+  
+  // Second pass: assign colors with shades for duplicates
+  unitCounters.forEach((subcats, baseColor) => {
+    if (subcats.length === 1) {
+      // Single item, use base color
+      unitColorMap.set(subcats[0], baseColor);
+    } else {
+      // Multiple items with same base color, create shades
+      subcats.forEach((subcatName, index) => {
+        const shade = createColorShade(baseColor, index, subcats.length);
+        unitColorMap.set(subcatName, shade);
+      });
+    }
+  });
+  
+  // Helper function to create color shades
+  function createColorShade(baseColor, index, total) {
+    const color = d3.color(baseColor);
+    if (!color) return baseColor;
+    
+    // Create variations by adjusting brightness and saturation
+    const factor = (index / Math.max(1, total - 1)) * 0.6 - 0.3; // Range from -0.3 to +0.3
+    
+    if (factor < 0) {
+      // Darker shade
+      return color.darker(Math.abs(factor * 2)).toString();
+    } else if (factor > 0) {
+      // Brighter shade
+      return color.brighter(factor * 2).toString();
+    } else {
+      // Base color for middle item
+      return baseColor;
+    }
+  }
+  
+  // Color scale function using the enhanced mapping
+  const colorScale = (subcatName) => {
+    return unitColorMap.get(subcatName) || unitLabelColors['default'];
+  };
+  
+  // Calculate max values for y scale
+  const maxValues = scenarios.map(scenario => {
+    return d3.sum(stackedBarData[scenario.id], d => Math.abs(d.value));
+  });
+  const maxValue = d3.max(maxValues);
+  
+  // Use the scenarioGroups already defined above for width calculation
+  
+  // Create custom x positions with optimized spacing
+  let currentX = 0;
+  const xPositions = new Map();
+  
+  scenarioGroups.forEach((group, groupIndex) => {
+    if (groupIndex > 0) {
+      currentX += groupSpacing; // Add spacing before each group (except first)
+    }
+    
+    group.scenarios.forEach((scenario, barIndex) => {
+      xPositions.set(scenario.id, currentX);
+      currentX += barWidth + barSpacing;
+    });
+  });
+  
+  // Calculate total width used
+  const totalWidth = currentX - barSpacing; // Remove last bar spacing
+  
+  // Custom scale function
+  const xScale = (scenarioId) => xPositions.get(scenarioId);
+  
+  const yScale = d3.scaleLinear()
+    .domain([0, maxValue * 1.1])
+    .range([chartHeight, 0]);
+  
+  // Draw professional background rectangles for each group
+  let groupX = 0;
+  scenarioGroups.forEach((group, groupIndex) => {
+    if (group.scenarios.length === 0) return;
+    
+    if (groupIndex > 0) {
+      groupX += groupSpacing;
+    }
+    
+    const groupWidth = group.scenarios.length * (barWidth + barSpacing) - barSpacing;
+    
+    // Background rectangle for group
+    g.append('rect')
+      .attr('x', groupX - 8)
+      .attr('y', -50)
+      .attr('width', groupWidth + 16)
+      .attr('height', chartHeight + 60)
+      .attr('fill', group.lightColor)
+      .attr('stroke', group.color)
+      .attr('stroke-width', 1)
+      .style('opacity', 0.3);
+    
+    // Group header rectangle
+    g.append('rect')
+      .attr('x', groupX - 8)
+      .attr('y', -50)
+      .attr('width', groupWidth + 16)
+      .attr('height', 28)
+      .attr('fill', group.color)
+      .attr('rx', 6)
+      .style('opacity', 0.9);
+    
+    // Group label with professional styling
+    g.append('text')
+      .attr('x', groupX + groupWidth / 2)
+      .attr('y', -30)
+      .style('text-anchor', 'middle')
+      .style('font-size', '13px')
+      .style('font-weight', '600')
+      .style('fill', 'white')
+      .style('text-shadow', '0 1px 2px rgba(0,0,0,0.3)')
+      .text(group.name);
+    
+    groupX += groupWidth + barSpacing;
+  });
+
+  // Tooltip with improved styling
+  const tooltip = d3.select('body').append('div')
+    .attr('class', 'stacked-bar-tooltip')
+    .style('position', 'absolute')
+    .style('visibility', 'hidden')
+    .style('background', 'rgba(44, 62, 80, 0.95)')
+    .style('color', 'white')
+    .style('padding', '12px 16px')
+    .style('border-radius', '8px')
+    .style('font-size', '13px')
+    .style('font-family', 'system-ui, -apple-system, sans-serif')
+    .style('box-shadow', '0 4px 12px rgba(0,0,0,0.15)')
+    .style('pointer-events', 'none')
+    .style('z-index', '10001')
+    .style('border', '1px solid rgba(255,255,255,0.1)');
+  
+  // Draw stacked bars with improved styling
+  scenarios.forEach(scenario => {
+    const data = stackedBarData[scenario.id];
+    let cumulativeHeight = 0;
+    
+    data.forEach(d => {
+      if (d.value === 0) return;
+      
+      const barHeight = yScale(0) - yScale(Math.abs(d.value));
+      
+      g.append('rect')
+        .attr('x', xScale(scenario.id))
+        .attr('y', yScale(cumulativeHeight + Math.abs(d.value)))
+        .attr('width', barWidth)
+        .attr('height', barHeight)
+        .attr('fill', colorScale(d.name))
+        .attr('stroke', 'rgba(255,255,255,0.8)')
+        .attr('stroke-width', 1)
+        .attr('rx', 2) // Slight rounding for modern look
+        .style('transition', 'all 0.2s ease')
+        .on('mouseover', function(event) {
+          d3.select(this)
+            .attr('stroke', '#2c3e50')
+            .attr('stroke-width', 2)
+            .style('filter', 'brightness(1.1)');
+          
+          tooltip.style('visibility', 'visible')
+            .html(`<div style="font-weight: 600; margin-bottom: 8px;">${d.name}</div>
+                   <div style="margin-bottom: 4px;"><span style="color: #bdc3c7;">Value:</span> <strong>${d.value.toFixed(2)} ${typeof currentUnit !== 'undefined' && currentUnit === 'TWh' ? 'TWh' : 'PJ'}</strong></div>
+                   <div style="margin-bottom: 4px;"><span style="color: #bdc3c7;">Unit:</span> ${d.unit || 'N/A'}</div>
+                   <div style="color: #bdc3c7; font-size: 12px;">${scenario.title}</div>`);
+        })
+        .on('mousemove', function(event) {
+          tooltip.style('top', (event.pageY - 10) + 'px')
+            .style('left', (event.pageX + 10) + 'px');
+        })
+        .on('mouseout', function() {
+          d3.select(this)
+            .attr('stroke', 'rgba(255,255,255,0.8)')
+            .attr('stroke-width', 1)
+            .style('filter', 'none');
+          tooltip.style('visibility', 'hidden');
+        });
+      
+      cumulativeHeight += Math.abs(d.value);
+    });
+  });
+  
+  // Custom X axis with professional styling
+  const xAxisGroup = g.append('g')
+    .attr('transform', `translate(0,${chartHeight})`);
+  
+  // Draw axis line with subtle styling
+  xAxisGroup.append('line')
+    .attr('x1', 0)
+    .attr('x2', totalWidth)
+    .attr('y1', 0)
+    .attr('y2', 0)
+    .style('stroke', '#bdc3c7')
+    .style('stroke-width', 1);
+  
+  // Add tick marks and labels for each scenario
+  scenarios.forEach(scenario => {
+    const x = xScale(scenario.id) + barWidth / 2; // Center of bar
+    
+    // Tick mark
+    xAxisGroup.append('line')
+      .attr('x1', x)
+      .attr('x2', x)
+      .attr('y1', 0)
+      .attr('y2', 6)
+      .style('stroke', '#95a5a6')
+      .style('stroke-width', 1);
+    
+    // Label with improved styling
+    xAxisGroup.append('text')
+      .attr('x', x)
+      .attr('y', 20)
+      .style('text-anchor', 'end')
+      .attr('dx', '-.8em')
+      .attr('dy', '-.15em')
+      .attr('transform', `rotate(-45, ${x}, 20)`)
+      .style('font-size', '9px')
+      .style('font-family', 'system-ui, -apple-system, sans-serif')
+      .style('fill', '#2c3e50')
+      .text(scenario.title);
+  });
+  
+  // Y axis with professional styling
+  const yAxisGroup = g.append('g')
+    .call(d3.axisLeft(yScale)
+      .tickFormat(d => d3.format('.0f')(d))
+      .tickSize(-totalWidth) // Grid lines
+    );
+  
+  // Style the y-axis
+  yAxisGroup.selectAll('.domain')
+    .style('stroke', '#bdc3c7');
+  
+  yAxisGroup.selectAll('.tick line')
+    .style('stroke', '#000')
+    .style('stroke-width', 1)
+    .style('opacity', 0.1);
+  
+  yAxisGroup.selectAll('.tick text')
+    .style('fill', '#2c3e50')
+    .style('font-family', 'system-ui, -apple-system, sans-serif')
+    .style('font-size', '11px')
+    .attr('transform', 'translate(-20, 0)');
+
+    d3.selectAll('.domain').remove();
+  
+  // Y-axis label
+  yAxisGroup.append('text')
+    .attr('transform', 'rotate(-90)')
+    .attr('y', -70)
+    .attr('x', -chartHeight / 2)
+    .attr('text-anchor', 'middle')
+    .style('fill', '#2c3e50')
+    .style('font-size', '12px')
+    .style('font-weight', '500')
+    .style('font-family', 'system-ui, -apple-system, sans-serif')
+    .text(`Value (${typeof currentUnit !== 'undefined' && currentUnit === 'TWh' ? 'TWh' : 'PJ'})`);
+  
+  // Create external legend in the control panel
+  const legend = legendContainer.append('div')
+    .style('background', 'rgba(255,255,255,0.95)')
+    .style('border', '1px solid #bdc3c7')
+    .style('border-radius', '8px')
+    .style('padding', '12px')
+    .style('margin-right', '10px')
+    .style('margin-top', '-100px')
+    .style('box-shadow', '0 2px 8px rgba(0,0,0,0.1)');
+  
+  legend.append('div')
+    .style('font-size', '13px')
+    .style('font-weight', '600')
+    .style('color', '#2c3e50')
+    .style('font-family', 'system-ui, -apple-system, sans-serif')
+    .style('margin-bottom', '8px')
+    .text('Legenda');
+  
+  const legendItems = legend.append('div')
+    .style('display', 'flex')
+    .style('flex-direction', 'column')
+    .style('gap', '4px')
+    .style('max-height', '200px')
+    .style('overflow-y', 'auto');
+  
+  allSubcats.forEach(subcat => {
+    const legendRow = legendItems.append('div')
+      .style('display', 'flex')
+      .style('align-items', 'center')
+      .style('gap', '8px');
+    
+    // Color square
+    legendRow.append('div')
+      .style('width', '12px')
+      .style('height', '12px')
+      .style('background-color', colorScale(subcat))
+      .style('border', '1px solid rgba(255,255,255,0.8)')
+      .style('border-radius', '2px')
+      .style('flex-shrink', '0');
+    
+    // Component name and unit
+    const textContainer = legendRow.append('div')
+      .style('display', 'flex')
+      .style('justify-content', 'space-between')
+      .style('align-items', 'center')
+      .style('width', '100%')
+      .style('min-width', '0');
+    
+    textContainer.append('span')
+      .style('font-size', '10px')
+      .style('color', '#2c3e50')
+      .style('font-family', 'system-ui, -apple-system, sans-serif')
+      .style('overflow', 'hidden')
+      .style('text-overflow', 'ellipsis')
+      .style('white-space', 'nowrap')
+      .text(subcat);
+    
+    // Unit indicator
+    const unitText = (() => {
+      for (const scenarioData of Object.values(stackedBarData)) {
+        const item = scenarioData.find(d => d.name === subcat);
+        if (item && item.unit) return item.unit;
+      }
+      return '';
+    })();
+    
+    if (unitText) {
+      textContainer.append('span')
+        .style('font-size', '8px')
+        .style('color', '#7f8c8d')
+        .style('font-family', 'system-ui, -apple-system, sans-serif')
+        .style('font-style', 'italic')
+        .style('flex-shrink', '0')
+        .style('margin-left', '8px')
+        .text(`(${unitText})`);
+    }
+  });
+  
+  // Clean up tooltip on popup close
+  d3.select('#cijferBasisPopup').on('remove', function() {
+    tooltip.remove();
+  });
 }
 
 // Function to set ZIP file data (called from loadData.js)

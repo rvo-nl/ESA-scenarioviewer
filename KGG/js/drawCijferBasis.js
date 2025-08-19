@@ -594,7 +594,7 @@ function createTable(container, data, tableName, currentYear, scenarioName, scen
       .text(formatNumber(subtotalDifference, true));
     
     const notesCell = topcatRow.append('td')
-      .attr('class', 'notes-cell')
+      .attr('class', 'notes-cell with-button')
       .style('position', 'relative');
     
     // Add stacked bar button

@@ -451,17 +451,17 @@ function generateSankeyLibrary (workbook) {
      }
      
      dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']
-     dataset_TRANSFORM_DEFAULT = excelData['data_watervaldiagram_B_TRANSFORM - Default']
-     dataset_TRANSFORM_C_EN_I = excelData['data_watervaldiagram_C_TRANSFORM - Competitief en import']
+     dataset_TRANSFORM_DEFAULT = excelData['data_watervaldiagram_C_TRANSFORM - Default']
+     dataset_TRANSFORM_C_EN_I = excelData['data_watervaldiagram_B_TRANSFORM - Competitief en import']
      dataset_TRANSFORM_MC = excelData['data_watervaldiagram_D_TRANSFORM - Minder competitief']
      dataset_TRANSFORM_MC_EN_I = excelData['data_watervaldiagram_E_TRANSFORM - Minder competitief en import']
      dataset_PR40 = excelData['data_watervaldiagram_OP - CO2-opslag 40']
      dataset_SR20 = excelData['data_watervaldiagram_OptimistischSelectiefFossilCarbonPenalty']
      dataset_PB30 = excelData['data_watervaldiagram_PP_CCS_30_in_2050']
-     dataset_WLO1 = excelData['data_watervaldiagram_WLO1']
-     dataset_WLO2 = excelData['data_watervaldiagram_WLO2']
-     dataset_WLO3 = excelData['data_watervaldiagram_WLO3']
-     dataset_WLO4 = excelData['data_watervaldiagram_WLO4']
+    //  dataset_WLO1 = excelData['data_watervaldiagram_WLO1']
+    //  dataset_WLO2 = excelData['data_watervaldiagram_WLO2']
+    //  dataset_WLO3 = excelData['data_watervaldiagram_WLO3']
+    //  dataset_WLO4 = excelData['data_watervaldiagram_WLO4']
 
      initWaterfallDiagram()
 

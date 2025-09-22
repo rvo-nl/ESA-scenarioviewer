@@ -148,8 +148,8 @@ async function loadCijferBasisData() {
     cijferBasisData = data;
     console.log('Cijferbasis data loaded:', data.length, 'rows');
     
-    // Initial draw
-    drawCijferBasisTables();
+    // Initial draw - always draw on first load to ensure proper initialization
+    drawCijferBasisTablesForced();
   } catch (error) {
     console.error('Error loading cijferbasis data:', error);
   }
@@ -335,8 +335,24 @@ function updateExistingTables(currentYear, selectedScenarioName, selectedScenari
   });
 }
 
-// Main function to draw the tables
+// Main function to draw the tables (with visibility check)
 function drawCijferBasisTables() {
+  if (!cijferBasisData) {
+    console.warn('Cijferbasis data not loaded yet');
+    return;
+  }
+  
+  // Only draw if visible on screen to improve performance
+  if (!isCijferBasisVisible()) {
+    console.log('Cijferbasis section not visible, skipping draw');
+    return;
+  }
+  
+  drawCijferBasisTablesForced();
+}
+
+// Internal function to draw tables without visibility check (for initial load and forced updates)
+function drawCijferBasisTablesForced() {
   if (!cijferBasisData) {
     console.warn('Cijferbasis data not loaded yet');
     return;
@@ -694,14 +710,77 @@ function formatNumber(value, showSign = false) {
   return roundedValue < 0 ? `−${formatted}` : formatted;
 }
 
+// Variable to track if cijferbasis needs updating when it becomes visible
+let cijferBasisNeedsUpdate = false;
+
+// Function to check if cijferbasis container is visible on screen
+function isCijferBasisVisible() {
+  const container = document.getElementById('cijferbasis_container');
+  if (!container) return false;
+  
+  const rect = container.getBoundingClientRect();
+  const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+  const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+  
+  // Check if the container is at least partially visible
+  return (
+    rect.bottom > 0 &&
+    rect.right > 0 &&
+    rect.top < windowHeight &&
+    rect.left < windowWidth
+  );
+}
+
 // Function to update tables when scenario/year changes
 function updateCijferBasisTables() {
-  drawCijferBasisTables();
+  // Only update if the cijferbasis section is visible on screen
+  if (!isCijferBasisVisible()) {
+    console.log('Cijferbasis section not visible, marking for update when visible');
+    cijferBasisNeedsUpdate = true;
+    return;
+  }
+  
+  drawCijferBasisTablesForced();
+  cijferBasisNeedsUpdate = false;
+}
+
+// Setup intersection observer to monitor cijferbasis visibility
+function setupCijferBasisVisibilityObserver() {
+  const container = document.getElementById('cijferbasis_container');
+  if (!container) return;
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        // Section is now visible
+        console.log('Cijferbasis section became visible');
+        
+        // If tables need updating and data is loaded, update them
+        if (cijferBasisNeedsUpdate && cijferBasisData) {
+          console.log('Updating cijferbasis tables after becoming visible');
+          drawCijferBasisTablesForced();
+          cijferBasisNeedsUpdate = false;
+        }
+        // If no tables exist yet and data is loaded, draw them
+        else if (!tablesExist() && cijferBasisData) {
+          console.log('Drawing cijferbasis tables for first time');
+          drawCijferBasisTablesForced();
+        }
+      }
+    });
+  }, {
+    threshold: 0.1, // Trigger when 10% of the element is visible
+    rootMargin: '50px' // Start loading slightly before the element comes into view
+  });
+  
+  observer.observe(container);
 }
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
   loadCijferBasisData();
+  // Setup visibility observer after a short delay to ensure DOM is ready
+  setTimeout(setupCijferBasisVisibilityObserver, 100);
 });
 
 // Function to toggle table visibility

@@ -1548,7 +1548,45 @@ function plotStackedBarGraph(config, data, refHeight, xPos, yPos, svgSelector, i
 
 
 
+// Variable to track if waterfall needs updating when it becomes visible
+let waterfallNeedsUpdate = false;
+let pendingWaterfallConfig = null;
+
+// Function to check if waterfall container is visible on screen
+function isWaterfallVisible() {
+  const container = document.getElementById('SVGContainer_waterfalldiagram');
+  if (!container) return false;
+  
+  const rect = container.getBoundingClientRect();
+  const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+  const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+  
+  // Check if the container is at least partially visible
+  return (
+    rect.bottom > 0 &&
+    rect.right > 0 &&
+    rect.top < windowHeight &&
+    rect.left < windowWidth
+  );
+}
+
+// Main function with visibility check
 function switchRoutekaart (config) {
+  // Only update if the waterfall section is visible on screen
+  if (!isWaterfallVisible()) {
+    console.log('Waterfall section not visible, marking for update when visible');
+    waterfallNeedsUpdate = true;
+    pendingWaterfallConfig = config;
+    return;
+  }
+  
+  switchRoutekaartForced(config);
+  waterfallNeedsUpdate = false;
+  pendingWaterfallConfig = null;
+}
+
+// Internal function to draw waterfall without visibility check (for initial load and forced updates)
+function switchRoutekaartForced (config) {
   console.log('Switch')
   d3.selectAll('#waterfallSVG').remove()
   
@@ -1693,6 +1731,40 @@ function updateWaterfallSelectionDisplay(routekaart, sector) {
     console.log(`Updating waterfall display: ${routekaartText} | ${sectorText} (codes: ${routekaart}, ${sector})`);
   }
 }
+
+// Setup intersection observer to monitor waterfall visibility
+function setupWaterfallVisibilityObserver() {
+  const container = document.getElementById('SVGContainer_waterfalldiagram');
+  if (!container) return;
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        // Section is now visible
+        console.log('Waterfall section became visible');
+        
+        // If waterfall needs updating and we have pending config, update it
+        if (waterfallNeedsUpdate && pendingWaterfallConfig) {
+          console.log('Updating waterfall after becoming visible');
+          switchRoutekaartForced(pendingWaterfallConfig);
+          waterfallNeedsUpdate = false;
+          pendingWaterfallConfig = null;
+        }
+      }
+    });
+  }, {
+    threshold: 0.1, // Trigger when 10% of the element is visible
+    rootMargin: '50px' // Start loading slightly before the element comes into view
+  });
+  
+  observer.observe(container);
+}
+
+// Initialize waterfall visibility observer when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Setup visibility observer after a short delay to ensure DOM is ready
+  setTimeout(setupWaterfallVisibilityObserver, 100);
+});
 
 // setTimeout(() => {
 //   switchRoutekaart({

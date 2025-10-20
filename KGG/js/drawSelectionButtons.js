@@ -117,6 +117,12 @@ function drawSelectionButtons (config) {
       2050: 77,
       2060: 78,
     },
+    'NBNL.2025.IV': {
+      2030: 79,
+      2035: 80,
+      2040: 81,
+      2050: 82
+    },
   }
   const years = [
     {id: '2025', title: '2025'},
@@ -227,7 +233,8 @@ function drawSelectionButtons (config) {
       {id: 'NBNL.V3GB', title: 'NBNL | II3050 v3 | Gezamenlijke Balans', color: colorNBNLv3},
       {id: 'NBNL.V3HA', title: 'NBNL | II3050 v3 | Horizon Aanvoer', color: colorNBNLv3},
       {id: 'NBNL.V2NA', title: 'NBNL | II3050 v2 | Nationale Drijfveren', color: colorNBNLv2},
-      {id: 'NBNL.V2IA', title: 'NBNL | II3050 v2 | Internationale Ambitie', color: colorNBNLv2}
+      {id: 'NBNL.V2IA', title: 'NBNL | II3050 v2 | Internationale Ambitie', color: colorNBNLv2},
+      {id: 'NBNL.2025.IV', title: 'NBNL | 2025 | Industrievariant Concept', color: colorNBNLv3}
       // {id: 'SRMPA', title: 'Specifiek Ruim - Minder plastic afval'},
 
     ]

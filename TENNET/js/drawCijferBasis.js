@@ -377,7 +377,9 @@ function drawCijferBasisTablesForced() {
     'NBNL.V3GB': { csvName: 'ii3050_v3_gezamenlijke_balans', title: 'NBNL | II3050 v3 | Gezamenlijke Balans' },
     'NBNL.V3HA': { csvName: 'ii3050_v3_horizon_aanvoer', title: 'NBNL | II3050 v3 | Horizon Aanvoer' },
     'NBNL.V2NA': { csvName: 'ii3050_v2_nationale_drijfveren', title: 'NBNL | II3050 v2 | Nationale Drijfveren' },
-    'NBNL.V2IA': { csvName: 'ii3050_v2_internationale_ambitie', title: 'NBNL | II3050 v2 | Internationale Ambitie' }
+    'NBNL.V2IA': { csvName: 'ii3050_v2_internationale_ambitie', title: 'NBNL | II3050 v2 | Internationale Ambitie' },
+    'NBNL.2025.IV': { csvName: 'NBNL-2025-IV-CONCEPT', title: 'NBNL | 2025 | Industrievariant Concept' },
+    'TENNET.EV2050': { csvName: 'TENNET-EV2050', title: 'TenneT | Target Grid EV2050' }
   };
   
   const currentScenarioInfo = scenarioInfo[currentScenario] || { csvName: 'reference', title: 'Reference' };
@@ -816,7 +818,9 @@ function toggleTable(tableId) {
       'NBNL.V3GB': { title: 'NBNL | II3050 v3 | Gezamenlijke Balans' },
       'NBNL.V3HA': { title: 'NBNL | II3050 v3 | Horizon Aanvoer' },
       'NBNL.V2NA': { title: 'NBNL | II3050 v2 | Nationale Drijfveren' },
-      'NBNL.V2IA': { title: 'NBNL | II3050 v2 | Internationale Ambitie' }
+      'NBNL.V2IA': { title: 'NBNL | II3050 v2 | Internationale Ambitie' },
+      'NBNL.2025.IV': { title: 'NBNL | 2025 | Industrievariant Concept' },
+      'TENNET.EV2050': { title: 'TenneT | Target Grid EV2050' }
     };
     const scenarioTitle = scenarioInfo[currentScenario]?.title || 'Reference';
     
@@ -1662,7 +1666,9 @@ function drawCijferBasisUnitToggle() {
           'NBNL.V3GB': { csvName: 'ii3050_v3_gezamenlijke_balans', title: 'NBNL | II3050 v3 | Gezamenlijke Balans' },
           'NBNL.V3HA': { csvName: 'ii3050_v3_horizon_aanvoer', title: 'NBNL | II3050 v3 | Horizon Aanvoer' },
           'NBNL.V2NA': { csvName: 'ii3050_v2_nationale_drijfveren', title: 'NBNL | II3050 v2 | Nationale Drijfveren' },
-          'NBNL.V2IA': { csvName: 'ii3050_v2_internationale_ambitie', title: 'NBNL | II3050 v2 | Internationale Ambitie' }
+          'NBNL.V2IA': { csvName: 'ii3050_v2_internationale_ambitie', title: 'NBNL | II3050 v2 | Internationale Ambitie' },
+          'NBNL.2025.IV': { csvName: 'NBNL-2025-IV-CONCEPT', title: 'NBNL | 2025 | Industrievariant Concept' },
+          'TENNET.EV2050': { csvName: 'TENNET-EV2050', title: 'TenneT | Target Grid EV2050' }
         };
         const currentScenarioInfo = scenarioInfo[currentScenario] || { csvName: 'reference', title: 'Reference' };
         updateExistingTables(currentYear, currentScenarioInfo.csvName, currentScenarioInfo.title);

@@ -63,6 +63,15 @@ function drawSelectionButtons (config) {
       2040: 40,
       2050: 41
     },
+    'NBNL.2025.IV': {
+      2030: 42,
+      2035: 43,
+      2040: 44,
+      2050: 45
+    },
+    'TENNET.EV2050': {
+      2050: 46
+    },
   }
   const years = [
     {id: '2025', title: '2025'},
@@ -151,6 +160,7 @@ function drawSelectionButtons (config) {
   const colorPBL = '#A7E6CB'
   const colorNBNLv2 = '#F2D8CD'
   const colorNBNLv3 = '#FDEFCE'
+  const colorTENNET = '#D4E5F7'
 
   drawScenarioButtons()
   function drawScenarioButtons () {
@@ -164,7 +174,9 @@ function drawSelectionButtons (config) {
       {id: 'NBNL.V3GB', title: 'NBNL | II3050 v3 | Gezamenlijke Balans', color: colorNBNLv3},
       {id: 'NBNL.V3HA', title: 'NBNL | II3050 v3 | Horizon Aanvoer', color: colorNBNLv3},
       {id: 'NBNL.V2NA', title: 'NBNL | II3050 v2 | Nationale Drijfveren', color: colorNBNLv2},
-      {id: 'NBNL.V2IA', title: 'NBNL | II3050 v2 | Internationale Ambitie', color: colorNBNLv2}
+      {id: 'NBNL.V2IA', title: 'NBNL | II3050 v2 | Internationale Ambitie', color: colorNBNLv2},
+      {id: 'NBNL.2025.IV', title: 'NBNL | 2025 | Industrievariant Concept', color: colorNBNLv3},
+      {id: 'TENNET.EV2050', title: 'TenneT | Target Grid EV2050', color: colorTENNET}
 
     ]
 

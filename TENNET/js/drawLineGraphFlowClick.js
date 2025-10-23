@@ -45,7 +45,7 @@ function drawBarGraph (data, config) {
     .style('box-shadow', '0 4px 10px rgba(0,0,0,0.2)')
     .style('border-radius', '10px')
     .style('width', '1100px')
-    .style('height', '720px')
+    .style('height', '800px')
     .style('background-color', '#f9f9f9')
 
   const svg = popup.append('svg')
@@ -212,7 +212,8 @@ function drawBarGraph (data, config) {
   const varianten = [
     'TVKN-PR40', 'TVKN-SR20', 'TVKN-PB30',
     'NBNL-V3KM', 'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA',
-    'NBNL-V2NA', 'NBNL-V2IA'
+    'NBNL-V2NA', 'NBNL-V2IA', 'NBNL-2025-IV-CONCEPT',
+    'TENNET-EV2050'
   ]
 
   // Create displayNameToDataMap by collecting data from multiple year-specific entries
@@ -247,6 +248,8 @@ function drawBarGraph (data, config) {
     else if (scenarioType.includes('ii3050_v3_horizon_aanvoer')) displayName = 'NBNL-V3HA'
     else if (scenarioType.includes('ii3050_v2_nationale_drijfveren')) displayName = 'NBNL-V2NA'
     else if (scenarioType.includes('ii3050_v2_internationale_ambitie')) displayName = 'NBNL-V2IA'
+    else if (scenarioType.includes('nbnl_scenarios_2025_industrievariant_concept')) displayName = 'NBNL-2025-IV-CONCEPT'
+    else if (scenarioType.includes('tennet_target_grid_ev2050_variant')) displayName = 'TENNET-EV2050'
     else if (scenarioType === 'WLO_1') displayName = 'WLO_1'
     else if (scenarioType === 'WLO_2') displayName = 'WLO_2'
     else if (scenarioType === 'WLO_3') displayName = 'WLO_3'
@@ -303,7 +306,9 @@ function drawBarGraph (data, config) {
     'NBNL-V3GB': 'NBNL-2025 | II3050 v3 | Gezamenlijke Balans',
     'NBNL-V3HA': 'NBNL-2025 | II3050 v3 | Horizon Aanvoer',
     'NBNL-V2NA': 'NBNL-2023 | II3050 v2 | Nationale Drijfveren',
-    'NBNL-V2IA': 'NBNL-2023 | II3050 v2 | Internationale Ambitie'
+    'NBNL-V2IA': 'NBNL-2023 | II3050 v2 | Internationale Ambitie',
+    'NBNL-2025-IV-CONCEPT': 'NBNL-2025 | Industrievariant Concept',
+    'TENNET-EV2050': 'TenneT-2025 | Target Grid EV2050'
   }
 
   const categoryInfo = {
@@ -313,7 +318,11 @@ function drawBarGraph (data, config) {
     },
     NBNL: {
       baseColor: '#ff7f00', // orange
-      scenarios: ['NBNL-V3KM', 'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA', 'NBNL-V2NA', 'NBNL-V2IA']
+      scenarios: ['NBNL-V3KM', 'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA', 'NBNL-V2NA', 'NBNL-V2IA', 'NBNL-2025-IV-CONCEPT']
+    },
+    TENNET: {
+      baseColor: '#6baed6', // light blue
+      scenarios: ['TENNET-EV2050']
     }
   }
 
@@ -407,6 +416,12 @@ function drawBarGraph (data, config) {
       }
 
       const scenarioDataForYears = displayNameToDataMap[scenarioName]
+
+      // Skip if no data available for this scenario
+      if (!scenarioDataForYears) {
+        console.log(`No data available for ${scenarioName}, skipping`)
+        return
+      }
 
       const color = scenarioColors[scenarioName]
 

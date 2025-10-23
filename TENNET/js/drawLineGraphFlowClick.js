@@ -308,7 +308,7 @@ function drawBarGraph (data, config) {
     'NBNL-V2NA': 'NBNL-2023 | II3050 v2 | Nationale Drijfveren',
     'NBNL-V2IA': 'NBNL-2023 | II3050 v2 | Internationale Ambitie',
     'NBNL-2025-IV-CONCEPT': 'NBNL-2025 | Industrievariant Concept',
-    'TENNET-EV2050': 'TenneT-2025 | Target Grid EV2050'
+    'TENNET-EV2050': 'TenneT-2025 | EV Variant Sensitivity Analysis'
   }
 
   const categoryInfo = {

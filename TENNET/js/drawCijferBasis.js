@@ -379,7 +379,7 @@ function drawCijferBasisTablesForced() {
     'NBNL.V2NA': { csvName: 'ii3050_v2_nationale_drijfveren', title: 'NBNL | II3050 v2 | Nationale Drijfveren' },
     'NBNL.V2IA': { csvName: 'ii3050_v2_internationale_ambitie', title: 'NBNL | II3050 v2 | Internationale Ambitie' },
     'NBNL.2025.IV': { csvName: 'NBNL-2025-IV-CONCEPT', title: 'NBNL | 2025 | Industrievariant Concept' },
-    'TENNET.EV2050': { csvName: 'TENNET-EV2050', title: 'TenneT | Target Grid EV2050' }
+    'TENNET.EV2050': { csvName: 'TENNET-EV2050', title: 'TenneT | 2025 | EV Variant Sensitivity Analysis' }
   };
   
   const currentScenarioInfo = scenarioInfo[currentScenario] || { csvName: 'reference', title: 'Reference' };
@@ -820,7 +820,7 @@ function toggleTable(tableId) {
       'NBNL.V2NA': { title: 'NBNL | II3050 v2 | Nationale Drijfveren' },
       'NBNL.V2IA': { title: 'NBNL | II3050 v2 | Internationale Ambitie' },
       'NBNL.2025.IV': { title: 'NBNL | 2025 | Industrievariant Concept' },
-      'TENNET.EV2050': { title: 'TenneT | Target Grid EV2050' }
+      'TENNET.EV2050': { title: 'TenneT | 2025 | EV Variant Sensitivity Analysis' }
     };
     const scenarioTitle = scenarioInfo[currentScenario]?.title || 'Reference';
     
@@ -1668,7 +1668,7 @@ function drawCijferBasisUnitToggle() {
           'NBNL.V2NA': { csvName: 'ii3050_v2_nationale_drijfveren', title: 'NBNL | II3050 v2 | Nationale Drijfveren' },
           'NBNL.V2IA': { csvName: 'ii3050_v2_internationale_ambitie', title: 'NBNL | II3050 v2 | Internationale Ambitie' },
           'NBNL.2025.IV': { csvName: 'NBNL-2025-IV-CONCEPT', title: 'NBNL | 2025 | Industrievariant Concept' },
-          'TENNET.EV2050': { csvName: 'TENNET-EV2050', title: 'TenneT | Target Grid EV2050' }
+          'TENNET.EV2050': { csvName: 'TENNET-EV2050', title: 'TenneT | 2025 | EV Variant Sensitivity Analysis' }
         };
         const currentScenarioInfo = scenarioInfo[currentScenario] || { csvName: 'reference', title: 'Reference' };
         updateExistingTables(currentYear, currentScenarioInfo.csvName, currentScenarioInfo.title);

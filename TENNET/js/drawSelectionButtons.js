@@ -176,7 +176,7 @@ function drawSelectionButtons (config) {
       {id: 'NBNL.V2NA', title: 'NBNL | II3050 v2 | Nationale Drijfveren', color: colorNBNLv2},
       {id: 'NBNL.V2IA', title: 'NBNL | II3050 v2 | Internationale Ambitie', color: colorNBNLv2},
       {id: 'NBNL.2025.IV', title: 'NBNL | 2025 | Industrievariant Concept', color: colorNBNLv3},
-      {id: 'TENNET.EV2050', title: 'TenneT | Target Grid EV2050', color: colorTENNET}
+      {id: 'TENNET.EV2050', title: 'TenneT | 2025 | EV Variant Sensitivity Analysis', color: colorTENNET}
 
     ]
 

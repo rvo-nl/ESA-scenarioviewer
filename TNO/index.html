@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <!-- Basic Page Needs
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta charset="utf-8">
+  <title>Scenarioviewer ESA TNO</title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!-- Mobile Specific Metas
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- FONT
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link
+    href="//fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
+    rel="stylesheet" type="text/css">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+  <!-- CSS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="stylesheet" href="css/milligram.css">
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Favicon
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <!-- <link rel="icon" type="image/png" href="images/favicon.png"> -->
+
+</head>
+
+<script>
+  dataSource = 'file';
+  // let dataSource = 'url'
+
+  let projectID = 'ESA'
+  let productID = 'A'
+  let versionID = 'v5'
+
+  // let sankeyData = { links: [], nodes: [], order: [] }
+</script>
+
+<body>
+  <div id="liner"></div>
+  <div id="loadFileDialog"></div>
+  <div id="showValueOnHover"></div>
+  <script>
+    // Conditionally show welcome screen based on data source
+    if (dataSource === 'file') {
+      // Show modern login screen for encrypted file access
+      // <div class="version-badge">v${versionID} • ${projectID}_${productID}</div>
+      document.getElementById('loadFileDialog').innerHTML = `
+        <div class="welcome-container">
+          <div class="welcome-card">
+            <div class="welcome-header">
+            
+              <h1 class="welcome-title" style="font-size: 40px!important;">Scenarioviewer</h1>
+               <h1 class="welcome-title" style="font-size: 17px!important;">TNO</h1>
+              <p class="welcome-subtitle"></p>
+              <div class="version-badge">AT • TVKN • WLO • II3050 • NPE</div>
+            </div>
+            <div class="welcome-content">
+              <div class="input-group">
+                <div class="input-wrapper" id="passphraseWrapper">
+                  <!-- Passphrase input will be inserted here -->
+                </div>
+              </div>
+              <div class="button-group" id="buttonGroup">
+                <!-- Decrypt button will be inserted here -->
+              </div>
+              <div class="status-message" id="statusMessage">
+                <!-- Status messages will appear here -->
+              </div>
+            </div>
+          </div>
+          <div class="welcome-footer">
+          </div>
+        </div>
+      `;
+    } else {
+      // For URL mode, hide the dialog and show minimal loading state
+      document.getElementById('loadFileDialog').innerHTML = `
+        <div style="display: none;">
+          <span style="font-weight:300;font-size:28px">Loading data...</span>
+          <br><br>
+          <span style="font-weight:400;font-size:12px">script: 
+            ${projectID}_${productID}_${versionID}</span>
+        </div>
+      `;
+    }
+  </script>
+  <div id="main-container">
+    <div class="content-fullwidth" style="padding:0px">
+      <div class="concept-label" style="float: right;">
+        CONCEPT
+      </div>
+      <div class="content-fullwidth" style="padding:0px;background-color: white;">
+        <div class="version-label">
+          Versie 18.08.2025.TNO
+        </div>
+      </div>
+
+      <div class="full-width-container">
+        <div class="content-constrained" style="background-color: white;">
+          <br><br><br>
+          <h3>Scenarioviewer</h3>
+          <br><br>
+          <p style="line-height:30px; width: 70%;">
+            Netbeheer Nederland, het Planbureau voor de Leefomgeving (PBL) en TNO doen scenario-studies
+            waarin zij het toekomstige energiesysteem verkennen en analyseren. Deze viewer bundelt de uitkomsten uit een
+            aantal studies in een
+            uniform dataformaat om ze integraal met elkaar te kunnen vergelijken. Dit is een
+            conceptversie. Er volgen nog uitbreidingen, waaronder overzichten van opgesteld vermogen, een
+            koolstofbalans en de exogene uitgangspunten die in de modelleringen zijn gebruikt.</p>
+        </div>
+        <!-- <div class="content-fullwidth" style="padding:0px;background-color:#DCE6EF;height:40px;"></div> -->
+        <div class="content-fullwidth sticky" style="background-color:#DCE6EF;padding-bottom:0px;padding-top:0px;">
+          <div class="menuContainer" id="menuContainer">
+            <div class="menuContainer-part" id="scenarioButtons">
+              <div class="menu-label">Scenario</div>
+            </div>
+            <div class="menuContainer-part" id="yearButtons">
+              <div class="menu-label">Jaar</div>
+            </div>
+            <div class="menuContainer-part" id="sankeyEnergiestromenSelectieMenu">
+              <div class="menu-label">Scope</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-fullwidth" style="padding:0px;background-color:#EEF5FA">
+          <div id="unitSelector"></div>
+          <div class="content-fullwidth" style="padding-bottom:0px;">
+            <br>
+            <h4 style="margin-bottom:0px;margin-left:15px;" id="sankeyTitle">Energiesysteem</h4>
+          </div>
+
+          <div class="content-constrained" style="padding-bottom:0px;padding-top:30px;">
+          </div>
+        </div>
+
+        <div class="content-fullwidth" id="SVGContainer_energyflows">
+          <div id="popupContainer"> </div>
+        </div>
+        <div id="opmerkingen_bij_sankey_ii3050v3" class="note-box" style="display:none;">
+          <p style="font-weight: bold; margin-top: 0; margin-bottom: 2em;">
+            Aandachtspunten bij de visualisatie van data uit II3050 versie 3
+          </p>
+          <p style="margin-bottom: 2.5em;">
+            Op de visualisaties van de scenario's uit de II3050 versie 3 zijn de volgende
+            aandachtspunten van toepassing.
+          </p>
+          <ul style="list-style-type: disc; margin-left: 0; padding-left: 2.2em; max-width: 900px;">
+            <div style="display: flex; flex-direction: column; gap: 0.0em; margin-bottom: 2.5em;">
+              <span style="font-weight: bold;">Subsector kunstmest valt onder chemie</span>
+              <span style="margin-left: 0; text-indent: 0; margin-top: 0.2em;margin-bottom: 0.0em;">
+                Om anonimiteit te behouden zijn de gegevens over energie- en grondstofgebruik in de subsector kunstmest
+                samengevoegd met die van de bredere chemiesector.
+              </span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0em; margin-bottom: 2.5em;">
+              <span style="font-weight: bold;">Synthetische brand- en grondstoffen vallen onder
+                biobrandstoffen</span>
+              <span style="margin-left: 0; text-indent: 0; margin-top: 0.2em;">
+                Het Energie Transitie Model (ETM) kent momenteel geen aparte categorie om synthetische brand- of
+                grondstoffen
+                als energiedrager weer te geven. In de modelleringen van II3050 v3 is in het achterliggende Carbon
+                Transition Model (CTM) echter wél met vraag en aanbod van synthetische brandstoffen gerekend.
+                Als voorlopige workaround zijn deze volumes in de ETM-boekhouding ondergebracht onder de categorie
+                biobrandstoffen/-grondstoffen. Daardoor vallen synthetische brand- en grondstoffen ook in het
+                Sankey-diagram
+                vooralsnog onder de categorie ‘biomassa(derivaten)’.
+              </span>
+            </div>
+          </ul>
+        </div>
+
+        <div class="content-fullwidth" style="background-color:#EEF5FA">
+          <div class="content-constrained">
+            <blockquote style="background-color:none;margin-left:30px;border-left:0.5rem solid #999">
+              <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#carriersCollapse"
+                aria-expanded="false" aria-controls="carriersCollapse">
+                <span class="toggle-icon">+</span>
+                <span style="margin-left:30px;">Mapping dragers - flows
+                </span>
+              </div>
+
+              <div class="collapse mt-2" id="carriersCollapse">
+                <div class="card card-body" style="border:none;background-color: #EEF5FA;">
+                  <div style="width:100%;margin-left:35px;">
+                    <p>De energiedragers uit de OPERA- en ETM-data zijn, conform de indeling in onderstaande tabel,
+                      samengevoegd tot 20 hoofdcategorieën en geaggregeerd weergegeven in het diagram.</p>
+                    <table style="font-size:12px;">
+                      <thead>
+                        <tr>
+                          <th>Flows diagram</th>
+                          <th>Flows model (OPERA)</th>
+                          <th>Flows model (ETM)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Ammoniak</td>
+                          <td>Ammonia, Ammonia export, Ammonia import</td>
+                          <td>ammonia, imported_ammonia</td>
+
+                        </tr>
+                        <tr>
+                          <td>Afval</td>
+                          <td>Afval (niet-biogeen)</td>
+                          <td>non_biogenic_waste</td>
+                        </tr>
+                        <tr>
+                          <td>Biomassa(derivaten)</td>
+                          <td>Bio-DME, Bio-ethanol, Bio-LNG for shipping, Bio-LPG, Bio-Methanol for shipping,
+                            Bio-restgassen,
+                            Biobenzine, Biodiesel, BioHFO, Biokerosine, Biomass
+                            Pyrolysis
+                            Oil,
+                            Biomassa (afval biogeen), Biomassa (AWZ, RWZ en STRT), Biomassa (GFT & VGI), Biomassa (hout
+                            binnenland),
+                            Biomassa (hout buitenland), Biomassa (hout buitenland), expensive part, Biomassa (hout),
+                            Biomassa
+                            (suikers), Biomassa (UCO buitenland), Biomassa (zetmeel), Biomethanol, Bionaphta, E-inhoud
+                            mest,
+                            Overige
+                            bio-olieproducten, Bio-aromatics</td>
+                          <td>wood_pellets, biogas, bio_kerosene, biodiesel, bio_oil, wet_biomass, greengas,
+                            torrefied_biomass_pellets, bio_ethanol, bio_lng, biogenic_waste, dry_biomass, oily_biomass
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>Elektriciteit</td>
+                          <td>Electricity</td>
+                          <td>electricity</td>
+                        </tr>
+                        <tr>
+                          <td>Overige</td>
+                          <td>Ethylene</td>
+                          <td>gas_power_fuelmix, waste_mix</td>
+                        </tr>
+                        <tr>
+                          <td>Geothermie</td>
+                          <td>Aardwarmte</td>
+                          <td>geothermal</td>
+                        </tr>
+                        <tr>
+                          <td>Kolen(derivaten)</td>
+                          <td>Cokes, Cokesovengas, Hoogovengas, Kolen</td>
+                          <td>coal, cokes, coal_gas, lignite</td>
+                        </tr>
+                        <tr>
+                          <td>Methaan</td>
+                          <td>Aardgas, Aardgas feedstock, Gas winning, Biogas</td>
+                          <td>network_gas, lng, natural_gas, compressed_network_gas</td>
+                        </tr>
+                        <tr>
+                          <td>Methanol (fossiel)</td>
+                          <td>Methanol, Methanol for shipping</td>
+                          <td>methanol</td>
+                        </tr>
+                        <tr>
+                          <td>Olie(derivaten)</td>
+                          <td>Benzine, Diesel, HFO, Kerosine, LNG for shipping, LPG, Naphta, Olie, Oliegrondstoffen,
+                            Overige
+                            olieproducten, Restgassen, Aromatics</td>
+                          <td>crude_oil, diesel, kerosene, lpg, heavy_fuel_oil, gasoline, propane, refinery_gas</td>
+                        </tr>
+                        <tr>
+                          <td>Omgevingswarmte</td>
+                          <td>Omgevingswarmte</td>
+                          <td>ambient_heat</td>
+                        </tr>
+                        <tr>
+                          <td>Plastic afval</td>
+                          <td>Plastic waste, Rejected plastic waste</td>
+                          <td>-</td>
+                        </tr>
+                        <tr>
+                          <td>Restwarmte</td>
+                          <td>Industrial Waste Heat</td>
+                          <td>-</td>
+                        </tr>
+                        <tr>
+                          <td>Synthetisch</td>
+                          <td>Synthetic benzine, Synthetic diesel, Synthetic HFO, Synthetic kerosine, Synthetic LNG for
+                            shipping,
+                            Synthetic LPG, Synthetic naphtha, Synthetic waste gasses, Synthetische brandstoffen uit FT,
+                            Synthetic methanol, Synthetic methanol for shipping,
+                            Other
+                            synthetic oil products, Synthetic aromatics</td>
+                          <td>-</td>
+                        </tr>
+                        <tr>
+                          <td>Uranium</td>
+                          <td>Uranium</td>
+                          <td>uranium_oxide</td>
+                        </tr>
+                        <tr>
+                          <td>Warmte</td>
+                          <td>Heat100to200, Heat200to400, HeatDir200to400, HeatHT400, Warmte</td>
+                          <td>steam_hot_water, imported_heat</td>
+                        </tr>
+                        <tr>
+                          <td>Waterstof</td>
+                          <td>Hydrogen import, Hydrogen export, Waterstof</td>
+                          <td>hydrogen, liquid_hydrogen, lohc, imported_hydrogen, imported_liquid_hydrogen,
+                            imported_lohc</td>
+                        </tr>
+                        <tr>
+                          <td>Wind</td>
+                          <td>Wind</td>
+                          <td>wind</td>
+                        </tr>
+                        <tr>
+                          <td>Zon</td>
+                          <td>Zon</td>
+                          <td>solar_radiation</td>
+                        </tr>
+                        <tr>
+                          <td>Zon thermisch</td>
+                          <td>Zon thermisch</td>
+                          <td>solar_thermal</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </blockquote>
+
+            <br>
+            <script>
+              document.addEventListener('DOMContentLoaded', () => {
+                const toggleButtons = document.querySelectorAll('.collapse-toggle');
+
+                toggleButtons.forEach(button => {
+                  button.addEventListener('click', function () {
+                    const icon = this.querySelector('.toggle-icon');
+                    const isExpanded = this.getAttribute('aria-expanded') === 'true';
+
+                    icon.textContent = isExpanded ? '-' : '+';
+                    icon.setAttribute('data-toggle-state', isExpanded ? '+' : '-');
+                  });
+                });
+              });
+            </script>
+            <blockquote style=" background-color:none;margin-left:30px;border-left:0.5rem solid #999">
+              <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#remarksCollapse"
+                aria-expanded="false" aria-controls="remarksCollapse">
+                <span class="toggle-icon">+</span>
+                <span style="margin-left:30px;">Mapping opties - nodes</span>
+              </div>
+
+              <div class="collapse mt-2" id="remarksCollapse">
+                <div class="card card-body" style="border:none;background-color: #EEF5FA;">
+                  <p style="margin-left:30px;">De OPERA-opties en energiestromen uit de ETM-energieboekhouding zijn
+                    conform onderstaande indeling onderverdeeld in
+                    categorieën energie- en grondstofconversie en finaal verbruik.
+                  </p>
+                  <div id="remarksContainer"></div>
+                </div>
+              </div>
+            </blockquote>
+          </div>
+        </div>
+
+
+        <div class="content-constrained"
+          style="padding-bottom:20px;padding-top:40px;background-color: rgb(220, 230, 239); margin-bottom:30px;">
+          <h4>Vergelijking modelscenario's met NPE Cijferbasis</h4>
+          <p><strong>Let op:</strong> voor de II3050-scenario’s is het verbruik van elektriciteit en waterstof voor de
+            productie van
+            synthetische brandstoffen nog niet volledig correct opgenomen in de overzichten, omdat het verbruik van
+            waterstof en elektriciteit voor synthetische brandstofproductie provisorisch onder 'biobrandstoffen' is
+            gevoegd in de huidige boekhouding van het ETM. Raadpleeg de kolom
+            ‘Opmerkingen’ in de tabellen voor meer informatie. </p>
+          <p>De tabelnummering is overeenkomstig met bijlage 1 van het
+            NPE-2023 (<a
+              href="https://www.rijksoverheid.nl/documenten/rapporten/2023/09/25/bijlage-1-toelichting-cijferbasis-concept-npe">link</a>).</Data>
+          </p>
+          <div id="cijferbasis_container"></div>
+        </div>
+
+
+
+        <div class="content-fullwidth sticky" style="background-color:#DCE6EF;padding-bottom:0px;padding-top:0px;"
+          id="menuContainer2">
+          <script>
+            d3.select('#menuContainer2').style('top', document.getElementById('menuContainer').offsetHeight + 'px')
+          </script>
+          <div class="menuContainer">
+            <div class="menuContainer-part" id="toepassingenButtons">
+              <div class="menu-label">Toepassing</div>
+            </div>
+            <div class="menuContainer-part" id="mainSectorButtons">
+              <div class="menu-label">Sector</div>
+            </div>
+            <div class="menuContainer-part" id="subSectorButtons">
+              <div class="menu-label"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-constrained" style="padding-bottom:0px;padding-top:20px;">
+          <h4>Finaal verbruik</h4>
+          <span id="waterval-selection-display" style="font-size: 14px; color: #666; margin-left: 5px;"></span>
+        </div>
+        <div class="scaled-wrapper-waterfall">
+          <div class="content-fullwidth" id="SVGContainer_waterfalldiagram">
+            <div id="mainContainerBackdrop"></div>
+            <div id="chartArea">
+              <div id="afbouw">
+                <svg class="chart_opbouw"></svg>
+              </div>
+              <div id="ccs">
+                <svg class="chart_ccs"></svg>
+              </div>
+              <div id="opbouw">
+                <svg class="chart_afbouw"></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- <div class=" content-fullwidth" style="height:600px;"></div> -->
+      </div>
+    </div>
+  </div>
+  <script src="js/scrollBehavior.js"></script>
+</body>
+<script src="js/jszip.min.js"></script>
+<script src="js/jszip-utils.min.js"></script>
+<script src="js/UIlisteners.js"></script>
+<script src="js/helpers.js"></script>
+<script src="js/xlsx.full.min.js"></script>
+<script src="js/d3-collection.v1.min.js"></script>
+<script src="js/d3-sankey-diagram.js"></script>
+<script src="js/drawSankey.js"></script>
+<script src="js/loadData.js"></script>
+<script src="js/drawRemarks.js"></script>
+<script src="js/fileLoadButton.js"></script>
+<script src="js/drawLineGraphFlowClick.js"></script>
+<script src="js/drawSelectionButtons.js"></script>
+<script src="js/drawMainContainer.js" charset="utf-8"></script>
+<script src="js/drawWaterfall.js" charset="utf-8"></script>
+<script src="js/drawCijferBasis.js" charset="utf-8"></script>
+
+</html>

@@ -129,6 +129,14 @@ function drawSelectionButtons (config) {
       2040: 85,
       2050: 86
     },
+    'TNO.2025.NPREF_CI_11112025': {
+      2040: 87,
+      2050: 88
+    },
+    'TNO.2025.NPREF_LCI_11112025': {
+      2040: 89,
+      2050: 90
+    },
   }
   const years = [
     {id: '2025', title: '2025'},
@@ -227,6 +235,8 @@ function drawSelectionButtons (config) {
       {id: 'TNO.TRANSFORM.C.EN.I', title: 'TNO | TRANSFORM | Competitief & Import', color: colorTNO},
       {id: 'TNO.TRANSFORM.MC', title: 'TNO | TRANSFORM | Minder Competitief', color: colorTNO},
       {id: 'TNO.TRANSFORM.MC.EN.I', title: 'TNO | TRANSFORM | Minder Competitief & Import', color: colorTNO},
+      {id: 'TNO.2025.NPREF_CI_11112025', title: 'TNO | 2025 | NPREF CI 11-11-2025', color: colorTNO},
+      {id: 'TNO.2025.NPREF_LCI_11112025', title: 'TNO | 2025 | NPREF LCI 11-11-2025', color: colorTNO},
       {id: 'PBL.PR40', title: 'PBL | TVKN | Pragmatisch Ruim 40', color: colorPBL},
       {id: 'PBL.SR20', title: 'PBL | TVKN | Specifiek Ruim 20', color: colorPBL},
       {id: 'PBL.PB30', title: 'PBL | TVKN | Pragmatisch Beperkt 30', color: colorPBL},

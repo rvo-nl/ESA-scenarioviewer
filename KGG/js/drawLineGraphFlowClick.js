@@ -204,6 +204,9 @@ function drawBarGraph (data, config) {
     })
   }
 
+  // Debug: Log scenarios that contain 'npref'
+  console.log('Available scenario titles:', Object.keys(scenarioDataMap).filter(k => k.toLowerCase().includes('npref')))
+
   /* ----------  DRAW LINE GRAPH  ---------- */
   const years = availableYears
 
@@ -214,7 +217,8 @@ function drawBarGraph (data, config) {
     'TRANSFORM-MC&Import', 'TVKN-PR40',
     'TVKN-SR20', 'TVKN-PB30', 'NBNL-V3KM',
     'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA',
-    'NBNL-V2NA', 'NBNL-V2IA', 'NBNL-2025-IV-CONCEPT', 'NBNL-2025-IV-DEFINITIEF', 'WLO_1', 'WLO_2', 'WLO_3', 'WLO_4'
+    'NBNL-V2NA', 'NBNL-V2IA', 'NBNL-2025-IV-CONCEPT', 'NBNL-2025-IV-DEFINITIEF', 'WLO_1', 'WLO_2', 'WLO_3', 'WLO_4',
+    'TNO-2025-NPREF-CI-11112025', 'TNO-2025-NPREF-LCI-11112025'
   ]
 
   // Create displayNameToDataMap by collecting data from multiple year-specific entries
@@ -223,11 +227,21 @@ function drawBarGraph (data, config) {
   // First, identify all unique scenario types and their available years
   const scenarioTypes = {}
 
+  // Debug: Log first 10 scenario titles to understand the format
+  console.log('Sample scenario titles:', config.scenarios.slice(0, 10).map(s => s.title))
+  console.log('Last 10 scenario titles:', config.scenarios.slice(-10).map(s => s.title))
+
   config.scenarios.forEach((scenarioConfig, index) => {
     const dataColumnName = scenarioConfig.title.toLowerCase()
 
     // Extract year and scenario type
     const yearMatch = scenarioConfig.title.match(/x(\d{4})x_(.+)/)
+
+    // Debug: Log all scenario titles that contain 'npref'
+    if (scenarioConfig.title.toLowerCase().includes('npref')) {
+      console.log('Found NPREF in config.scenarios:', scenarioConfig.title, 'yearMatch:', yearMatch)
+    }
+
     if (!yearMatch) return
 
     const year = parseInt(yearMatch[1])
@@ -255,6 +269,13 @@ function drawBarGraph (data, config) {
     else if (scenarioType === 'WLO_2') displayName = 'WLO_2'
     else if (scenarioType === 'WLO_3') displayName = 'WLO_3'
     else if (scenarioType === 'WLO_4') displayName = 'WLO_4'
+    else if (scenarioType === 'TNO_NPREF_CI_11112025' || scenarioType.toLowerCase().includes('tno_npref_ci_11112025')) displayName = 'TNO-2025-NPREF-CI-11112025'
+    else if (scenarioType === 'TNO_NPREF_LCI_11112025' || scenarioType.toLowerCase().includes('tno_npref_lci_11112025')) displayName = 'TNO-2025-NPREF-LCI-11112025'
+
+    // Debug: Log NPREF scenario matching
+    if (scenarioType && scenarioType.includes('npref')) {
+      console.log('NPREF scenario found - scenarioType:', scenarioType, 'displayName:', displayName, 'scenarioConfig.title:', scenarioConfig.title)
+    }
 
     if (displayName) {
       // Initialize the display name if it doesn't exist
@@ -298,6 +319,10 @@ function drawBarGraph (data, config) {
     }
   })
 
+  // Debug: Log NPREF data mapping
+  console.log('displayNameToDataMap for NPREF CI:', displayNameToDataMap['TNO-2025-NPREF-CI-11112025'])
+  console.log('displayNameToDataMap for NPREF LCI:', displayNameToDataMap['TNO-2025-NPREF-LCI-11112025'])
+
   const variantTitles = {
     ADAPT: 'TNO-2024 | ADAPT',
     TRANSFORM: 'TNO-2024 | TRANSFORM',
@@ -318,7 +343,9 @@ function drawBarGraph (data, config) {
     'WLO_1': 'PBL-2025 | WLO | Hoog Snel',
     'WLO_2': 'PBL-2025 | WLO | Laag Snel',
     'WLO_3': 'PBL-2025 | WLO | Hoog Vertraagd',
-    'WLO_4': 'PBL-2025 | WLO | Laag Vertraagd'
+    'WLO_4': 'PBL-2025 | WLO | Laag Vertraagd',
+    'TNO-2025-NPREF-CI-11112025': 'TNO-2025 | NPREF CI 11-11-2025',
+    'TNO-2025-NPREF-LCI-11112025': 'TNO-2025 | NPREF LCI 11-11-2025'
   }
 
   const categoryInfo = {
@@ -337,6 +364,10 @@ function drawBarGraph (data, config) {
     WLO: {
       baseColor: '#e31a1c', // red
       scenarios: ['WLO_1', 'WLO_2', 'WLO_3', 'WLO_4']
+    },
+    TNO: {
+      baseColor: 'purple', // green
+      scenarios: ['TNO-2025-NPREF-CI-11112025', 'TNO-2025-NPREF-LCI-11112025']
     }
   }
 

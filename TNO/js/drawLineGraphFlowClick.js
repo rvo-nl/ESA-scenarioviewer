@@ -214,7 +214,8 @@ function drawBarGraph (data, config) {
     'TRANSFORM-MC&Import', 'TNO_INEK', 'TVKN-PR40',
     'TVKN-SR20', 'TVKN-PB30', 'NBNL-V3KM',
     'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA',
-    'NBNL-V2NA', 'NBNL-V2IA', 'WLO_1', 'WLO_2', 'WLO_3', 'WLO_4'
+    'NBNL-V2NA', 'NBNL-V2IA', 'WLO_1', 'WLO_2', 'WLO_3', 'WLO_4',
+    'TNO-2025-NPREF-CI-11112025', 'TNO-2025-NPREF-LCI-11112025'
   ]
 
   // Create displayNameToDataMap by collecting data from multiple year-specific entries
@@ -255,6 +256,8 @@ function drawBarGraph (data, config) {
     else if (scenarioType === 'WLO_2' || scenarioType === 'wlo_2') displayName = 'WLO_2'
     else if (scenarioType === 'WLO_3' || scenarioType === 'wlo_3') displayName = 'WLO_3'
     else if (scenarioType === 'WLO_4' || scenarioType === 'wlo_4') displayName = 'WLO_4'
+    else if (scenarioType === 'TNO_NPREF_CI_11112025' || scenarioType.toLowerCase().includes('tno_npref_ci_11112025')) displayName = 'TNO-2025-NPREF-CI-11112025'
+    else if (scenarioType === 'TNO_NPREF_LCI_11112025' || scenarioType.toLowerCase().includes('tno_npref_lci_11112025')) displayName = 'TNO-2025-NPREF-LCI-11112025'
 
     if (displayName) {
       // Initialize the display name if it doesn't exist
@@ -317,7 +320,9 @@ function drawBarGraph (data, config) {
     'WLO_1': 'PBL-2025 | WLO | Hoog Snel',
     'WLO_2': 'PBL-2025 | WLO | Laag Snel',
     'WLO_3': 'PBL-2025 | WLO | Hoog Vertraagd',
-    'WLO_4': 'PBL-2025 | WLO | Laag Vertraagd'
+    'WLO_4': 'PBL-2025 | WLO | Laag Vertraagd',
+    'TNO-2025-NPREF-CI-11112025': 'TNO-2025 | NPREF CI 11-11-2025',
+    'TNO-2025-NPREF-LCI-11112025': 'TNO-2025 | NPREF LCI 11-11-2025'
   }
 
   const categoryInfo = {
@@ -336,6 +341,10 @@ function drawBarGraph (data, config) {
     WLO: {
       baseColor: '#e31a1c', // red
       scenarios: ['WLO_1', 'WLO_2', 'WLO_3', 'WLO_4']
+    },
+    TNO: {
+      baseColor: 'purple', // green
+      scenarios: ['TNO-2025-NPREF-CI-11112025', 'TNO-2025-NPREF-LCI-11112025']
     }
   }
 

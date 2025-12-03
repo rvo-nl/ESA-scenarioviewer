@@ -81,7 +81,10 @@ function populateMappingContainers() {
 // Initialize config on page load (only in URL mode)
 // In file mode, config will be loaded from ZIP via setCategoryConfigFromZip()
 if (typeof dataSource === 'undefined' || dataSource === 'url') {
+  console.log('Loading category config from URL (dataSource:', typeof dataSource !== 'undefined' ? dataSource : 'undefined', ')');
   loadCategoryConfig();
+} else {
+  console.log('Skipping category config URL load - in file mode (dataSource:', dataSource, ')');
 }
 
 // Category groupings for the 4 charts
@@ -157,9 +160,12 @@ async function loadCapacityCSVFiles() {
   }
 }
 
-// Auto-load CSV files when the script loads
+// Auto-load CSV files when the script loads (only in URL mode)
+// In file mode, data will be loaded from ZIP via setCapacityZipData()
 setTimeout(() => {
-  loadCapacityCSVFiles();
+  if (typeof dataSource === 'undefined' || dataSource === 'url') {
+    loadCapacityCSVFiles();
+  }
 }, 500);
 
 // Global function to update capacity visualization when scenario changes

@@ -117,25 +117,23 @@ function drawSelectionButtons (config) {
       2050: 77,
       2060: 78,
     },
-    'NBNL.2025.IV_V_20_OKTOBER_2025': {
+    'NBNL.2025.IV.V_4_NOVEMBER_2025': {
       2030: 79,
       2035: 80,
       2040: 81,
       2050: 82
     },
-    'NBNL.2025.IV.V_4_NOVEMBER_2025': {
-      2030: 83,
-      2035: 84,
+    'TNO.2025.NPEREF_CI_11112025': {
+      2040: 83,
+      2050: 84
+    },
+    'TNO.2025.NPEREF_LCI_11112025': {
       2040: 85,
       2050: 86
     },
-    'TNO.2025.NPEREF_CI_11112025': {
+    'TNO.2025.NPEREF_CI_25112025': {
       2040: 87,
       2050: 88
-    },
-    'TNO.2025.NPEREF_LCI_11112025': {
-      2040: 89,
-      2050: 90
     },
   }
   const years = [
@@ -204,7 +202,12 @@ function drawSelectionButtons (config) {
       config.sankeyDataID = element.sankeyDataID
       tick(config)
     })
-    
+
+    // Update capacity visualization if available
+    if (typeof updateCapacityVisualization === 'function') {
+      updateCapacityVisualization();
+    }
+
     // Update cijferbasis tables when scenario/year changes
     if (typeof updateCijferBasisTables === 'function') {
       updateCijferBasisTables();
@@ -236,6 +239,7 @@ function drawSelectionButtons (config) {
       {id: 'TNO.TRANSFORM.MC', title: 'TNO | TRANSFORM | Minder Competitief', color: colorTNO},
       {id: 'TNO.TRANSFORM.MC.EN.I', title: 'TNO | TRANSFORM | Minder Competitief & Import', color: colorTNO},
       {id: 'TNO.2025.NPEREF_CI_11112025', title: 'TNO | 2025 | NPEREF CI 11-11-2025', color: colorTNO},
+      {id: 'TNO.2025.NPEREF_CI_25112025', title: 'TNO | 2025 | NPEREF CI 25-11-2025', color: colorTNO},
       {id: 'TNO.2025.NPEREF_LCI_11112025', title: 'TNO | 2025 | NPEREF LCI 11-11-2025', color: colorTNO},
       {id: 'PBL.PR40', title: 'PBL | TVKN | Pragmatisch Ruim 40', color: colorPBL},
       {id: 'PBL.SR20', title: 'PBL | TVKN | Specifiek Ruim 20', color: colorPBL},
@@ -250,8 +254,7 @@ function drawSelectionButtons (config) {
       {id: 'NBNL.V3HA', title: 'NBNL | 2025 | Horizon Aanvoer', color: colorNBNLv3},
       {id: 'NBNL.V2NA', title: 'NBNL | II3050 v2 | Nationale Drijfveren', color: colorNBNLv2},
       {id: 'NBNL.V2IA', title: 'NBNL | II3050 v2 | Internationale Ambitie', color: colorNBNLv2},
-      {id: 'NBNL.2025.IV_V_20_OKTOBER_2025', title: 'NBNL | 2025 | Industrievariant Concept 20-10', color: colorNBNLv3},
-      {id: 'NBNL.2025.IV.V_4_NOVEMBER_2025', title: 'NBNL | 2025 | Industrievariant Definitief 4-11', color: colorNBNLv3},
+      {id: 'NBNL.2025.IV.V_4_NOVEMBER_2025', title: 'NBNL | 2025 | Industrievariant Definitief', color: colorNBNLv3},
       // {id: 'SRMPA', title: 'Specifiek Ruim - Minder plastic afval'},
 
     ]

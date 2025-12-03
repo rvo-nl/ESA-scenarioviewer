@@ -102,7 +102,7 @@
       </div>
       <div class="content-fullwidth" style="padding:0px;background-color: white;">
         <div class="version-label">
-          Versie 11.11.2025.KGG
+          Versie 03.12.2025.KGG
         </div>
       </div>
 
@@ -374,10 +374,57 @@
 
 
         <div class="content-constrained"
+          style="padding-bottom:20px;padding-top:40px;background-color: #EEF5FA; margin-bottom:30px; position: relative;">
+          <h4>Opgesteld vermogen elektriciteitsproductie</h4>
+          <p
+            style="font-size: 14px; color: #333; margin-bottom: 20px; background-color: #FFF9C4; padding: 15px; border-radius: 5px; border-left: 4px solid #FBC02D;">
+            <strong>Let op: </strong>deze grafiek bevat nog enkele inconsistenties en problemen in de uitlezing van de
+            data over
+            opgestelde capaciteiten. Getoonde gegevens moeten nog worden geverifieerd door PBL, TNO en NBNL. Zie de
+            voetnoten
+            bij de categorieën voor meer informatie.
+          </p>
+
+          <div id="capacityVisualizationContainer"></div>
+
+          <blockquote style="background-color:none;margin-left:30px;border-left:0.5rem solid #999;margin-top:30px;">
+            <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#capacityMappingsCollapse"
+              aria-expanded="false" aria-controls="capacityMappingsCollapse">
+              <span class="toggle-icon">+</span>
+              <span style="margin-left:30px;">Mapping production parameters - categories
+              </span>
+            </div>
+
+            <div class="collapse mt-2" id="capacityMappingsCollapse">
+              <div class="card card-body" style="border:none;background-color: #EEF5FA;">
+                <div style="width:100%;margin-left:35px;">
+                  <p>De elektriciteitsproductietechnologieën uit de OPERA- en ETM-data zijn, conform de indeling
+                    hieronder,
+                    samengevoegd tot categorieën en weergegeven in de grafieken.</p>
+
+                  <h5 style="margin-top: 20px;">OPERA Mapping</h5>
+                  <div id="operaMappingContainer" style="font-size:12px; margin-bottom: 30px; line-height: 1.6;">
+                    <!-- Loaded dynamically from config/categoryConfig.json -->
+                  </div>
+
+                  <h5 style="margin-top: 20px;">ETM Mapping (Electricity Production Only)</h5>
+                  <div id="etmMappingContainer" style="font-size:12px; line-height: 1.6;">
+                    <!-- Loaded dynamically from config/categoryConfig.json -->
+                    <p style="font-style: italic; color: #666; margin-top: 20px;">Note: Many ETM technologies are mapped
+                      to "ignore" and are not shown here</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </blockquote>
+        </div>
+
+        <div class="content-constrained"
           style="padding-bottom:20px;padding-top:40px;background-color: rgb(220, 230, 239); margin-bottom:30px;">
           <h4>NPE Cijferbasis</h4>
           <div id="cijferbasis_container"></div>
         </div>
+
 
 
 
@@ -443,5 +490,6 @@
 <script src="js/drawMainContainer.js" charset="utf-8"></script>
 <script src="js/drawWaterfall.js" charset="utf-8"></script>
 <script src="js/drawCijferBasis.js" charset="utf-8"></script>
+<script src="js/drawCapacityVisualization.js" charset="utf-8"></script>
 
 </html>

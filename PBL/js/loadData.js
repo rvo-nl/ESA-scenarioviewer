@@ -314,7 +314,8 @@ function generateSankeyLibrary (workbook) {
   let sankeyDataLibrary = {}
   workbook.SheetNames.forEach(sheetName => {
     const worksheet = workbook.Sheets[sheetName]
-    if (worksheet && sheetName.startsWith('snky_')) {
+    // Skip sheets with 'sparse' in the name to use full data sheets instead
+    if (worksheet && sheetName.startsWith('snky_') && !sheetName.includes('sparse')) {
       const [before, after] = sheetName.slice(5).split('_', 2)
       if (after && ['links', 'nodes', 'remarks', 'legend', 'settings'].includes(after)) {
         // Ensure the top-level object exists

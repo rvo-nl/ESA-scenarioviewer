@@ -85,7 +85,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds11112025kgg.enc.json');
+    const response = await fetch('public/ds03122025kgg.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -450,7 +450,16 @@ function generateSankeyLibrary (workbook) {
      if (csvData['cijferbasis_data'] && typeof window.setCijferBasisZipData === 'function') {
        window.setCijferBasisZipData(csvData);
      }
-     
+
+     // Pass CSV data to capacity visualization module if available
+     if ((csvData['processed_capacities'] || csvData['etm_production_parameters_mapping']) && typeof window.setCapacityZipData === 'function') {
+       window.setCapacityZipData(csvData);
+       // Draw capacity visualization after data is loaded
+       if (typeof drawCapacityVisualization === 'function') {
+         drawCapacityVisualization();
+       }
+     }
+
      dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']
      dataset_TRANSFORM_DEFAULT = excelData['data_watervaldiagram_C_TRANSFORM - Default']
      dataset_TRANSFORM_C_EN_I = excelData['data_watervaldiagram_B_TRANSFORM - Competitief en import']

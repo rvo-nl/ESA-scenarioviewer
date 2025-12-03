@@ -78,8 +78,11 @@ function populateMappingContainers() {
   }
 }
 
-// Initialize config on page load
-loadCategoryConfig();
+// Initialize config on page load (only in URL mode)
+// In file mode, config will be loaded from ZIP via setCategoryConfigFromZip()
+if (typeof dataSource === 'undefined' || dataSource === 'url') {
+  loadCategoryConfig();
+}
 
 // Category groupings for the 4 charts
 const categoryGroups = {

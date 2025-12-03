@@ -395,9 +395,11 @@ function generateSankeyLibrary (workbook) {
      const zipContent = await zip.loadAsync(zipBuffer);
      const excelData = {};
      const csvData = {}; // Store CSV data separately
+     const jsonData = {}; // Store JSON data separately
 
      const excelExtensions = /\.(xls[xmb]?|ods|xml)$/i;
      const csvExtensions = /\.(csv|tsv|txt)$/i;
+     const jsonExtensions = /\.json$/i;
 
      for (const fileName of Object.keys(zipContent.files)) {
        const zipFile = zipContent.files[fileName];
@@ -428,12 +430,22 @@ function generateSankeyLibrary (workbook) {
            } catch (err) {
              console.warn(`Failed to read CSV file "${fileName}":`, err);
            }
+         } else if (jsonExtensions.test(fileName)) {
+           // Handle JSON files
+           try {
+             const jsonText = await zipFile.async('text');
+             const baseName = fileName.split('/').pop().replace(/\.[^.]+$/, '');
+             jsonData[baseName] = JSON.parse(jsonText);
+           } catch (err) {
+             console.warn(`Failed to parse JSON file "${fileName}":`, err);
+           }
          }
        }
      }
 
      console.log('Extracted Excel Data:', excelData);
      console.log('Extracted CSV Data:', csvData);
+     console.log('Extracted JSON Data:', jsonData);
      // Hide the welcome overlay immediately before heavy rendering starts
      (function hideWelcomeOverlay() {
        const welcomeContainer = document.querySelector('.welcome-container');
@@ -445,10 +457,15 @@ function generateSankeyLibrary (workbook) {
          loadFileDialogEl.style.display = 'none';
        }
      })();
-     
+
      // Pass CSV data to cijferbasis module if available
      if (csvData['cijferbasis_data'] && typeof window.setCijferBasisZipData === 'function') {
        window.setCijferBasisZipData(csvData);
+     }
+
+     // Pass categoryConfig from ZIP if available
+     if (jsonData['categoryConfig'] && typeof window.setCategoryConfigFromZip === 'function') {
+       window.setCategoryConfigFromZip(jsonData['categoryConfig']);
      }
 
      // Pass CSV data to capacity visualization module if available

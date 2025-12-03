@@ -10,14 +10,24 @@ let capacityEnergyUnit = 'PJ'; // Default to PJ, can be switched to TWh
 let categoryDisplayNames = {};
 let capacityMappings = {};
 
-// Load configuration from JSON file
+// Function to receive categoryConfig from ZIP file (called by loadData.js)
+window.setCategoryConfigFromZip = function(config) {
+  if (config) {
+    categoryDisplayNames = config.categoryDisplayNames || {};
+    capacityMappings = config.capacityMappings || {};
+    console.log('Category configuration loaded from ZIP successfully');
+    populateMappingContainers();
+  }
+};
+
+// Load configuration from JSON file (for URL mode)
 async function loadCategoryConfig() {
   try {
     const response = await fetch('private/categoryConfig.json');
     const config = await response.json();
     categoryDisplayNames = config.categoryDisplayNames || {};
     capacityMappings = config.capacityMappings || {};
-    console.log('Category configuration loaded successfully');
+    console.log('Category configuration loaded successfully from URL');
 
     // Populate mapping containers if they exist
     populateMappingContainers();

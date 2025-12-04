@@ -214,8 +214,8 @@ function drawBarGraph (data, config) {
     'TRANSFORM-MC&Import', 'TVKN-PR40',
     'TVKN-SR20', 'TVKN-PB30', 'NBNL-V3KM',
     'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA',
-    'NBNL-V2NA', 'NBNL-V2IA','WLO_1', 'WLO_2', 'WLO_3', 'WLO_4',
-   
+    'NBNL-V2NA', 'NBNL-V2IA', 'NBNL-2025-IV-DEFINITIEF', 'WLO_1', 'WLO_2', 'WLO_3', 'WLO_4',
+    'TNO-2025-NPEREF-CI-11112025', 'TNO-2025-NPEREF-LCI-11112025', 'TNO.2025.NPEREF_CI_25112025'
   ]
 
   // Create displayNameToDataMap by collecting data from multiple year-specific entries
@@ -255,11 +255,14 @@ function drawBarGraph (data, config) {
     else if (scenarioType.includes('ii3050_v3_horizon_aanvoer')) displayName = 'NBNL-V3HA'
     else if (scenarioType.includes('ii3050_v2_nationale_drijfveren')) displayName = 'NBNL-V2NA'
     else if (scenarioType.includes('ii3050_v2_internationale_ambitie')) displayName = 'NBNL-V2IA'
+    else if (scenarioType.includes('nbnl_scenarios_2025_industrievariant_definitief')) displayName = 'NBNL-2025-IV-DEFINITIEF'
     else if (scenarioType === 'WLO_1') displayName = 'WLO_1'
     else if (scenarioType === 'WLO_2') displayName = 'WLO_2'
     else if (scenarioType === 'WLO_3') displayName = 'WLO_3'
     else if (scenarioType === 'WLO_4') displayName = 'WLO_4'
-   
+    else if (scenarioType === 'TNO_NPEREF_CI_11112025' || scenarioType.toLowerCase().includes('tno_nperef_ci_11112025')) displayName = 'TNO-2025-NPEREF-CI-11112025'
+    else if (scenarioType === 'TNO_NPEREF_LCI_11112025' || scenarioType.toLowerCase().includes('tno_nperef_lci_11112025')) displayName = 'TNO-2025-NPEREF-LCI-11112025'
+    else if (scenarioType === 'TNO_NPEREF_CI_25112025' || scenarioType.toLowerCase().includes('tno_nperef_ci_25112025')) displayName = 'TNO-2025-NPEREF-CI-25112025'
 
     if (displayName) {
       // Initialize the display name if it doesn't exist
@@ -318,10 +321,14 @@ function drawBarGraph (data, config) {
     'NBNL-V3HA': 'NBNL-2025 | II3050 v3 | Horizon Aanvoer',
     'NBNL-V2NA': 'NBNL-2023 | II3050 v2 | Nationale Drijfveren',
     'NBNL-V2IA': 'NBNL-2023 | II3050 v2 | Internationale Ambitie',
+    'NBNL-2025-IV-DEFINITIEF': 'NBNL-2025 | Industrievariant Definitief',
     'WLO_1': 'PBL-2025 | WLO | Hoog Snel',
     'WLO_2': 'PBL-2025 | WLO | Laag Snel',
     'WLO_3': 'PBL-2025 | WLO | Hoog Vertraagd',
     'WLO_4': 'PBL-2025 | WLO | Laag Vertraagd',
+    'TNO-2025-NPEREF-CI-11112025': 'TNO-2025 | NPEREF CI 11-11-2025',
+    'TNO-2025-NPEREF-LCI-11112025': 'TNO-2025 | NPEREF LCI 11-11-2025',
+    'TNO-2025-NPEREF-CI-25112025': 'TNO-2025 | NPEREF CI 11-11-2025'
   }
 
   const categoryInfo = {
@@ -335,13 +342,16 @@ function drawBarGraph (data, config) {
     },
     NBNL: {
       baseColor: '#ff7f00', // orange
-      scenarios: ['NBNL-V3KM', 'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA', 'NBNL-V2NA', 'NBNL-V2IA']
+      scenarios: ['NBNL-V3KM', 'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA', 'NBNL-V2NA', 'NBNL-V2IA', 'NBNL-2025-IV-DEFINITIEF']
     },
     WLO: {
       baseColor: '#e31a1c', // red
       scenarios: ['WLO_1', 'WLO_2', 'WLO_3', 'WLO_4']
     },
-
+    TNO: {
+      baseColor: 'purple', // green
+      scenarios: ['TNO-2025-NPEREF-CI-11112025', 'TNO-2025-NPEREF-LCI-11112025', 'TNO-2025-NPEREF-CI-25112025']
+    }
   }
 
   const scenarioColors = {}

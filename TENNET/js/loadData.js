@@ -85,7 +85,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds23102025tennet.enc.json');
+    const response = await fetch('public/ds05122025tennet.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -392,64 +392,86 @@ function generateSankeyLibrary (workbook) {
      
      // Load the ZIP content
      const zip = new JSZip();
-     const zipContent = await zip.loadAsync(zipBuffer);
-     const excelData = {};
-     const csvData = {}; // Store CSV data separately
+    const zipContent = await zip.loadAsync(zipBuffer);
+    const excelData = {};
+    const csvData = {}; // Store CSV data separately
+    const jsonData = {}; // Store JSON data separately
 
-     const excelExtensions = /\.(xls[xmb]?|ods|xml)$/i;
-     const csvExtensions = /\.(csv|tsv|txt)$/i;
+    const excelExtensions = /\.(xls[xmb]?|ods|xml)$/i;
+    const csvExtensions = /\.(csv|tsv|txt)$/i;
+    const jsonExtensions = /\.json$/i;
 
-     for (const fileName of Object.keys(zipContent.files)) {
-       const zipFile = zipContent.files[fileName];
+    for (const fileName of Object.keys(zipContent.files)) {
+      const zipFile = zipContent.files[fileName];
 
-       if (!zipFile.dir) {
-         if (excelExtensions.test(fileName)) {
-           // Handle Excel files
-           const fileData = await zipFile.async('arraybuffer');
+      if (!zipFile.dir) {
+        if (excelExtensions.test(fileName)) {
+          // Handle Excel files
+          const fileData = await zipFile.async('arraybuffer');
 
-           try {
-             const workbook = XLSX.read(fileData, { type: 'array' });
-             const sheets = {};
-             workbook.SheetNames.forEach(sheetName => {
-               sheets[sheetName] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null });
-             });
+          try {
+            const workbook = XLSX.read(fileData, { type: 'array' });
+            const sheets = {};
+            workbook.SheetNames.forEach(sheetName => {
+              sheets[sheetName] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null });
+            });
 
-             const baseName = fileName.split('/').pop().replace(/\.[^.]+$/, '');
-             excelData[baseName] = sheets;
-           } catch (err) {
-             console.warn(`Failed to parse Excel file "${fileName}":`, err);
-           }
-         } else if (csvExtensions.test(fileName)) {
-           // Handle CSV files
-           try {
-             const csvText = await zipFile.async('text');
-             const baseName = fileName.split('/').pop().replace(/\.[^.]+$/, '');
-             csvData[baseName] = csvText;
-           } catch (err) {
-             console.warn(`Failed to read CSV file "${fileName}":`, err);
-           }
-         }
-       }
-     }
+            const baseName = fileName.split('/').pop().replace(/\.[^.]+$/, '');
+            excelData[baseName] = sheets;
+          } catch (err) {
+            console.warn(`Failed to parse Excel file "${fileName}":`, err);
+          }
+        } else if (csvExtensions.test(fileName)) {
+          // Handle CSV files
+          try {
+            const csvText = await zipFile.async('text');
+            const baseName = fileName.split('/').pop().replace(/\.[^.]+$/, '');
+            csvData[baseName] = csvText;
+          } catch (err) {
+            console.warn(`Failed to read CSV file "${fileName}":`, err);
+          }
+        } else if (jsonExtensions.test(fileName)) {
+          // Handle JSON files
+          try {
+            const jsonText = await zipFile.async('text');
+            const baseName = fileName.split('/').pop().replace(/\.[^.]+$/, '');
+            jsonData[baseName] = JSON.parse(jsonText);
+          } catch (err) {
+            console.warn(`Failed to parse JSON file "${fileName}":`, err);
+          }
+        }
+      }
+    }
 
-     console.log('Extracted Excel Data:', excelData);
-     console.log('Extracted CSV Data:', csvData);
-     // Hide the welcome overlay immediately before heavy rendering starts
-     (function hideWelcomeOverlay() {
-       const welcomeContainer = document.querySelector('.welcome-container');
-       if (welcomeContainer) {
-         welcomeContainer.style.display = 'none';
-       }
-       const loadFileDialogEl = document.getElementById('loadFileDialog');
-       if (loadFileDialogEl) {
-         loadFileDialogEl.style.display = 'none';
-       }
-     })();
-     
-     // Pass CSV data to cijferbasis module if available
-     if (csvData['cijferbasis_data'] && typeof window.setCijferBasisZipData === 'function') {
-       window.setCijferBasisZipData(csvData);
-     }
+    console.log('Extracted Excel Data:', excelData);
+    console.log('Extracted CSV Data:', csvData);
+    console.log('Extracted JSON Data:', jsonData);
+    // Hide the welcome overlay immediately before heavy rendering starts
+    (function hideWelcomeOverlay() {
+      const welcomeContainer = document.querySelector('.welcome-container');
+      if (welcomeContainer) {
+        welcomeContainer.style.display = 'none';
+      }
+      const loadFileDialogEl = document.getElementById('loadFileDialog');
+      if (loadFileDialogEl) {
+        loadFileDialogEl.style.display = 'none';
+      }
+    })();
+    
+    // Pass CSV data to cijferbasis module if available
+    if (csvData['cijferbasis_data'] && typeof window.setCijferBasisZipData === 'function') {
+      window.setCijferBasisZipData(csvData);
+    }
+    
+    // Pass capacity data to capacity visualization module if available
+    if (csvData['processed_capacities'] && typeof window.setCapacityZipData === 'function') {
+      window.setCapacityZipData(csvData);
+    }
+    
+    // Pass category config to capacity visualization module if available
+    if (jsonData['categoryConfig'] && typeof window.setCategoryConfigFromZip === 'function') {
+      window.setCategoryConfigFromZip(jsonData['categoryConfig']);
+    }
      
      dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']
      dataset_TRANSFORM_DEFAULT = excelData['data_watervaldiagram_C_TRANSFORM - Default']

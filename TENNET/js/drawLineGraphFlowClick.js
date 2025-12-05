@@ -212,7 +212,7 @@ function drawBarGraph (data, config) {
   const varianten = [
     'TVKN-PR40', 'TVKN-SR20', 'TVKN-PB30',
     'NBNL-V3KM', 'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA',
-    'NBNL-V2NA', 'NBNL-V2IA', 'NBNL-2025-IV-CONCEPT',
+    'NBNL-V2NA', 'NBNL-V2IA', 'NBNL-2025-IV-DEFINITIEF',
     'TENNET-EV2050'
   ]
 
@@ -248,7 +248,7 @@ function drawBarGraph (data, config) {
     else if (scenarioType.includes('ii3050_v3_horizon_aanvoer')) displayName = 'NBNL-V3HA'
     else if (scenarioType.includes('ii3050_v2_nationale_drijfveren')) displayName = 'NBNL-V2NA'
     else if (scenarioType.includes('ii3050_v2_internationale_ambitie')) displayName = 'NBNL-V2IA'
-    else if (scenarioType.includes('nbnl_scenarios_2025_industrievariant_concept')) displayName = 'NBNL-2025-IV-CONCEPT'
+    else if (scenarioType.includes('nbnl_scenarios_2025_industrievariant_definitief')) displayName = 'NBNL-2025-IV-DEFINITIEF'
     else if (scenarioType.includes('tennet_target_grid_ev2050_variant')) displayName = 'TENNET-EV2050'
     else if (scenarioType === 'WLO_1') displayName = 'WLO_1'
     else if (scenarioType === 'WLO_2') displayName = 'WLO_2'
@@ -307,7 +307,7 @@ function drawBarGraph (data, config) {
     'NBNL-V3HA': 'NBNL-2025 | II3050 v3 | Horizon Aanvoer',
     'NBNL-V2NA': 'NBNL-2023 | II3050 v2 | Nationale Drijfveren',
     'NBNL-V2IA': 'NBNL-2023 | II3050 v2 | Internationale Ambitie',
-    'NBNL-2025-IV-CONCEPT': 'NBNL-2025 | Industrievariant Concept',
+    'NBNL-2025-IV-DEFINITIEF': 'NBNL-2025 | Industrievariant Definitief',
     'TENNET-EV2050': 'TenneT-2025 | EV Variant Sensitivity Analysis'
   }
 
@@ -318,10 +318,10 @@ function drawBarGraph (data, config) {
     },
     NBNL: {
       baseColor: '#ff7f00', // orange
-      scenarios: ['NBNL-V3KM', 'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA', 'NBNL-V2NA', 'NBNL-V2IA', 'NBNL-2025-IV-CONCEPT']
+      scenarios: ['NBNL-V3KM', 'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA', 'NBNL-V2NA', 'NBNL-V2IA', 'NBNL-2025-IV-DEFINITIEF']
     },
     TENNET: {
-      baseColor: '#6baed6', // light blue
+      baseColor: ' #497E96', // light blue
       scenarios: ['TENNET-EV2050']
     }
   }

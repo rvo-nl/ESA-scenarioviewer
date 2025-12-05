@@ -139,6 +139,11 @@ function drawSelectionButtons (config) {
       config.sankeyDataID = element.sankeyDataID
       tick(config)
     })
+
+    // Update capacity visualization if available
+    if (typeof updateCapacityVisualization === 'function') {
+      updateCapacityVisualization();
+    }
     
     // Update cijferbasis tables when scenario/year changes
     if (typeof updateCijferBasisTables === 'function') {
@@ -160,7 +165,7 @@ function drawSelectionButtons (config) {
   const colorPBL = '#A7E6CB'
   const colorNBNLv2 = '#F2D8CD'
   const colorNBNLv3 = '#FDEFCE'
-  const colorTENNET = '#D4E5F7'
+  const colorTENNET = '#BEDCED'
 
   drawScenarioButtons()
   function drawScenarioButtons () {
@@ -175,8 +180,8 @@ function drawSelectionButtons (config) {
       {id: 'NBNL.V3HA', title: 'NBNL | II3050 v3 | Horizon Aanvoer', color: colorNBNLv3},
       {id: 'NBNL.V2NA', title: 'NBNL | II3050 v2 | Nationale Drijfveren', color: colorNBNLv2},
       {id: 'NBNL.V2IA', title: 'NBNL | II3050 v2 | Internationale Ambitie', color: colorNBNLv2},
-      {id: 'NBNL.2025.IV', title: 'NBNL | 2025 | Industrievariant Concept', color: colorNBNLv3},
-      {id: 'TENNET.EV2050', title: 'TenneT | 2025 | EV Variant Sensitivity Analysis', color: colorTENNET}
+      {id: 'NBNL.2025.IV', title: 'NBNL | 2025 | Industrievariant Definitief', color: colorNBNLv3},
+      {id: 'TENNET.EV2050', title: 'TenneT | 2025 | Electrostate', color: colorTENNET}
 
     ]
 

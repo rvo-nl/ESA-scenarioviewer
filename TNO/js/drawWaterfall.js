@@ -1034,6 +1034,14 @@ function drawWaterfallDiagram(result, config) {
 
   // Extract years from the sheet (excluding the 'name' column)
   // console.log(config.sheetID)
+
+  // Safety check: verify the sheet exists in the dataset
+  if (!result[config.sheetID] || !result[config.sheetID][0]) {
+    console.error(`Sheet '${config.sheetID}' not found in dataset or is empty`);
+    console.log('Available sheets:', Object.keys(result));
+    return;
+  }
+
   const years = Object.keys(result[config.sheetID][0]).filter(key => key !== 'name');
   const chartWidth = (width + margin.left + margin.right) / years.length;
 
@@ -1633,12 +1641,47 @@ function switchRoutekaartForced (config) {
       data = dataset_WLO4
       break
     default:
+      // For scenarios with different naming conventions (e.g., TNOAT2024_*, PBLTVKN2024_*, PBLWLO2025_*)
+      // TNO scenarios
+      if (config.scenario && config.scenario.includes('TNOAT2024_ADAPT')) {
+        data = dataset_ADAPT
+      } else if (config.scenario && config.scenario.includes('TNOAT2024_TRANSFORM_MCI')) {
+        data = dataset_TRANSFORM_MC_EN_I
+      } else if (config.scenario && config.scenario.includes('TNOAT2024_TRANSFORM_MC')) {
+        data = dataset_TRANSFORM_MC
+      } else if (config.scenario && config.scenario.includes('TNOAT2024_TRANSFORM_CI')) {
+        data = dataset_TRANSFORM_C_EN_I
+      } else if (config.scenario && config.scenario.includes('TNOAT2024_TRANSFORM')) {
+        data = dataset_TRANSFORM_DEFAULT
+      }
+      // PBL scenarios
+      else if (config.scenario && config.scenario.includes('OP_CO2_opslag_40')) {
+        data = dataset_PR40
+      } else if (config.scenario && config.scenario.includes('OptimistischSelectiefFossilCarbonPenalty')) {
+        data = dataset_SR20
+      } else if (config.scenario && config.scenario.includes('PP_CCS_30')) {
+        data = dataset_PB30
+      } else if (config.scenario && config.scenario.includes('WLO') && config.scenario.includes('HOOGSNEL')) {
+        data = dataset_WLO1
+      } else if (config.scenario && config.scenario.includes('WLO') && config.scenario.includes('LAAGSNEL')) {
+        data = dataset_WLO2
+      } else if (config.scenario && config.scenario.includes('WLO') && config.scenario.includes('HOOGVERTRAAGD')) {
+        data = dataset_WLO3
+      } else if (config.scenario && config.scenario.includes('WLO') && config.scenario.includes('LAAGVERTRAAGD')) {
+        data = dataset_WLO4
+      }
       break
   }
-  
+
+  // Safety check: ensure data is loaded before trying to draw
+  if (!data) {
+    console.error('Dataset not loaded yet for scenario:', config.scenario);
+    return;
+  }
+
   // Update the selection display text
   updateWaterfallSelectionDisplay(config.routekaart, config.sector);
-  
+
   drawWaterfallDiagram(data,
     {divID: 'opbouw',
       chartID: '.chart_opbouw',

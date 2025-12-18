@@ -991,6 +991,14 @@ function drawWaterfallDiagram(result, config) {
 
   // Extract years from the sheet (excluding the 'name' column)
   // console.log(config.sheetID)
+
+  // Safety check: verify the sheet exists in the dataset
+  if (!result[config.sheetID] || !result[config.sheetID][0]) {
+    console.error(`Sheet '${config.sheetID}' not found in dataset or is empty`);
+    console.log('Available sheets:', Object.keys(result));
+    return;
+  }
+
   const years = Object.keys(result[config.sheetID][0]).filter(key => key !== 'name');
   const chartWidth = (width + margin.left + margin.right) / years.length;
 

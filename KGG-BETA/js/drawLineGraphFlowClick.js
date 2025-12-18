@@ -352,7 +352,7 @@ function drawBarGraph (data, config) {
     },
     TNO: {
       baseColor: 'purple', // green
-      scenarios: ['TNO-2025-NPEREF-CI-11112025', 'TNO-2025-NPEREF-LCI-11112025', 'TNO-2025-NPEREF-CI-25112025']
+      scenarios: ['TNO2025_NPEREF_CI_11112025', 'TNO2025_NPEREF_LCI_11112025', 'TNO2025_NPEREF_CI_25112025']
     },
     TENNET: {
       baseColor: ' #497E96', // light blue

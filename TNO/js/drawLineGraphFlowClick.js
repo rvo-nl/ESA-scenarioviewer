@@ -45,7 +45,7 @@ function drawBarGraph (data, config) {
     .style('box-shadow', '0 4px 10px rgba(0,0,0,0.2)')
     .style('border-radius', '10px')
     .style('width', '1100px')
-    .style('height', '770px')
+    .style('height', '800px')
     .style('background-color', '#f9f9f9')
 
   const svg = popup.append('svg')
@@ -209,13 +209,13 @@ function drawBarGraph (data, config) {
 
   // Keep the original hardcoded scenario names for display and color mapping
   const varianten = [
-    'ADAPT', 'TRANSFORM',
-    'TRANSFORM-C&Import', 'TRANSFORM-MC',
-    'TRANSFORM-MC&Import', 'TNO_INEK', 'TVKN-PR40',
-    'TVKN-SR20', 'TVKN-PB30', 'NBNL-V3KM',
-    'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA',
-    'NBNL-V2NA', 'NBNL-V2IA', 'WLO_1', 'WLO_2', 'WLO_3', 'WLO_4',
-    'TNO-2025-NPEREF-CI-11112025', 'TNO-2025-NPEREF-LCI-11112025'
+    'TNOAT2024_ADAPT', 'TNOAT2024_TRANSFORM',
+    'TNOAT2024_TRANSFORM_CI', 'TNOAT2024_TRANSFORM_MC',
+    'TNOAT2024_TRANSFORM_MCI', 'PBLTVKN2024_OP_CO2_opslag_40',
+    'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty', 'PBLTVKN2024_PP_CCS_30_in_2050', 'NBNL2025_koersvaste_middenweg',
+    'NBNL2025_eigen_vermogen', 'NBNL2025_gezamenlijke_balans', 'NBNL2025_horizon_aanvoer',
+    'NBNL2023_nationale_drijfveren', 'NBNL2023_internationale_ambitie', 'NBNL2025_industrievariant_definitief', 'PBLWLO2025_HOOGSNEL', 'PBLWLO2025_LAAGSNEL', 'PBLWLO2025_HOOGVERTRAAGD', 'PBLWLO2025_LAAGVERTRAAGD',
+    'TNO2025_NPEREF_CI_11112025', 'TNO2025_NPEREF_LCI_11112025', 'TNO2025_NPEREF_CI_25112025', 'TENNET2025_electrostate_postprocessed'
   ]
 
   // Create displayNameToDataMap by collecting data from multiple year-specific entries
@@ -224,11 +224,16 @@ function drawBarGraph (data, config) {
   // First, identify all unique scenario types and their available years
   const scenarioTypes = {}
 
+  // Debug: Log first 10 scenario titles to understand the format
+  console.log('Sample scenario titles:', config.scenarios.slice(0, 10).map(s => s.title))
+  console.log('Last 10 scenario titles:', config.scenarios.slice(-10).map(s => s.title))
+
   config.scenarios.forEach((scenarioConfig, index) => {
     const dataColumnName = scenarioConfig.title.toLowerCase()
 
     // Extract year and scenario type
     const yearMatch = scenarioConfig.title.match(/x(\d{4})x_(.+)/)
+
     if (!yearMatch) return
 
     const year = parseInt(yearMatch[1])
@@ -236,28 +241,29 @@ function drawBarGraph (data, config) {
 
     // Determine display name for this scenario type
     let displayName = null
-    const scenarioTypeLower = scenarioType.toLowerCase()
-    if (scenarioTypeLower.includes('adapt')) displayName = 'ADAPT'
-    else if (scenarioTypeLower.includes('transform_competitief_en_import')) displayName = 'TRANSFORM-C&Import'
-    else if (scenarioTypeLower.includes('transform_minder_competitief_en_import')) displayName = 'TRANSFORM-MC&Import'
-    else if (scenarioTypeLower.includes('transform_minder_competitief')) displayName = 'TRANSFORM-MC'
-    else if (scenarioTypeLower.includes('transform')) displayName = 'TRANSFORM'
-    else if (scenarioTypeLower.includes('inek')) displayName = 'TNO_INEK'
-    else if (scenarioTypeLower.includes('tvkn_pr40')) displayName = 'TVKN-PR40'
-    else if (scenarioTypeLower.includes('tvkn_sr20')) displayName = 'TVKN-SR20'
-    else if (scenarioTypeLower.includes('tvkn_pb30')) displayName = 'TVKN-PB30'
-    else if (scenarioTypeLower.includes('ii3050_v3_koersvaste_middenweg')) displayName = 'NBNL-V3KM'
-    else if (scenarioTypeLower.includes('ii3050_v3_eigen_vermogen')) displayName = 'NBNL-V3EM'
-    else if (scenarioTypeLower.includes('ii3050_v3_gezamenlijke_balans')) displayName = 'NBNL-V3GB'
-    else if (scenarioTypeLower.includes('ii3050_v3_horizon_aanvoer')) displayName = 'NBNL-V3HA'
-    else if (scenarioTypeLower.includes('ii3050_v2_nationale_drijfveren')) displayName = 'NBNL-V2NA'
-    else if (scenarioTypeLower.includes('ii3050_v2_internationale_ambitie')) displayName = 'NBNL-V2IA'
-    else if (scenarioType === 'WLO_1' || scenarioType === 'wlo_1') displayName = 'WLO_1'
-    else if (scenarioType === 'WLO_2' || scenarioType === 'wlo_2') displayName = 'WLO_2'
-    else if (scenarioType === 'WLO_3' || scenarioType === 'wlo_3') displayName = 'WLO_3'
-    else if (scenarioType === 'WLO_4' || scenarioType === 'wlo_4') displayName = 'WLO_4'
-    else if (scenarioType === 'TNO_NPEREF_CI_11112025' || scenarioType.toLowerCase().includes('tno_nperef_ci_11112025')) displayName = 'TNO-2025-NPEREF-CI-11112025'
-    else if (scenarioType === 'TNO_NPEREF_LCI_11112025' || scenarioType.toLowerCase().includes('tno_nperef_lci_11112025')) displayName = 'TNO-2025-NPEREF-LCI-11112025'
+    if (scenarioType.includes('TNOAT2024_ADAPT')) displayName = 'TNOAT2024_ADAPT'
+    else if (scenarioType.includes('TNOAT2024_TRANSFORM')) displayName = 'TNOAT2024_TRANSFORM'
+    else if (scenarioType.includes('TNOAT2024_TRANSFORM_CI')) displayName = 'TNOAT2024_TRANSFORM_CI'
+    else if (scenarioType.includes('TNOAT2024_TRANSFORM_MCI')) displayName = 'TNOAT2024_TRANSFORM_MCI'
+    else if (scenarioType.includes('TNOAT2024_TRANSFORM_MC')) displayName = 'TNOAT2024_TRANSFORM_MC'
+    else if (scenarioType.includes('PBLTVKN2024_OP_CO2_opslag_40')) displayName = 'PBLTVKN2024_OP_CO2_opslag_40'
+    else if (scenarioType.includes('PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty')) displayName = 'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty'
+    else if (scenarioType.includes('PBLTVKN2024_PP_CCS_30_in_2050')) displayName = 'PBLTVKN2024_PP_CCS_30_in_2050'
+    else if (scenarioType.includes('NBNL2025_koersvaste_middenweg')) displayName = 'NBNL2025_koersvaste_middenweg'
+    else if (scenarioType.includes('NBNL2025_eigen_vermogen')) displayName = 'NBNL2025_eigen_vermogen'
+    else if (scenarioType.includes('NBNL2025_gezamenlijke_balans')) displayName = 'NBNL2025_gezamenlijke_balans'
+    else if (scenarioType.includes('NBNL2025_horizon_aanvoer')) displayName = 'NBNL2025_horizon_aanvoer'
+    else if (scenarioType.includes('NBNL2023_nationale_drijfveren')) displayName = 'NBNL2023_nationale_drijfveren'
+    else if (scenarioType.includes('NBNL2023_internationale_ambitie')) displayName = 'NBNL2023_internationale_ambitie'
+    else if (scenarioType.includes('NBNL2025_industrievariant_definitief')) displayName = 'NBNL2025_industrievariant_definitief'
+    else if (scenarioType === 'PBLWLO2025_HOOGSNEL') displayName = 'PBLWLO2025_HOOGSNEL'
+    else if (scenarioType === 'PBLWLO2025_LAAGSNEL') displayName = 'PBLWLO2025_LAAGSNEL'
+    else if (scenarioType === 'PBLWLO2025_HOOGVERTRAAGD') displayName = 'PBLWLO2025_HOOGVERTRAAGD'
+    else if (scenarioType === 'PBLWLO2025_LAAGVERTRAAGD') displayName = 'PBLWLO2025_LAAGVERTRAAGD'
+    else if (scenarioType === 'TNO2025_NPEREF_CI_11112025') displayName = 'TNO2025_NPEREF_CI_11112025'
+    else if (scenarioType === 'TNO2025_NPEREF_LCI_11112025') displayName = 'TNO2025_NPEREF_LCI_11112025'
+    else if (scenarioType === 'TNO2025_NPEREF_CI_25112025') displayName = 'TNO2025_NPEREF_CI_25112025'
+    else if (scenarioType === 'TENNET2025_electrostate_postprocessed') displayName = 'TENNET2025_electrostate_postprocessed'
 
     if (displayName) {
       // Initialize the display name if it doesn't exist
@@ -302,49 +308,55 @@ function drawBarGraph (data, config) {
   })
 
   const variantTitles = {
-    ADAPT: 'TNO-2024 | ADAPT',
-    TRANSFORM: 'TNO-2024 | TRANSFORM',
-    'TRANSFORM-C&Import': 'TNO-2024 | TRANSFORM | Competitief & Import',
-    'TRANSFORM-MC': 'TNO-2024 | TRANSFORM | Competitief',
-    'TRANSFORM-MC&Import': 'TNO-2024 | TRANSFORM | Minder Competitief & Import',
-    'TNO_INEK': 'TNO-2025 | INEK',
-    'TVKN-PR40': 'PBL-2024 | TVKN | Pragmatisch Ruim 40',
-    'TVKN-SR20': 'PBL-2024 | TVKN | Specifiek Ruim 20',
-    'TVKN-PB30': 'PBL-2024 | TVKN | Pragmatisch Beperkt 30',
-    'NBNL-V3KM': 'NBNL-2025 | II3050 v3 | Koersvaste Middenweg',
-    'NBNL-V3EM': 'NBNL-2025 | II3050 v3 | Eigen Vermogen',
-    'NBNL-V3GB': 'NBNL-2025 | II3050 v3 | Gezamenlijke Balans',
-    'NBNL-V3HA': 'NBNL-2025 | II3050 v3 | Horizon Aanvoer',
-    'NBNL-V2NA': 'NBNL-2023 | II3050 v2 | Nationale Drijfveren',
-    'NBNL-V2IA': 'NBNL-2023 | II3050 v2 | Internationale Ambitie',
-    'WLO_1': 'PBL-2025 | WLO | Hoog Snel',
-    'WLO_2': 'PBL-2025 | WLO | Laag Snel',
-    'WLO_3': 'PBL-2025 | WLO | Hoog Vertraagd',
-    'WLO_4': 'PBL-2025 | WLO | Laag Vertraagd',
+    'TNOAT2024_ADAPT': 'TNO-2024 | ADAPT',
+    'TNOAT2024_TRANSFORM': 'TNO-2024 | TRANSFORM',
+    'TNOAT2024_TRANSFORM_CI': 'TNO-2024 | TRANSFORM | Competitief & Import',
+    'TNOAT2024_TRANSFORM_MC': 'TNO-2024 | TRANSFORM | Competitief',
+    'TNOAT2024_TRANSFORM_MCI': 'TNO-2024 | TRANSFORM | Minder Competitief & Import',
+    'PBLTVKN2024_OP_CO2_opslag_40': 'PBL-2024 | TVKN | Pragmatisch Ruim 40',
+    'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty': 'PBL-2024 | TVKN | Specifiek Ruim 20',
+    'PBLTVKN2024_PP_CCS_30_in_2050': 'PBL-2024 | TVKN | Pragmatisch Beperkt 30',
+    'NBNL2025_koersvaste_middenweg': 'NBNL-2025 | II3050 v3 | Koersvaste Middenweg',
+    'NBNL2025_eigen_vermogen': 'NBNL-2025 | II3050 v3 | Eigen Vermogen',
+    'NBNL2025_gezamenlijke_balans': 'NBNL-2025 | II3050 v3 | Gezamenlijke Balans',
+    'NBNL2025_horizon_aanvoer': 'NBNL-2025 | II3050 v3 | Horizon Aanvoer',
+    'NBNL2023_nationale_drijfveren': 'NBNL-2023 | II3050 v2 | Nationale Drijfveren',
+    'NBNL2023_internationale_ambitie': 'NBNL-2023 | II3050 v2 | Internationale Ambitie',
+    'NBNL2025_industrievariant_definitief': 'NBNL-2025 | KM Industrievariant',
+    'PBLWLO2025_HOOGSNEL': 'PBL-2025 | WLO | Hoog Snel',
+    'PBLWLO2025_LAAGSNEL': 'PBL-2025 | WLO | Laag Snel',
+    'PBLWLO2025_HOOGVERTRAAGD': 'PBL-2025 | WLO | Hoog Vertraagd',
+    'PBLWLO2025_LAAGVERTRAAGD': 'PBL-2025 | WLO | Laag Vertraagd',
     'TNO-2025-NPEREF-CI-11112025': 'TNO-2025 | NPEREF CI 11-11-2025',
-    'TNO-2025-NPEREF-LCI-11112025': 'TNO-2025 | NPEREF LCI 11-11-2025'
+    'TNO-2025-NPEREF-LCI-11112025': 'TNO-2025 | NPEREF LCI 11-11-2025',
+    'TNO-2025-NPEREF-CI-25112025': 'TNO-2025 | NPEREF CI 11-11-2025',
+    'TENNET2025_electrostate_postprocessed': 'TENNET-2025 | TARGET GRID | ELECTROSTATE'
   }
 
   const categoryInfo = {
     'ADAPT/TRANSFORM': {
       baseColor: '#1f78b4', // blue
-      scenarios: ['ADAPT', 'TRANSFORM', 'TRANSFORM-C&Import', 'TRANSFORM-MC', 'TRANSFORM-MC&Import', 'TNO_INEK']
+      scenarios: ['TNOAT2024_ADAPT', 'TNOAT2024_TRANSFORM', 'TNOAT2024_TRANSFORM_CI', 'TNOAT2024_TRANSFORM_MC', 'TNOAT2024_TRANSFORM_MCI']
     },
     TVKN: {
       baseColor: '#33a02c', // green
-      scenarios: ['TVKN-PR40', 'TVKN-SR20', 'TVKN-PB30']
+      scenarios: ['PBLTVKN2024_OP_CO2_opslag_40', 'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty', 'PBLTVKN2024_PP_CCS_30_in_2050']
     },
     NBNL: {
       baseColor: '#ff7f00', // orange
-      scenarios: ['NBNL-V3KM', 'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA', 'NBNL-V2NA', 'NBNL-V2IA']
+      scenarios: ['NBNL2025_koersvaste_middenweg', 'NBNL2025_eigen_vermogen', 'NBNL2025_gezamenlijke_balans', 'NBNL2025_horizon_aanvoer', 'NBNL2023_nationale_drijfveren', 'NBNL2023_internationale_ambitie', 'NBNL2025_industrievariant_definitief']
     },
     WLO: {
       baseColor: '#e31a1c', // red
-      scenarios: ['WLO_1', 'WLO_2', 'WLO_3', 'WLO_4']
+      scenarios: ['PBLWLO2025_HOOGSNEL', 'PBLWLO2025_LAAGSNEL', 'PBLWLO2025_HOOGVERTRAAGD', 'PBLWLO2025_LAAGVERTRAAGD']
     },
     TNO: {
       baseColor: 'purple', // green
-      scenarios: ['TNO-2025-NPEREF-CI-11112025', 'TNO-2025-NPEREF-LCI-11112025']
+      scenarios: ['TNO2025_NPEREF_CI_11112025', 'TNO2025_NPEREF_LCI_11112025', 'TNO2025_NPEREF_CI_25112025']
+    },
+    TENNET: {
+      baseColor: ' #497E96', // light blue
+      scenarios: ['TENNET2025_electrostate_postprocessed']
     }
   }
 
@@ -439,9 +451,9 @@ function drawBarGraph (data, config) {
 
       const scenarioDataForYears = displayNameToDataMap[scenarioName]
 
-      // Skip if this scenario doesn't have data
+      // Skip if no data available for this scenario
       if (!scenarioDataForYears) {
-        console.log(`No data available for scenario: ${scenarioName}`)
+        console.log(`No data available for ${scenarioName}, skipping`)
         return
       }
 

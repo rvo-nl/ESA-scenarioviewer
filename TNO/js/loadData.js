@@ -85,7 +85,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds11112025tno.enc.json');
+    const response = await fetch('public/ds18122025tno.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -129,7 +129,7 @@ async function decryptZipFile(passphrase) {
   }
 }
 
-let XLSXurl = 'private/data_sankeydiagram_ESA_v5_14082025.xlsm'
+let XLSXurl = 'private/data_sankeydiagram_december2025.xlsm'
 
 let sankeyConfigs = []
 
@@ -450,7 +450,17 @@ function generateSankeyLibrary (workbook) {
      if (csvData['cijferbasis_data'] && typeof window.setCijferBasisZipData === 'function') {
        window.setCijferBasisZipData(csvData);
      }
-     
+
+     // Pass capacity data to capacity visualization module if available
+     if (csvData['processed_capacities'] && typeof window.setCapacityZipData === 'function') {
+       window.setCapacityZipData(csvData);
+     }
+
+     // Pass category config to capacity visualization module if available
+     if (jsonData['categoryConfig'] && typeof window.setCategoryConfigFromZip === 'function') {
+       window.setCategoryConfigFromZip(jsonData['categoryConfig']);
+     }
+
      dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']
      dataset_TRANSFORM_DEFAULT = excelData['data_watervaldiagram_C_TRANSFORM - Default']
      dataset_TRANSFORM_C_EN_I = excelData['data_watervaldiagram_B_TRANSFORM - Competitief en import']
@@ -469,7 +479,7 @@ function generateSankeyLibrary (workbook) {
     //  alert('Excel data extracted — check the console!');
 
      // GENERATE SANKEY
-     var rawSankeyData = generateSankeyLibrary(jsonToWorkbook(excelData.data_sankeydiagram_ESA_v5_14082025))
+     var rawSankeyData = generateSankeyLibrary(jsonToWorkbook(excelData.data_sankeydiagram_december2025))
      sankeyConfigs.forEach(element => {
 
       let configString = JSON.stringify(element) // stringify in order to prevent code further down the line to transform sankeyConfigs object

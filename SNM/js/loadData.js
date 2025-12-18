@@ -85,7 +85,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds06112025snm.enc.json');
+    const response = await fetch('public/ds18122025snm.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -129,7 +129,7 @@ async function decryptZipFile(passphrase) {
   }
 }
 
-let XLSXurl = 'private/data_sankeydiagram_ESA_v5_14082025.xlsm'
+let XLSXurl = 'private/data_sankeydiagram_december2025.xlsm'
 
 let sankeyConfigs = []
 
@@ -395,9 +395,11 @@ function generateSankeyLibrary (workbook) {
      const zipContent = await zip.loadAsync(zipBuffer);
      const excelData = {};
      const csvData = {}; // Store CSV data separately
+     const jsonData = {}; // Store JSON data separately
 
      const excelExtensions = /\.(xls[xmb]?|ods|xml)$/i;
      const csvExtensions = /\.(csv|tsv|txt)$/i;
+     const jsonExtensions = /\.json$/i;
 
      for (const fileName of Object.keys(zipContent.files)) {
        const zipFile = zipContent.files[fileName];
@@ -428,12 +430,23 @@ function generateSankeyLibrary (workbook) {
            } catch (err) {
              console.warn(`Failed to read CSV file "${fileName}":`, err);
            }
+         } else if (jsonExtensions.test(fileName)) {
+           // Handle JSON files
+           try {
+             const jsonText = await zipFile.async('text');
+             const baseName = fileName.split('/').pop().replace(/\.[^.]+$/, '');
+             jsonData[baseName] = JSON.parse(jsonText);
+           } catch (err) {
+             console.warn(`Failed to parse JSON file "${fileName}":`, err);
+           }
          }
        }
      }
 
      console.log('Extracted Excel Data:', excelData);
      console.log('Extracted CSV Data:', csvData);
+     console.log('Extracted JSON Data:', jsonData);
+     console.log('CSV Data keys:', Object.keys(csvData));
      // Hide the welcome overlay immediately before heavy rendering starts
      (function hideWelcomeOverlay() {
        const welcomeContainer = document.querySelector('.welcome-container');
@@ -450,7 +463,21 @@ function generateSankeyLibrary (workbook) {
      if (csvData['cijferbasis_data'] && typeof window.setCijferBasisZipData === 'function') {
        window.setCijferBasisZipData(csvData);
      }
-     
+
+     // Pass CSV data to capacity visualization module if available
+     if ((csvData['processed_capacities'] || csvData['etm_production_parameters_mapping']) && typeof window.setCapacityZipData === 'function') {
+       window.setCapacityZipData(csvData);
+       // Draw capacity visualization after data is loaded
+       if (typeof drawCapacityVisualization === 'function') {
+         drawCapacityVisualization();
+       }
+     }
+
+     // Pass category config to capacity visualization module if available
+     if (jsonData['categoryConfig'] && typeof window.setCategoryConfigFromZip === 'function') {
+       window.setCategoryConfigFromZip(jsonData['categoryConfig']);
+     }
+
      dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']
      dataset_TRANSFORM_DEFAULT = excelData['data_watervaldiagram_C_TRANSFORM - Default']
      dataset_TRANSFORM_C_EN_I = excelData['data_watervaldiagram_B_TRANSFORM - Competitief en import']
@@ -469,7 +496,7 @@ function generateSankeyLibrary (workbook) {
     //  alert('Excel data extracted — check the console!');
 
      // GENERATE SANKEY
-     var rawSankeyData = generateSankeyLibrary(jsonToWorkbook(excelData.data_sankeydiagram_ESA_v5_14082025))
+     var rawSankeyData = generateSankeyLibrary(jsonToWorkbook(excelData.data_sankeydiagram_december2025))
      sankeyConfigs.forEach(element => {
 
       let configString = JSON.stringify(element) // stringify in order to prevent code further down the line to transform sankeyConfigs object

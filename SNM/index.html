@@ -6,7 +6,7 @@
   <!-- Basic Page Needs
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <meta charset="utf-8">
-  <title>Scenarioviewer ESA SCHARNIERMOMENTEN</title>
+  <title>Scenarioviewer ESA Scharniermomenten</title>
   <meta name="description" content="">
   <meta name="author" content="">
 
@@ -63,7 +63,7 @@
               <h1 class="welcome-title" style="font-size: 40px!important;">Scenarioviewer</h1>
                <h1 class="welcome-title" style="font-size: 20px!important;">Scharniermomenten</h1>
               <p class="welcome-subtitle"></p>
-              <div class="version-badge">AT • TVKN • WLO • II3050 • NPE</div>
+              <div class="version-badge">AT • TVKN • WLO • NBNL • NPE</div>
             </div>
             <div class="welcome-content">
               <div class="input-group">
@@ -102,14 +102,14 @@
       </div>
       <div class="content-fullwidth" style="padding:0px;background-color: white;">
         <div class="version-label">
-          Versie 06.11.2025.SNM
+          Versie 18.12.2025.SNM
         </div>
       </div>
 
       <div class="full-width-container">
         <div class="content-constrained" style="background-color: white;">
           <br><br><br>
-          <h3>Scenarioviewer</h3>
+          <h3>Scenarioviewer Energiesysteem</h3>
           <br><br>
           <p style="line-height:30px; width: 70%;">
             Netbeheer Nederland, het Planbureau voor de Leefomgeving (PBL) en TNO doen scenario-studies
@@ -218,22 +218,24 @@
                           <td>non_biogenic_waste</td>
                         </tr>
                         <tr>
-                          <td>Biomassa(derivaten)</td>
-                          <td>Bio-DME, Bio-ethanol, Bio-LNG for shipping, Bio-LPG, Bio-Methanol for shipping,
-                            Bio-restgassen,
-                            Biobenzine, Biodiesel, BioHFO, Biokerosine, Biomass
-                            Pyrolysis
-                            Oil,
+                          <td>Biomassa ruw</td>
+                          <td>
                             Biomassa (afval biogeen), Biomassa (AWZ, RWZ en STRT), Biomassa (GFT & VGI), Biomassa (hout
                             binnenland),
                             Biomassa (hout buitenland), Biomassa (hout buitenland), expensive part, Biomassa (hout),
                             Biomassa
-                            (suikers), Biomassa (UCO buitenland), Biomassa (zetmeel), Biomethanol, Bionaphta, E-inhoud
-                            mest,
-                            Overige
-                            bio-olieproducten, Bio-aromatics</td>
-                          <td>wood_pellets, biogas, bio_kerosene, biodiesel, bio_oil, wet_biomass, greengas,
-                            torrefied_biomass_pellets, bio_ethanol, bio_lng, biogenic_waste, dry_biomass, oily_biomass
+                            (suikers), Biomassa (UCO buitenland), Biomassa (zetmeel) E-inhoud
+                            mest</td>
+                          <td>wet_biomass, dry_biomass, oily_biomass, biogenic_waste
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>Biomassa product</td>
+                          <td>Bio-DME, Bio-ethanol, Bio-LNG for shipping, Bio-LPG, Bio-Methanol for shipping,
+                            Bio-restgassen, Biobenzine, Biodiesel, BioHFO, Biokerosine, Biomass
+                            Pyrolysis Oil, Biomethanol, Bionaphta, Overige bio-olieproducten, Bio-aromatics</td>
+                          <td>wood_pellets, biogas, bio_kerosene, biodiesel, bio_oil, greengas,
+                            torrefied_biomass_pellets, bio_ethanol, bio_lng
                           </td>
                         </tr>
                         <tr>
@@ -361,10 +363,12 @@
 
               <div class="collapse mt-2" id="remarksCollapse">
                 <div class="card card-body" style="border:none;background-color: #EEF5FA;">
-                  <p style="margin-left:30px;">De OPERA-opties en energiestromen uit de ETM-energieboekhouding zijn
+                  <!-- <p style="margin-left:30px;">De OPERA-opties en energiestromen uit de ETM-energieboekhouding zijn
                     conform onderstaande indeling onderverdeeld in
                     categorieën energie- en grondstofconversie en finaal verbruik.
-                  </p>
+                  </p> -->
+                  <p>Dit onderdeel is momenteel in ontwikkeling, de specificatie van indeling van conversies naar nodes
+                    wordt op korte termijn opnieuw toegevoegd.</p>
                   <div id="remarksContainer"></div>
                 </div>
               </div>
@@ -374,21 +378,58 @@
 
 
         <div class="content-constrained"
-        style="padding-bottom:20px;padding-top:40px;background-color: rgb(220, 230, 239); margin-bottom:30px;">
-        <h4>Vergelijking modelscenario's met NPE Cijferbasis</h4>
-        <p><strong>Let op:</strong> voor de II3050-scenario’s is het verbruik van elektriciteit en waterstof voor de
-          productie van
-          synthetische brandstoffen nog niet volledig correct opgenomen in de overzichten, omdat het verbruik van
-          waterstof en elektriciteit voor synthetische brandstofproductie provisorisch onder 'biobrandstoffen' is
-          gevoegd in de huidige boekhouding van het ETM. Raadpleeg de kolom
-          ‘Opmerkingen’ in de tabellen voor meer informatie. </p>
-        <p>De tabelnummering is overeenkomstig met bijlage 1 van het
-          NPE-2023 (<a
-            href="https://www.rijksoverheid.nl/documenten/rapporten/2023/09/25/bijlage-1-toelichting-cijferbasis-concept-npe">link</a>).</Data>
-        </p>
-        <div id="cijferbasis_container"></div>
-      </div>
+          style="padding-bottom:20px;padding-top:40px;background-color: rgb(220, 230, 239); margin-bottom:30px;">
+          <h4>NPE Cijferbasis</h4>
+          <div id="cijferbasis_container"></div>
+        </div>
 
+
+
+        <div class="content-constrained"
+          style="padding-bottom:20px;padding-top:40px;background-color: #EEF5FA; margin-bottom:30px; position: relative;">
+          <h4>Opgesteld vermogen elektriciteitsproductie</h4>
+          <p
+            style="font-size: 14px; color: #333; margin-bottom: 20px; background-color: #FFF9C4; padding: 15px; border-radius: 5px; border-left: 4px solid #FBC02D;">
+            <strong>Let op: </strong>deze grafiek bevat nog enkele inconsistenties en problemen in de uitlezing van de
+            data over
+            opgestelde capaciteiten. Getoonde gegevens moeten nog worden geverifieerd door PBL, TNO en NBNL. Zie de
+            voetnoten
+            bij de categorieën voor meer informatie.
+          </p>
+
+          <div id="capacityVisualizationContainer"></div>
+
+          <blockquote style="background-color:none;margin-left:30px;border-left:0.5rem solid #999;margin-top:30px;">
+            <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#capacityMappingsCollapse"
+              aria-expanded="false" aria-controls="capacityMappingsCollapse">
+              <span class="toggle-icon">+</span>
+              <span style="margin-left:30px;">Mapping production parameters - categories
+              </span>
+            </div>
+
+            <div class="collapse mt-2" id="capacityMappingsCollapse">
+              <div class="card card-body" style="border:none;background-color: #EEF5FA;">
+                <div style="width:100%;margin-left:35px;">
+                  <p>De elektriciteitsproductietechnologieën uit de OPERA- en ETM-data zijn, conform de indeling
+                    hieronder,
+                    samengevoegd tot categorieën en weergegeven in de grafieken.</p>
+
+                  <h5 style="margin-top: 20px;">OPERA Mapping</h5>
+                  <div id="operaMappingContainer" style="font-size:12px; margin-bottom: 30px; line-height: 1.6;">
+                    <!-- Loaded dynamically from config/categoryConfig.json -->
+                  </div>
+
+                  <h5 style="margin-top: 20px;">ETM Mapping (Electricity Production Only)</h5>
+                  <div id="etmMappingContainer" style="font-size:12px; line-height: 1.6;">
+                    <!-- Loaded dynamically from config/categoryConfig.json -->
+                    <p style="font-style: italic; color: #666; margin-top: 20px;">Note: Many ETM technologies are mapped
+                      to "ignore" and are not shown here</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </blockquote>
+        </div>
 
         <div class="content-fullwidth sticky" style="background-color:#DCE6EF;padding-bottom:0px;padding-top:0px;"
           id="menuContainer2">
@@ -410,22 +451,6 @@
 
         <div class="content-constrained" style="padding-bottom:0px;padding-top:20px;">
           <h4>Finaal verbruik</h4>
-          <p>Dit watervaldigram mapt de primaire herkomst (fossiel versus CO2-vrij/neutraal) op het finaal verbruik van
-            energie en grondstoffen. Je kan er in een oogopslag uit aflezen hoe het af/opbouwpad voor een scenario
-            verloopt over alle doorgerekende zichtjaren, en welke energiedragers en grondstoffen er met welke (duurzame)
-            alternatieven worden vervangen.
-            <br><br>
-            Het finaal verbruik is uitgesplitst naar zowel sectoren als toepassingen. De
-            toepassing 'warmte' omvat al het finaal verbruik voot installaties die uitsluitend worden toegepast voor de
-            productie van warmte (ketels, boilers, warmtepompen, directe ondervuring en stoomrecompressie) en alle
-            warmte die aan het finaal verbruik wordt geleverd vanuit collectieve warmtenetten. De toepassing 'proces'
-            omvat alle
-            industriele installaties anders dan installaties die uitsluitend voor de productie van warmte worden
-            toegepast (bijvoorbeeld processen voor de productie van staal, ammoniak en chemie). De toepassing
-            'transport' omvat zowel alle nationale mobiliteit als internationale mobiliteit (bunkers). De toepassing
-            'overige' omvat bijvoorbeeld het elektriciteitsverbruik van datacenters en van witgoed in de
-            gebouwde omgeving.
-          </p>
           <span id="waterval-selection-display" style="font-size: 14px; color: #666; margin-left: 5px;"></span>
         </div>
         <div class="scaled-wrapper-waterfall">
@@ -468,5 +493,6 @@
 <script src="js/drawMainContainer.js" charset="utf-8"></script>
 <script src="js/drawWaterfall.js" charset="utf-8"></script>
 <script src="js/drawCijferBasis.js" charset="utf-8"></script>
+<script src="js/drawCapacityVisualization.js" charset="utf-8"></script>
 
 </html>

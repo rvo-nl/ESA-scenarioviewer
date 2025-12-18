@@ -999,6 +999,14 @@ function drawWaterfallDiagram(result, config) {
 
   // Extract years from the sheet (excluding the 'name' column)
   // console.log(config.sheetID)
+
+  // Safety check: verify the sheet exists in the dataset
+  if (!result[config.sheetID] || !result[config.sheetID][0]) {
+    console.error(`Sheet '${config.sheetID}' not found in dataset or is empty`);
+    console.log('Available sheets:', Object.keys(result));
+    return;
+  }
+
   const years = Object.keys(result[config.sheetID][0]).filter(key => key !== 'name');
   const chartWidth = (width + margin.left + margin.right) / years.length;
 
@@ -1571,13 +1579,30 @@ function switchRoutekaartForced (config) {
       data = dataset_PB30
       break
     default:
-      // For NBNL scenarios, data will be set elsewhere or use a default
+      // For CBS/TVKN scenarios, check the scenario name pattern
+      if (config.scenario && config.scenario.includes('OP_CO2_opslag_40')) {
+        data = dataset_PR40
+      } else if (config.scenario && config.scenario.includes('OptimistischSelectiefFossilCarbonPenalty')) {
+        data = dataset_SR20
+      } else if (config.scenario && config.scenario.includes('PP_CCS_30')) {
+        data = dataset_PB30
+      } else {
+        // Fallback to PR40 if no match
+        console.warn(`Unknown scenario: ${config.scenario}, using PR40 dataset as fallback`);
+        data = dataset_PR40
+      }
       break
   }
-  
+
+  // Safety check: ensure data is loaded before trying to draw
+  if (!data) {
+    console.error('Dataset not loaded yet for scenario:', config.scenario);
+    return;
+  }
+
   // Update the selection display text
   updateWaterfallSelectionDisplay(config.routekaart, config.sector);
-  
+
   drawWaterfallDiagram(data,
     {divID: 'opbouw',
       chartID: '.chart_opbouw',

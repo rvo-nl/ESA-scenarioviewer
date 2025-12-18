@@ -2,75 +2,129 @@ let globalActiveToepassing = 'alle'
 let globalActiveSector = 'alle'
 
 function drawSelectionButtons (config) {
-  let scenarioIdLookup = {
-    'PBL.PR40': {
+   let scenarioIdLookup = {
+    'TNOAT2024_ADAPT': {
       2030: 0,
       2035: 1,
       2040: 2,
       2045: 3,
-      2050: 4
+      2050: 4,
     },
-    'PBL.SR20': {
+    'TNOAT2024_TRANSFORM': {
       2030: 5,
       2035: 6,
       2040: 7,
       2045: 8,
       2050: 9
     },
-    'PBL.PB30': {
+    'TNOAT2024_TRANSFORM_CI': {
       2030: 10,
       2035: 11,
       2040: 12,
       2045: 13,
       2050: 14
     },
-    'NBNL.V3KM': {
-      2025: 15,
-      2030: 16,
-      2035: 17,
-      2040: 18,
+    'TNOAT2024_TRANSFORM_MC': {
+      2030: 15,
+      2035: 16,
+      2040: 17,
+      2045: 18,
       2050: 19
     },
-    'NBNL.V3EM': {
+    'TNOAT2024_TRANSFORM_MCI': {
       2030: 20,
       2035: 21,
       2040: 22,
-      2050: 23
+      2045: 23,
+      2050: 24
     },
-    'NBNL.V3GB': {
-      2030: 24,
-      2035: 25,
-      2040: 26,
-      2050: 27
+    'PBLTVKN2024_OP_CO2_opslag_40': {
+      2030: 25,
+      2035: 26,
+      2040: 27,
+      2045: 28,
+      2050: 29
     },
-    'NBNL.V3HA': {
-      2030: 28,
-      2035: 29,
-      2040: 30,
-      2050: 31
+    'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty': {
+      2030: 30,
+      2035: 31,
+      2040: 32,
+      2045: 33,
+      2050: 34
     },
-    'NBNL.V2NA': {
-      2025: 32,
-      2030: 33,
-      2035: 34,
-      2040: 35,
-      2050: 36
+    'PBLTVKN2024_PP_CCS_30_in_2050': {
+      2030: 35,
+      2035: 36,
+      2040: 37,
+      2045: 38,
+      2050: 39
     },
-    'NBNL.V2IA': {
-      2025: 37,
-      2030: 38,
-      2035: 39,
-      2040: 40,
-      2050: 41
+    'NBNL2025_koersvaste_middenweg': {
+      2025: 40,
+      2030: 41,
+      2035: 42,
+      2040: 43,
+      2050: 44
     },
-    'NBNL.2025.IV': {
-      2030: 42,
-      2035: 43,
-      2040: 44,
-      2050: 45
+    'NBNL2025_eigen_vermogen': {
+      2030: 45,
+      2035: 46,
+      2040: 47,
+      2050: 48    },
+    'NBNL2025_gezamenlijke_balans': {
+      2030: 49,
+      2035: 50,
+      2040: 51,
+      2050: 52
     },
-    'TENNET.EV2050': {
-      2050: 46
+    'NBNL2025_horizon_aanvoer': {
+      2030: 53,
+      2035: 54,
+      2040: 55,
+      2050: 56
+    },
+    'NBNL2023_nationale_drijfveren': {
+      2025: 57,
+      2030: 58,
+      2035: 59,
+      2040: 60,
+      2050: 61
+    },
+    'NBNL2023_internationale_ambitie': {
+      2025: 62,
+      2030: 63,
+      2035: 64,
+      2040: 65,
+      2050: 66
+    },
+    'PBLWLO2025_HOOGSNEL': {
+      2040: 67,
+      2050: 68,
+      2060: 69,
+    },
+    'PBLWLO2025_LAAGSNEL': {
+      2040: 70,
+      2050: 71,
+      2060: 72,
+    },
+    'PBLWLO2025_HOOGVERTRAAGD': {
+      2040: 73,
+      2050: 74,
+      2060: 75,
+    },
+    'BLWLO2025_LAAGVERTRAAGD': {
+      2040: 76,
+      2050: 77,
+      2060: 78,
+    },
+    'NBNL2025_industrievariant_definitief': {
+      2030: 79,
+      2035: 80,
+      2040: 81,
+      2050: 82
+    },
+    'TENNET2025_electrostate_postprocessed': {
+      2050: 83
     },
   }
   const years = [
@@ -84,7 +138,7 @@ function drawSelectionButtons (config) {
     {id: '2060', title: '2060'},
   ]
   // SET DEFAULTS
-  globalActiveScenario.id = 'PBL.PR40'
+  globalActiveScenario.id = 'TNOAT2024_ADAPT'
   globalActiveYear.id = '2030'
   globalActiveEnergyflowsSankey.id = 'system'
   globalSankeyInstancesActiveDataset = {
@@ -171,17 +225,27 @@ function drawSelectionButtons (config) {
   function drawScenarioButtons () {
     let scenarios = [
 
-      {id: 'PBL.PR40', title: 'PBL | TVKN | Pragmatisch Ruim 40', color: colorPBL},
-      {id: 'PBL.SR20', title: 'PBL | TVKN | Specifiek Ruim 20', color: colorPBL},
-      {id: 'PBL.PB30', title: 'PBL | TVKN | Pragmatisch Beperkt 30', color: colorPBL},
-      {id: 'NBNL.V3KM', title: 'NBNL | II3050 v3 | Koersvaste Middenweg', color: colorNBNLv3},
-      {id: 'NBNL.V3EM', title: 'NBNL | II3050 v3 | Eigen Vermogen', color: colorNBNLv3},
-      {id: 'NBNL.V3GB', title: 'NBNL | II3050 v3 | Gezamenlijke Balans', color: colorNBNLv3},
-      {id: 'NBNL.V3HA', title: 'NBNL | II3050 v3 | Horizon Aanvoer', color: colorNBNLv3},
-      {id: 'NBNL.V2NA', title: 'NBNL | II3050 v2 | Nationale Drijfveren', color: colorNBNLv2},
-      {id: 'NBNL.V2IA', title: 'NBNL | II3050 v2 | Internationale Ambitie', color: colorNBNLv2},
-      {id: 'NBNL.2025.IV', title: 'NBNL | 2025 | Industrievariant Definitief', color: colorNBNLv3},
-      {id: 'TENNET.EV2050', title: 'TenneT | 2025 | Electrostate', color: colorTENNET}
+      {id: 'TNOAT2024_ADAPT', title: 'TNO | ADAPT', color: colorTNO},
+      {id: 'TNOAT2024_TRANSFORM', title: 'TNO | TRANSFORM', color: colorTNO},
+      {id: 'TNOAT2024_TRANSFORM_CI', title: 'TNO | TRANSFORM | Competitief & Import', color: colorTNO},
+      {id: 'TNOAT2024_TRANSFORM_MC', title: 'TNO | TRANSFORM | Minder Competitief', color: colorTNO},
+      {id: 'TNOAT2024_TRANSFORM_MCI', title: 'TNO | TRANSFORM | Minder Competitief & Import', color: colorTNO},
+      {id: 'PBLTVKN2024_OP_CO2_opslag_40', title: 'PBL | TVKN | Pragmatisch Ruim 40', color: colorPBL},
+      {id: 'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty', title: 'PBL | TVKN | Specifiek Ruim 20', color: colorPBL},
+      {id: 'PBLTVKN2024_PP_CCS_30_in_2050', title: 'PBL | TVKN | Pragmatisch Beperkt 30', color: colorPBL},
+      {id: 'PBLWLO2025_HOOGSNEL', title: 'PBL | WLO | Hoog Snel', color: colorPBL},
+      {id: 'PBLWLO2025_LAAGSNEL', title: 'PBL | WLO | Laag Snel', color: colorPBL},
+      {id: 'PBLWLO2025_HOOGVERTRAAGD', title: 'PBL | WLO | Hoog Vertraagd', color: colorPBL},
+      {id: 'PBLWLO2025_LAAGVERTRAAGD', title: 'PBL | WLO | Laag Vertraagd', color: colorPBL},
+      {id: 'NBNL2025_koersvaste_middenweg', title: 'NBNL | 2025 | Koersvaste Middenweg', color: colorNBNLv3},
+      {id: 'NBNL2025_eigen_vermogen', title: 'NBNL | 2025 | Eigen Vermogen', color: colorNBNLv3},
+      {id: 'NBNL2025_gezamenlijke_balans', title: 'NBNL | 2025 | Gezamenlijke Balans', color: colorNBNLv3},
+      {id: 'NBNL2025_horizon_aanvoer', title: 'NBNL | 2025 | Horizon Aanvoer', color: colorNBNLv3},
+      {id: 'NBNL2023_nationale_drijfveren', title: 'NBNL | II3050 v2 | Nationale Drijfveren', color: colorNBNLv2},
+      {id: 'NBNL2023_internationale_ambitie', title: 'NBNL | II3050 v2 | Internationale Ambitie', color: colorNBNLv2},
+      {id: 'NBNL2025_industrievariant_definitief', title: 'NBNL | 2025 | Industrievariant Definitief', color: colorNBNLv3},
+      {id: 'TENNET2025_electrostate_postprocessed', title: 'TENNET | 2025 | TARGET GRID | Electrostate', color: colorTENNET}
+      // {id: 'SRMPA', title: 'Specifiek Ruim - Minder plastic afval'},
 
     ]
 

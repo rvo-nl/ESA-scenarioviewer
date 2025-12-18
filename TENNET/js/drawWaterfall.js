@@ -685,51 +685,7 @@ function drawMainContainerBackdrop (config) {
     .attr('transform', `translate(${110}, ${1010})`)
 }
 
-function switchRoutekaart (config) {
-  d3.selectAll('#waterfallSVG').remove()
-  let data
-  switch (config.scenario) {
-    case 'npe':
-      data = dataset_c
-      break
-    case 'nat':
-      data = dataset_nat
-      break
-    case 'int':
-      data = dataset_int
-      break
-    default:
-      break
-  }
-  drawWaterfallDiagram(data,
-    {divID: 'opbouw',
-      chartID: '.chart_opbouw',
-      sheetID: config.routekaart + '_op_' + config.sector,
-      yOffsetJaarTotalen: 259+63,
-      annualMaxValueCorrect: 0,
-      titlesArray: config.titlesArray,
-      colorsArray: config.colorsArray,
-      yMax: config.yMax[0], marginLeft: -100, marginTop: 25, marginBottom: 30, yTicks: 5, classTag: 'A'
-    })
-  // drawWaterfallDiagram(data,
-  //   {divID: 'ccs',
-  //     chartID: '.chart_ccs',
-  //     sheetID: config.routekaart + '_cc_' + config.sector,
-  //     yOffsetJaarTotalen: 53,
-  //     annualMaxValueCorrect: 0,
-  //     titlesArray: config.titlesArray,
-  //     colorsArray: config.colorsArray,
-  //     yMax: config.yMax[1], marginLeft: -100, marginTop: 100,marginBottom: 30, yTicks: 3, classTag: 'B'
-  //   })
-  drawWaterfallDiagram(data, {
-    divID: 'afbouw',chartID: '.chart_afbouw',
-    sheetID: config.routekaart + '_af_' + config.sector,
-    yOffsetJaarTotalen: 239+62,
-    annualMaxValueCorrect: 0,
-    titlesArray: config.titlesArray,
-    colorsArray: config.colorsArray,
-  yMax: config.yMax[2], marginLeft: -100, marginBottom: 50,marginTop: 5, yTicks: 5, classTag: 'C'})
-}
+// Old switchRoutekaart function removed - using new version below with proper scenario naming
 
 // function drawSankey (zichtjaar) {
 //   d3.select('#sankeyContainer').style('visibility', 'visible')
@@ -829,10 +785,19 @@ let currentYMax = [2500,1000,2500]
 let currentTitlesArray = ['Elektriciteit', 'Waterstof, ammoniak', 'Warmte', 'Biomassa', 'Synthetisch', 'Olie, kolen, foss. methanol', 'Methaan', 'Aardwarmte', 'Omgevingswarmte']
 let currentColorsArray = ['#F8D377', '#7555F6', '#DD5471', '#62D3A4', '#E99172', '#444444', '#3F88AE', '#06402B', '#aaa']
 
-// Global datasets - TENNET version: only TVKN scenarios
+// Global datasets - TENNET version: includes ADAPT and TRANSFORM scenarios
+let dataset_ADAPT;
+let dataset_TRANSFORM_DEFAULT;
+let dataset_TRANSFORM_C_EN_I;
+let dataset_TRANSFORM_MC;
+let dataset_TRANSFORM_MC_EN_I;
 let dataset_PR40;
 let dataset_SR20;
 let dataset_PB30;
+let dataset_WLO1;
+let dataset_WLO2;
+let dataset_WLO3;
+let dataset_WLO4;
 
 const valueFactorAdjustment = 1;
 
@@ -864,10 +829,28 @@ async function xlsxToJSON(url) {
 
 //  dataSource = 'file';
 
-
-// Load waterfalldiagram datasets - TENNET version: only TVKN scenarios
+// Load waterfalldiagram datasets
 if (dataSource == 'url') {
-  
+// xlsxToJSON('/private/data_watervaldiagram_ADAPT.xlsx')
+//   .then(data => {  console.log(data); datasetSR20 = data; })
+//   .catch(error => { console.error('Error loading data_c:', error); });
+
+xlsxToJSON('private/data_watervaldiagram_C_TRANSFORM - Default.xlsx')
+  .then(data => { dataset_TRANSFORM_DEFAULT = data; })
+  .catch(error => { console.error('Error loading data_watervaldiagram_TRANSFORM - Default.xlsx:', error); });
+
+xlsxToJSON('private/data_watervaldiagram_B_TRANSFORM - Competitief en import.xlsx')
+  .then(data => { dataset_TRANSFORM_C_EN_I = data; })
+  .catch(error => { console.error('Error loading data_watervaldiagram_TRANSFORM - Competitief en import.xlsx:', error); });
+
+  xlsxToJSON('private/data_watervaldiagram_E_TRANSFORM - Minder competitief en import.xlsx')
+  .then(data => { dataset_TRANSFORM_MC_EN_I = data; })
+  .catch(error => { console.error('Error loading data_watervaldiagram_TRANSFORM - Minder competitief en import.xlsx:', error); });
+
+  xlsxToJSON('private/data_watervaldiagram_D_TRANSFORM - Minder competitief.xlsx')
+  .then(data => { dataset_TRANSFORM_MC = data; })
+  .catch(error => { console.error('Error loading data_watervaldiagram_TRANSFORM - Minder competitief.xlsx:', error); });
+
   xlsxToJSON('private/data_watervaldiagram_OptimistischSelectiefFossilCarbonPenalty.xlsx')
   .then(data => { dataset_SR20 = data; })
   .catch(error => { console.error('Error loading data_watervaldiagram_OptimistischSelectiefFossilCarbonPenalty.xlsx:', error); });
@@ -876,15 +859,19 @@ if (dataSource == 'url') {
   .then(data => { dataset_PB30 = data; })
   .catch(error => { console.error('Error loading data_watervaldiagram_PP_CCS_30_in_2050.xlsx:', error); });
 
-// TENNET version: Load PR40 last and initialize waterfall with it
+xlsxToJSON('private/data_watervaldiagram_A_ADAPT.xlsx')
+  .then(data => { dataset_ADAPT = data; })
+  .catch(error => { console.error('Error loading data: data_watervaldiagram_ADAPT.xlsx', error); });
+
+// Load PR40 last and initialize waterfall when it's ready (TENNET uses PR40 by default)
 xlsxToJSON('private/data_watervaldiagram_OP - CO2-opslag 40.xlsx')
   .then(data => {
     dataset_PR40 = data;
-    console.log(dataset_PR40)
-    initWaterfallDiagram()
+    console.log('PR40 dataset loaded', dataset_PR40);
+    initWaterfallDiagram();
   })
   .catch(error => {
-    console.error('Error loading data: data_watervaldiagram_OP - CO2-opslag 40.xlsx', error);
+    console.error('Error loading data_watervaldiagram_OP - CO2-opslag 40.xlsx:', error);
   });
 }
 
@@ -1557,29 +1544,61 @@ function switchRoutekaart (config) {
 
 // Internal function to draw waterfall without visibility check (for initial load and forced updates)
 function switchRoutekaartForced (config) {
-  console.log('Switch')
+  console.log('Switch to scenario:', config.scenario)
   d3.selectAll('#waterfallSVG').remove()
-  
+
   // Update global state variables
   currentRoutekaart = config.routekaart;
   currentSector = config.sector;
-  
+
   let data
   switch (config.scenario) {
-    case 'PBL.PR40':
+    case 'TNOAT2024_ADAPT':
+      data = dataset_ADAPT
+      break
+    case 'TNOAT2024_TRANSFORM':
+      data = dataset_TRANSFORM_DEFAULT
+      break
+    case 'TNOAT2024_TRANSFORM_CI':
+      data = dataset_TRANSFORM_C_EN_I
+      break
+    case 'TNOAT2024_TRANSFORM_MC':
+      data = dataset_TRANSFORM_MC
+      break
+    case 'TNOAT2024_TRANSFORM_MCI':
+      data = dataset_TRANSFORM_MC_EN_I
+      break
+    case 'PBLTVKN2024_OP_CO2_opslag_40':
       data = dataset_PR40
       break
-    case 'PBL.SR20':
+    case 'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty':
       data = dataset_SR20
       break
-    case 'PBL.PB30':
+    case 'PBLTVKN2024_PP_CCS_30_in_2050':
       data = dataset_PB30
       break
+    case 'PBLWLO2025_HOOGSNEL':
+      data = dataset_WLO1
+      break
+    case 'PBLWLO2025_LAAGSNEL':
+      data = dataset_WLO2
+      break
+    case 'PBLWLO2025_HOOGVERTRAAGD':
+      data = dataset_WLO3
+      break
+    case 'BLWLO2025_LAAGVERTRAAGD':
+      data = dataset_WLO4
+      break
     default:
-      // For NBNL scenarios, data will be set elsewhere or use a default
       break
   }
-  
+
+  // Check if data is loaded
+  if (!data) {
+    console.error('Dataset not loaded for scenario:', config.scenario);
+    return;
+  }
+
   // Update the selection display text
   updateWaterfallSelectionDisplay(config.routekaart, config.sector);
   

@@ -210,9 +210,11 @@ function drawBarGraph (data, config) {
   // Keep the original hardcoded scenario names for display and color mapping
   // CBS version: Only TVKN and NBNL scenarios (excluding IV and EV2050)
   const varianten = [
-    'TVKN-PR40', 'TVKN-SR20', 'TVKN-PB30',
-    'NBNL-V3KM', 'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA',
-    'NBNL-V2NA', 'NBNL-V2IA'
+   
+    'PBLTVKN2024_OP_CO2_opslag_40',
+    'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty', 'PBLTVKN2024_PP_CCS_30_in_2050', 'NBNL2025_koersvaste_middenweg',
+    'NBNL2025_eigen_vermogen', 'NBNL2025_gezamenlijke_balans', 'NBNL2025_horizon_aanvoer',
+    'NBNL2023_nationale_drijfveren', 'NBNL2023_internationale_ambitie',
   ]
 
   // Create displayNameToDataMap by collecting data from multiple year-specific entries
@@ -233,24 +235,15 @@ function drawBarGraph (data, config) {
 
     // Determine display name for this scenario type
     let displayName = null
-    if (scenarioType.includes('adapt')) displayName = 'ADAPT'
-    else if (scenarioType.includes('transform_competitief_en_import')) displayName = 'TRANSFORM-C&Import'
-    else if (scenarioType.includes('transform_minder_competitief_en_import')) displayName = 'TRANSFORM-MC&Import'
-    else if (scenarioType.includes('transform_minder_competitief')) displayName = 'TRANSFORM-MC'
-    else if (scenarioType.includes('transform')) displayName = 'TRANSFORM'
-    else if (scenarioType.includes('tvkn_pr40')) displayName = 'TVKN-PR40'
-    else if (scenarioType.includes('tvkn_sr20')) displayName = 'TVKN-SR20'
-    else if (scenarioType.includes('tvkn_pb30')) displayName = 'TVKN-PB30'
-    else if (scenarioType.includes('ii3050_v3_koersvaste_middenweg')) displayName = 'NBNL-V3KM'
-    else if (scenarioType.includes('ii3050_v3_eigen_vermogen')) displayName = 'NBNL-V3EM'
-    else if (scenarioType.includes('ii3050_v3_gezamenlijke_balans')) displayName = 'NBNL-V3GB'
-    else if (scenarioType.includes('ii3050_v3_horizon_aanvoer')) displayName = 'NBNL-V3HA'
-    else if (scenarioType.includes('ii3050_v2_nationale_drijfveren')) displayName = 'NBNL-V2NA'
-    else if (scenarioType.includes('ii3050_v2_internationale_ambitie')) displayName = 'NBNL-V2IA'
-    else if (scenarioType === 'WLO_1') displayName = 'WLO_1'
-    else if (scenarioType === 'WLO_2') displayName = 'WLO_2'
-    else if (scenarioType === 'WLO_3') displayName = 'WLO_3'
-    else if (scenarioType === 'WLO_4') displayName = 'WLO_4'
+    if (scenarioType.includes('PBLTVKN2024_OP_CO2_opslag_40')) displayName = 'PBLTVKN2024_OP_CO2_opslag_40'
+    else if (scenarioType.includes('PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty')) displayName = 'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty'
+    else if (scenarioType.includes('PBLTVKN2024_PP_CCS_30_in_2050')) displayName = 'PBLTVKN2024_PP_CCS_30_in_2050'
+    else if (scenarioType.includes('NBNL2025_koersvaste_middenweg')) displayName = 'NBNL2025_koersvaste_middenweg'
+    else if (scenarioType.includes('NBNL2025_eigen_vermogen')) displayName = 'NBNL2025_eigen_vermogen'
+    else if (scenarioType.includes('NBNL2025_gezamenlijke_balans')) displayName = 'NBNL2025_gezamenlijke_balans'
+    else if (scenarioType.includes('NBNL2025_horizon_aanvoer')) displayName = 'NBNL2025_horizon_aanvoer'
+    else if (scenarioType.includes('NBNL2023_nationale_drijfveren')) displayName = 'NBNL2023_nationale_drijfveren'
+    else if (scenarioType.includes('NBNL2023_internationale_ambitie')) displayName = 'NBNL2023_internationale_ambitie'
 
     if (displayName) {
       // Initialize the display name if it doesn't exist
@@ -295,25 +288,25 @@ function drawBarGraph (data, config) {
   })
 
   const variantTitles = {
-    'TVKN-PR40': 'PBL-2024 | TVKN | Pragmatisch Ruim 40',
-    'TVKN-SR20': 'PBL-2024 | TVKN | Specifiek Ruim 20',
-    'TVKN-PB30': 'PBL-2024 | TVKN | Pragmatisch Beperkt 30',
-    'NBNL-V3KM': 'NBNL-2025 | II3050 v3 | Koersvaste Middenweg',
-    'NBNL-V3EM': 'NBNL-2025 | II3050 v3 | Eigen Vermogen',
-    'NBNL-V3GB': 'NBNL-2025 | II3050 v3 | Gezamenlijke Balans',
-    'NBNL-V3HA': 'NBNL-2025 | II3050 v3 | Horizon Aanvoer',
-    'NBNL-V2NA': 'NBNL-2023 | II3050 v2 | Nationale Drijfveren',
-    'NBNL-V2IA': 'NBNL-2023 | II3050 v2 | Internationale Ambitie'
+    'PBLTVKN2024_OP_CO2_opslag_40': 'PBL-2024 | TVKN | Pragmatisch Ruim 40',
+    'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty': 'PBL-2024 | TVKN | Specifiek Ruim 20',
+    'PBLTVKN2024_PP_CCS_30_in_2050': 'PBL-2024 | TVKN | Pragmatisch Beperkt 30',
+    'NBNL2025_koersvaste_middenweg': 'NBNL-2025 | II3050 v3 | Koersvaste Middenweg',
+    'NBNL2025_eigen_vermogen': 'NBNL-2025 | II3050 v3 | Eigen Vermogen',
+    'NBNL2025_gezamenlijke_balans': 'NBNL-2025 | II3050 v3 | Gezamenlijke Balans',
+    'NBNL2025_horizon_aanvoer': 'NBNL-2025 | II3050 v3 | Horizon Aanvoer',
+    'NBNL2023_nationale_drijfveren': 'NBNL-2023 | II3050 v2 | Nationale Drijfveren',
+    'NBNL2023_internationale_ambitie': 'NBNL-2023 | II3050 v2 | Internationale Ambitie',
   }
 
   const categoryInfo = {
     TVKN: {
       baseColor: '#33a02c', // green
-      scenarios: ['TVKN-PR40', 'TVKN-SR20', 'TVKN-PB30']
+      scenarios: ['PBLTVKN2024_OP_CO2_opslag_40', 'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty', 'PBLTVKN2024_PP_CCS_30_in_2050']
     },
     NBNL: {
       baseColor: '#ff7f00', // orange
-      scenarios: ['NBNL-V3KM', 'NBNL-V3EM', 'NBNL-V3GB', 'NBNL-V3HA', 'NBNL-V2NA', 'NBNL-V2IA']
+      scenarios: ['NBNL2025_koersvaste_middenweg', 'NBNL2025_eigen_vermogen', 'NBNL2025_gezamenlijke_balans', 'NBNL2025_horizon_aanvoer', 'NBNL2023_nationale_drijfveren', 'NBNL2023_internationale_ambitie']
     }
   }
 

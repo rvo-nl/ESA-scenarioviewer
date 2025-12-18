@@ -3,60 +3,59 @@ let globalActiveSector = 'alle'
 
 function drawSelectionButtons (config) {
   let scenarioIdLookup = {
-    'PBL.PR40': {
+    'PBLTVKN2024_OP_CO2_opslag_40': {
       2030: 0,
       2035: 1,
       2040: 2,
       2045: 3,
       2050: 4
     },
-    'PBL.SR20': {
+    'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty': {
       2030: 5,
       2035: 6,
       2040: 7,
       2045: 8,
       2050: 9
     },
-    'PBL.PB30': {
+    'PBLTVKN2024_PP_CCS_30_in_2050': {
       2030: 10,
       2035: 11,
       2040: 12,
       2045: 13,
       2050: 14
     },
-    'NBNL.V3KM': {
+    'NBNL2025_koersvaste_middenweg': {
       2025: 15,
       2030: 16,
       2035: 17,
       2040: 18,
       2050: 19
     },
-    'NBNL.V3EM': {
+    'NBNL2025_eigen_vermogen': {
       2030: 20,
       2035: 21,
       2040: 22,
-      2050: 23
-    },
-    'NBNL.V3GB': {
+      2050: 23    },
+    'NBNL2025_gezamenlijke_balans': {
       2030: 24,
       2035: 25,
       2040: 26,
       2050: 27
     },
-    'NBNL.V3HA': {
+    'NBNL2025_horizon_aanvoer': {
       2030: 28,
       2035: 29,
       2040: 30,
       2050: 31
     },
-    'NBNL.V2NA': {
+    'NBNL2023_nationale_drijfveren': {
       2025: 32,
       2030: 33,
       2035: 34,
       2040: 35,
       2050: 36
     },
-    'NBNL.V2IA': {
+    'NBNL2023_internationale_ambitie': {
       2025: 37,
       2030: 38,
       2035: 39,
@@ -75,7 +74,7 @@ function drawSelectionButtons (config) {
     {id: '2060', title: '2060'},
   ]
   // SET DEFAULTS
-  globalActiveScenario.id = 'PBL.PR40'
+  globalActiveScenario.id = 'PBLTVKN2024_OP_CO2_opslag_40'
   globalActiveYear.id = '2030'
   globalActiveEnergyflowsSankey.id = 'system'
   globalSankeyInstancesActiveDataset = {
@@ -152,15 +151,15 @@ function drawSelectionButtons (config) {
   function drawScenarioButtons () {
     let scenarios = [
 
-      {id: 'PBL.PR40', title: 'PBL | TVKN | Pragmatisch Ruim 40', color: colorPBL},
-      {id: 'PBL.SR20', title: 'PBL | TVKN | Specifiek Ruim 20', color: colorPBL},
-      {id: 'PBL.PB30', title: 'PBL | TVKN | Pragmatisch Beperkt 30', color: colorPBL},
-      {id: 'NBNL.V3KM', title: 'NBNL | II3050 v3 | Koersvaste Middenweg', color: colorNBNLv3},
-      {id: 'NBNL.V3EM', title: 'NBNL | II3050 v3 | Eigen Vermogen', color: colorNBNLv3},
-      {id: 'NBNL.V3GB', title: 'NBNL | II3050 v3 | Gezamenlijke Balans', color: colorNBNLv3},
-      {id: 'NBNL.V3HA', title: 'NBNL | II3050 v3 | Horizon Aanvoer', color: colorNBNLv3},
-      {id: 'NBNL.V2NA', title: 'NBNL | II3050 v2 | Nationale Drijfveren', color: colorNBNLv2},
-      {id: 'NBNL.V2IA', title: 'NBNL | II3050 v2 | Internationale Ambitie', color: colorNBNLv2}
+      {id: 'PBLTVKN2024_OP_CO2_opslag_40', title: 'PBL | TVKN | Pragmatisch Ruim 40', color: colorPBL},
+      {id: 'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty', title: 'PBL | TVKN | Specifiek Ruim 20', color: colorPBL},
+      {id: 'PBLTVKN2024_PP_CCS_30_in_2050', title: 'PBL | TVKN | Pragmatisch Beperkt 30', color: colorPBL},
+      {id: 'NBNL2025_koersvaste_middenweg', title: 'NBNL | 2025 | Koersvaste Middenweg', color: colorNBNLv3},
+      {id: 'NBNL2025_eigen_vermogen', title: 'NBNL | 2025 | Eigen Vermogen', color: colorNBNLv3},
+      {id: 'NBNL2025_gezamenlijke_balans', title: 'NBNL | 2025 | Gezamenlijke Balans', color: colorNBNLv3},
+      {id: 'NBNL2025_horizon_aanvoer', title: 'NBNL | 2025 | Horizon Aanvoer', color: colorNBNLv3},
+      {id: 'NBNL2023_nationale_drijfveren', title: 'NBNL | II3050 v2 | Nationale Drijfveren', color: colorNBNLv2},
+      {id: 'NBNL2023_internationale_ambitie', title: 'NBNL | II3050 v2 | Internationale Ambitie', color: colorNBNLv2},
 
     ]
 

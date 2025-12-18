@@ -85,7 +85,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds04122025kgg.enc.json');
+    const response = await fetch('public/ds18122025kgg.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -129,7 +129,7 @@ async function decryptZipFile(passphrase) {
   }
 }
 
-let XLSXurl = 'private/data_sankeydiagram_ESA_v5_14082025.xlsm'
+let XLSXurl = 'private/data_sankeydiagram_december2025.xlsm'
 
 let sankeyConfigs = []
 
@@ -495,7 +495,7 @@ function generateSankeyLibrary (workbook) {
     //  alert('Excel data extracted — check the console!');
 
      // GENERATE SANKEY
-     var rawSankeyData = generateSankeyLibrary(jsonToWorkbook(excelData.data_sankeydiagram_ESA_v5_14082025))
+     var rawSankeyData = generateSankeyLibrary(jsonToWorkbook(excelData.data_sankeydiagram_december2025))
      sankeyConfigs.forEach(element => {
 
       let configString = JSON.stringify(element) // stringify in order to prevent code further down the line to transform sankeyConfigs object

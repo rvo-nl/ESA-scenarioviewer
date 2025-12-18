@@ -464,8 +464,12 @@ function generateSankeyLibrary (workbook) {
      }
 
      // Pass capacity data to capacity visualization module if available
-     if (csvData['processed_capacities'] && typeof window.setCapacityZipData === 'function') {
+     if ((csvData['processed_capacities'] || csvData['etm_production_parameters_mapping']) && typeof window.setCapacityZipData === 'function') {
        window.setCapacityZipData(csvData);
+       // Draw capacity visualization after data is loaded
+       if (typeof drawCapacityVisualization === 'function') {
+         drawCapacityVisualization();
+       }
      }
 
      // Pass category config to capacity visualization module if available

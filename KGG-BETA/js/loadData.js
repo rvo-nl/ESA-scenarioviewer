@@ -434,6 +434,10 @@ passphraseWrapper.appendChild(passphraseInput);
  reloadButton.style.transition = 'background-color 0.2s';
  reloadButton.style.textTransform = 'none';
  reloadButton.style.fontFamily = 'inherit';
+ reloadButton.style.textAlign = 'center';
+ reloadButton.style.display = 'flex';
+ reloadButton.style.justifyContent = 'center';
+ reloadButton.style.alignItems = 'center';
 
  reloadButton.addEventListener('mouseover', () => {
    reloadButton.style.backgroundColor = '#777';

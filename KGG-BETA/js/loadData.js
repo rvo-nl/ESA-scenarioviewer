@@ -415,7 +415,44 @@ function generateSankeyLibrary (workbook) {
  passphraseWrapper.appendChild(usernameInput);
 passphraseWrapper.appendChild(passphraseInput);
  buttonGroup.appendChild(decryptButton);
- 
+
+ // Create small hard reload button in bottom-right corner
+ const reloadButton = document.createElement('button');
+ reloadButton.innerHTML = `Cache Vernieuwen`;
+ reloadButton.type = 'button';
+ reloadButton.style.position = 'absolute';
+ reloadButton.style.bottom = '20px';
+ reloadButton.style.right = '20px';
+ reloadButton.style.padding = '8px 12px';
+ reloadButton.style.fontSize = '11px';
+ reloadButton.style.fontWeight = '400';
+ reloadButton.style.backgroundColor = '#999';
+ reloadButton.style.color = 'white';
+ reloadButton.style.border = 'none';
+ reloadButton.style.borderRadius = '6px';
+ reloadButton.style.cursor = 'pointer';
+ reloadButton.style.transition = 'background-color 0.2s';
+ reloadButton.style.textTransform = 'none';
+ reloadButton.style.fontFamily = 'inherit';
+
+ reloadButton.addEventListener('mouseover', () => {
+   reloadButton.style.backgroundColor = '#777';
+ });
+ reloadButton.addEventListener('mouseout', () => {
+   reloadButton.style.backgroundColor = '#999';
+ });
+
+ reloadButton.addEventListener('click', () => {
+   // Hard reload: clear cache and reload
+   location.reload(true);
+ });
+
+ // Append to the welcome-card container (parent of welcome-content)
+ const welcomeCard = document.querySelector('.welcome-card');
+ if (welcomeCard) {
+   welcomeCard.appendChild(reloadButton);
+ }
+
  // Enable Enter key to trigger decryption
  passphraseInput.addEventListener('keypress', (event) => {
    if (event.key === 'Enter') {

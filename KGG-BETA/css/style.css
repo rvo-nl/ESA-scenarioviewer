@@ -287,13 +287,11 @@ body {
       - the slideDown animation is triggered once
     */
 .concept-label {
-  /* or absolute, depending on your layout needs */
-  /* position: absolute; */
   top: 0;
   margin-right: 50px;
   right: 20px;
-  width: 78px;
-  height: 60px;
+  width: auto;
+  height: auto;
 
   background-color: #999;
   color: #fff;
@@ -301,37 +299,22 @@ body {
   font-weight: 700;
   font-size: 1.2rem;
 
-
-  /* Round bottom corners */
-  border-bottom-left-radius: 0px;
-  border-bottom-right-radius: 0px;
-
   z-index: 9999;
-  /* Keep it above other elements */
   animation: slideDown 1s ease-out forwards;
 
-  /* Flex container to position text at bottom center */
-  display: flex;
+  /* Flex container to position text at bottom with equal padding */
+  display: inline-flex;
   align-items: flex-end;
-  /* push child content to bottom */
   justify-content: center;
-  /* horizontally center child content */
 
-  /* Optional padding at the bottom */
-  padding-bottom: 1rem;
-  /* border: 1px solid #ccc; */
-  /* border: 2px dashed #666; */
+  /* Top padding for height, equal left/right/bottom padding around text */
+  padding: 2.5rem 1rem 1rem 1rem;
 
 }
 
 .version-label {
-  /* or absolute, depending on your layout needs */
-  /* position: absolute; */
   top: 0;
   margin-left: 20px;
-  right: 20px;
-  width: 180px;
-  height: 30px;
 
   background-color: #999;
   color: #FFF;
@@ -339,23 +322,15 @@ body {
   font-weight: 700;
   font-size: 1.1rem;
 
-  /* Round bottom corners */
-  border-bottom-left-radius: 0px;
-  border-bottom-right-radius: 0px;
-
   z-index: 9999;
-  /* Keep it above other elements */
   animation: slideDown 1s ease-out forwards;
 
-  /* Flex container to position text at bottom center */
-  display: flex;
-  align-items: flex-end;
-  /* push child content to bottom */
-  justify-content: center;
-  /* horizontally center child content */
+  /* Make label only as wide as content */
+  display: inline-block;
+  width: fit-content;
 
-  /* Optional padding at the bottom */
-  padding-bottom: 0.5rem;
+  /* Equal padding on all sides */
+  padding: 0.5rem 1rem;
 
 }
 

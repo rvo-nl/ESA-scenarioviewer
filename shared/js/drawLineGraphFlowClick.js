@@ -1,8 +1,11 @@
+// Generic Line Graph Flow Click Module
+// Loads configuration from viewer-config.json
+
 let globalVisibleScenarios
 var globalPopupData = null
 var globalPopupConfig = null
 
-function closePopup () {
+function closePopup() {
   d3.select('#nodeInfoPopup').remove()
   const container = d3.select('#popupContainer')
   container.on('click', null)
@@ -14,12 +17,20 @@ function closePopup () {
   globalPopupConfig = null
 }
 
-function drawBarGraph (data, config) {
+function drawBarGraph(data, config) {
   globalPopupData = data
   globalPopupConfig = config
   console.log(config, data)
 
-  /* ----------  POP‑UP SHELL  ---------- */
+  // Get config from viewerConfig (loaded by drawSelectionButtons.js)
+  const lineGraphConfig = viewerConfig?.lineGraphFlow || {}
+  const popupWidth = lineGraphConfig.popupWidth || 1100
+  const popupHeight = lineGraphConfig.popupHeight || 800
+  const varianten = lineGraphConfig.varianten || []
+  const variantTitles = lineGraphConfig.variantTitles || {}
+  const categoryInfo = lineGraphConfig.categoryInfo || {}
+
+  /* ----------  POP-UP SHELL  ---------- */
   d3.select('#popupContainer')
     .style('background-color', 'rgba(0,0,0,0.3)')
     .style('pointer-events', 'auto')
@@ -44,8 +55,8 @@ function drawBarGraph (data, config) {
     .style('position', 'absolute')
     .style('box-shadow', '0 4px 10px rgba(0,0,0,0.2)')
     .style('border-radius', '10px')
-    .style('width', '1100px')
-    .style('height', '800px')
+    .style('width', `${popupWidth}px`)
+    .style('height', `${popupHeight}px`)
     .style('background-color', '#f9f9f9')
 
   const svg = popup.append('svg')
@@ -57,22 +68,39 @@ function drawBarGraph (data, config) {
   const canvas = svg.append('g')
 
   /* ----------  HEADER & FRAME  ---------- */
-  // Find source and target nodes, with fallback text if undefined
   const sourceNode = nodesGlobal.find(n => n.id === data.source) || {title: 'Unknown source'}
   const targetNode = nodesGlobal.find(n => n.id === data.target) || {title: 'Unknown target'}
+
+  // Calculate available width for title (leave space for export button)
+  const EXPORT_BUTTON_SPACE = 350  // Space reserved for export button + margin
+  const titleMaxWidth = popupWidth - 100 - EXPORT_BUTTON_SPACE
+
   canvas.append('text')
     .attr('x', 100)
     .attr('y', 50)
     .style('font-size', '14px')
     .style('font-weight', 500)
+    .style('max-width', `${titleMaxWidth}px`)
     .text(`Flow '${sourceNode['title.system']} → ${targetNode['title.system']}' (${data.legend === 'co2flow' ? 'kton CO2' : (currentUnit === 'TWh' ? 'TWh' : 'PJ')})`)
+    .each(function() {
+      // Truncate text if it's too long
+      const textElement = d3.select(this)
+      const textNode = this
+      let textContent = textNode.textContent
+
+      // Check if text is too wide
+      while (textNode.getComputedTextLength() > titleMaxWidth && textContent.length > 10) {
+        textContent = textContent.slice(0, -4) + '...'
+        textNode.textContent = textContent
+      }
+    })
 
   canvas.append('text')
     .attr('x', 100)
     .attr('y', 70)
     .style('font-size', '12px')
     .style('fill', '#666')
-    .html(null) // clear any text
+    .html(null)
     .append('tspan')
     .style('font-weight', '300')
     .text('source node: ')
@@ -102,16 +130,9 @@ function drawBarGraph (data, config) {
     .style('font-weight', '400')
     .text(data.legend)
 
-  // canvas.append('rect')
-    //   .attr('x', 30)
-    //   .attr('y', 60)
-    //   .attr('width', 940)
-    //   .attr('height', 410)
-    //   .attr('fill', '#fff')
-
   /* ----------  CLOSE BUTTON  ---------- */
-  const CLOSE_SIZE = 30; // rectangle is 30×30
-  const CLOSE_X = 1100 - 50 // your original offsets
+  const CLOSE_SIZE = 30
+  const CLOSE_X = popupWidth - 50
   const CLOSE_Y = 30
 
   const closeGroup = canvas.append('g')
@@ -120,26 +141,115 @@ function drawBarGraph (data, config) {
     .style('cursor', 'pointer')
     .on('click', closePopup)
 
-  /* button background */
   closeGroup.append('rect')
     .attr('width', CLOSE_SIZE)
     .attr('height', CLOSE_SIZE)
     .attr('rx', 4)
     .attr('fill', '#fff')
-    .on('mouseover', function () { d3.select(this).attr('fill', '#999'); })
-    .on('mouseout', function () { d3.select(this).attr('fill', '#fff'); })
+    .on('mouseover', function() { d3.select(this).attr('fill', '#999') })
+    .on('mouseout', function() { d3.select(this).attr('fill', '#fff') })
 
-  /* "X" icon (Material-icon path, 960 × 960 units)        *
-   * 1️⃣ translate(-480,-480)  → move centre of icon to (0,0)
-   * 2️⃣ scale(0.03125)        → 960 × 0.03125 = 30 px wide
-   * 3️⃣ translate(15,15)      → centre of our 30 × 30 button */
   const ICON_PATH = 'm249 849-42-42 231-231-231-231 42-42 231 231 231-231 42 42-231 231 231 231-42 42-231-231-231 231Z'
 
   closeGroup.append('path')
     .attr('d', ICON_PATH)
     .attr('transform', 'translate(15,15) scale(0.03125) translate(-480,-480)')
     .attr('fill', '#666')
-    .style('pointer-events', 'none') // rectangle handles the clicks
+    .style('pointer-events', 'none')
+
+  /* ----------  EXPORT BUTTON  ---------- */
+  const EXPORT_WIDTH = 110
+  const EXPORT_HEIGHT = 26
+  const EXPORT_X = popupWidth - 330  // More spacing from the PJ/TWh toggle
+  const EXPORT_Y = 40
+
+  const exportGroup = canvas.append('g')
+    .attr('class', 'export-btn')
+    .attr('transform', `translate(${EXPORT_X}, ${EXPORT_Y})`)
+    .style('cursor', 'pointer')
+    .on('click', function() {
+      // Prepare data for export
+      const sourceNode = nodesGlobal.find(n => n.id === data.source) || {'title.system': 'Unknown source'}
+      const targetNode = nodesGlobal.find(n => n.id === data.target) || {'title.system': 'Unknown target'}
+      const flowTitle = `${sourceNode['title.system']}_to_${targetNode['title.system']}`
+      const exportUnit = (typeof currentUnit !== 'undefined' && currentUnit === 'TWh') ? 'TWh' : 'PJ'
+
+      // Get getValue function
+      const pjToTWh = 3.6
+      const getExportValue = (value) => {
+        if (data.legend === 'co2flow') {
+          return value * globalCO2flowScale
+        }
+        if (exportUnit === 'TWh') {
+          return value / pjToTWh
+        }
+        return value
+      }
+
+      // Extract all scenario data from the data object
+      const exportData = []
+
+      // Find all available years from data keys
+      const availableYears = [...new Set(
+        Object.keys(data)
+          .filter(k => k.includes('scenario') && k.includes('x') && k.includes('x'))
+          .map(k => {
+            const match = k.match(/x(\d{4})x/)
+            return match ? match[1] : null
+          })
+          .filter(year => year !== null)
+      )].sort()
+
+      // Extract data for each year and scenario
+      availableYears.forEach(year => {
+        Object.keys(data).forEach(key => {
+          if (key.includes(`x${year}x`) && key.includes('scenario')) {
+            // Extract scenario name from key (e.g., "scenario_x2030x_TNOAT2024_ADAPT" -> "TNOAT2024_ADAPT")
+            const parts = key.split('_')
+            const scenarioName = parts.slice(2).join('_')
+
+            exportData.push({
+              year: year,
+              value: getExportValue(data[key]),
+              scenario: scenarioName
+            })
+          }
+        })
+      })
+
+      // Call export function
+      if (typeof window.exportLinegraphToXLSX === 'function') {
+        window.exportLinegraphToXLSX({
+          nodeTitle: flowTitle,
+          sourceNode: sourceNode['title.system'],
+          targetNode: targetNode['title.system'],
+          flowType: data.legend,
+          scenario: 'all_scenarios',
+          data: exportData,
+          unit: exportUnit
+        })
+      }
+    })
+
+  exportGroup.append('rect')
+    .attr('width', EXPORT_WIDTH)
+    .attr('height', EXPORT_HEIGHT)
+    .attr('rx', 4)
+    .attr('fill', '#f5f5f5')
+    .attr('stroke', '#ccc')
+    .attr('stroke-width', 1)
+    .on('mouseover', function() { d3.select(this).attr('fill', '#e8e8e8') })
+    .on('mouseout', function() { d3.select(this).attr('fill', '#f5f5f5') })
+
+  exportGroup.append('text')
+    .attr('x', EXPORT_WIDTH / 2)
+    .attr('y', EXPORT_HEIGHT / 2 + 4)
+    .attr('text-anchor', 'middle')
+    .attr('fill', '#444')
+    .style('font-size', '12px')
+    .style('font-weight', '400')
+    .style('pointer-events', 'none')
+    .text('Export data (xlsx)')
 
   /* ----------  CONSTANTS  ---------- */
   const graphWidth = 900
@@ -185,7 +295,6 @@ function drawBarGraph (data, config) {
   // Create a mapping from scenario titles to their data across all years
   const scenarioDataMap = {}
 
-  // Use the config.scenarios array to get the proper scenario titles and their indices
   if (config && config.scenarios) {
     config.scenarios.forEach((scenarioConfig, scenarioIndex) => {
       const scenarioTitle = scenarioConfig.title
@@ -193,9 +302,7 @@ function drawBarGraph (data, config) {
 
       availableYears.forEach(year => {
         const yearScenarios = yearData(year)
-        // Find the scenario in yearScenarios by matching the title/name, not by index
-        const matchingScenario = yearScenarios.find(([key, value]) => key.includes(scenarioTitle)
-        )
+        const matchingScenario = yearScenarios.find(([key, value]) => key.includes(scenarioTitle))
 
         if (matchingScenario) {
           scenarioDataMap[scenarioTitle][year] = matchingScenario[1]
@@ -207,159 +314,44 @@ function drawBarGraph (data, config) {
   /* ----------  DRAW LINE GRAPH  ---------- */
   const years = availableYears
 
-  // Keep the original hardcoded scenario names for display and color mapping
-  const varianten = [
-    'TNOAT2024_ADAPT', 'TNOAT2024_TRANSFORM',
-    'TNOAT2024_TRANSFORM_CI', 'TNOAT2024_TRANSFORM_MC',
-    'TNOAT2024_TRANSFORM_MCI', 'PBLTVKN2024_OP_CO2_opslag_40',
-    'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty', 'PBLTVKN2024_PP_CCS_30_in_2050', 'NBNL2025_koersvaste_middenweg',
-    'NBNL2025_eigen_vermogen', 'NBNL2025_gezamenlijke_balans', 'NBNL2025_horizon_aanvoer',
-    'NBNL2023_nationale_drijfveren', 'NBNL2023_internationale_ambitie', 'NBNL2025_industrievariant_definitief', 'PBLWLO2025_HOOGSNEL', 'PBLWLO2025_LAAGSNEL', 'PBLWLO2025_HOOGVERTRAAGD', 'PBLWLO2025_LAAGVERTRAAGD',
-    'TNO2025_NPEREF_CI_11112025', 'TNO2025_NPEREF_LCI_11112025', 'TNO2025_NPEREF_CI_25112025', 'TENNET2025_electrostate_postprocessed'
-  ]
-
-  // Create displayNameToDataMap by collecting data from multiple year-specific entries
+  // Create displayNameToDataMap by directly using viewer scenarios
   const displayNameToDataMap = {}
 
-  // First, identify all unique scenario types and their available years
-  const scenarioTypes = {}
+  // Use viewerConfig.scenarios to map scenario IDs to their data
+  if (viewerConfig && viewerConfig.scenarios) {
+    viewerConfig.scenarios.forEach((scenario) => {
+      const scenarioId = scenario.id
 
-  // Debug: Log first 10 scenario titles to understand the format
-  console.log('Sample scenario titles:', config.scenarios.slice(0, 10).map(s => s.title))
-  console.log('Last 10 scenario titles:', config.scenarios.slice(-10).map(s => s.title))
-
-  config.scenarios.forEach((scenarioConfig, index) => {
-    const dataColumnName = scenarioConfig.title.toLowerCase()
-
-    // Extract year and scenario type
-    const yearMatch = scenarioConfig.title.match(/x(\d{4})x_(.+)/)
-
-    if (!yearMatch) return
-
-    const year = parseInt(yearMatch[1])
-    const scenarioType = yearMatch[2]
-
-    // Determine display name for this scenario type
-    let displayName = null
-    if (scenarioType.includes('TNOAT2024_ADAPT')) displayName = 'TNOAT2024_ADAPT'
-    else if (scenarioType.includes('TNOAT2024_TRANSFORM')) displayName = 'TNOAT2024_TRANSFORM'
-    else if (scenarioType.includes('TNOAT2024_TRANSFORM_CI')) displayName = 'TNOAT2024_TRANSFORM_CI'
-    else if (scenarioType.includes('TNOAT2024_TRANSFORM_MCI')) displayName = 'TNOAT2024_TRANSFORM_MCI'
-    else if (scenarioType.includes('TNOAT2024_TRANSFORM_MC')) displayName = 'TNOAT2024_TRANSFORM_MC'
-    else if (scenarioType.includes('PBLTVKN2024_OP_CO2_opslag_40')) displayName = 'PBLTVKN2024_OP_CO2_opslag_40'
-    else if (scenarioType.includes('PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty')) displayName = 'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty'
-    else if (scenarioType.includes('PBLTVKN2024_PP_CCS_30_in_2050')) displayName = 'PBLTVKN2024_PP_CCS_30_in_2050'
-    else if (scenarioType.includes('NBNL2025_koersvaste_middenweg')) displayName = 'NBNL2025_koersvaste_middenweg'
-    else if (scenarioType.includes('NBNL2025_eigen_vermogen')) displayName = 'NBNL2025_eigen_vermogen'
-    else if (scenarioType.includes('NBNL2025_gezamenlijke_balans')) displayName = 'NBNL2025_gezamenlijke_balans'
-    else if (scenarioType.includes('NBNL2025_horizon_aanvoer')) displayName = 'NBNL2025_horizon_aanvoer'
-    else if (scenarioType.includes('NBNL2023_nationale_drijfveren')) displayName = 'NBNL2023_nationale_drijfveren'
-    else if (scenarioType.includes('NBNL2023_internationale_ambitie')) displayName = 'NBNL2023_internationale_ambitie'
-    else if (scenarioType.includes('NBNL2025_industrievariant_definitief')) displayName = 'NBNL2025_industrievariant_definitief'
-    else if (scenarioType === 'PBLWLO2025_HOOGSNEL') displayName = 'PBLWLO2025_HOOGSNEL'
-    else if (scenarioType === 'PBLWLO2025_LAAGSNEL') displayName = 'PBLWLO2025_LAAGSNEL'
-    else if (scenarioType === 'PBLWLO2025_HOOGVERTRAAGD') displayName = 'PBLWLO2025_HOOGVERTRAAGD'
-    else if (scenarioType === 'PBLWLO2025_LAAGVERTRAAGD') displayName = 'PBLWLO2025_LAAGVERTRAAGD'
-    else if (scenarioType === 'TNO2025_NPEREF_CI_11112025') displayName = 'TNO2025_NPEREF_CI_11112025'
-    else if (scenarioType === 'TNO2025_NPEREF_LCI_11112025') displayName = 'TNO2025_NPEREF_LCI_11112025'
-    else if (scenarioType === 'TNO2025_NPEREF_CI_25112025') displayName = 'TNO2025_NPEREF_CI_25112025'
-    else if (scenarioType === 'TENNET2025_electrostate_postprocessed') displayName = 'TENNET2025_electrostate_postprocessed'
-
-    if (displayName) {
-      // Initialize the display name if it doesn't exist
-      if (!displayNameToDataMap[displayName]) {
-        displayNameToDataMap[displayName] = {}
+      // Check if this scenario ID is in the varianten list
+      if (!varianten.includes(scenarioId)) {
+        return
       }
 
-      // Try to find the actual data key - handle case mismatches
-      let actualKey = scenarioConfig.title
-      let scenarioData = scenarioDataMap[actualKey]
-
-      // If not found, try different case variations
-      if (!scenarioData || Object.keys(scenarioData).length === 0) {
-        // Try uppercase version for WLO scenarios
-        if (scenarioConfig.title.includes('wlo_')) {
-          actualKey = scenarioConfig.title.replace(/wlo_(\d+)/, 'WLO_$1')
-          scenarioData = scenarioDataMap[actualKey]
-        }
-
-        // Try other case variations if still not found
-        if (!scenarioData || Object.keys(scenarioData).length === 0) {
-          // Look for a key that matches the pattern but with different case
-          const basePattern = scenarioConfig.title.toLowerCase()
-          const matchingKey = Object.keys(scenarioDataMap).find(key => key.toLowerCase() === basePattern
-          )
-          if (matchingKey) {
-            actualKey = matchingKey
-            scenarioData = scenarioDataMap[matchingKey]
-          }
-        }
+      // Initialize the display name entry
+      if (!displayNameToDataMap[scenarioId]) {
+        displayNameToDataMap[scenarioId] = {}
       }
 
-      if (scenarioData && Object.keys(scenarioData).length > 0) {
-        // For this year-specific entry, get the value for this year
-        // The data structure should have the year as a key
-        const yearValue = scenarioData[year]
-        if (yearValue !== undefined && yearValue !== null) {
-          displayNameToDataMap[displayName][year] = yearValue
-        }
-      }
-    }
-  })
+      // For each year, find the matching data in scenarioDataMap
+      availableYears.forEach(year => {
+        // Look for data keys that match this scenario and year
+        // Data keys are like "scenario_x2030x_TNOAT2024_TRANSFORM_CI"
+        const yearScenarios = yearData(year)
+        const matchingScenario = yearScenarios.find(([key, value]) => {
+          // Extract scenario name from key: "scenario_x2030x_TNOAT2024_TRANSFORM_CI" -> "TNOAT2024_TRANSFORM_CI"
+          const parts = key.split('_')
+          const scenarioName = parts.slice(2).join('_')
+          return scenarioName === scenarioId
+        })
 
-  const variantTitles = {
-    'TNOAT2024_ADAPT': 'TNO-2024 | ADAPT',
-    'TNOAT2024_TRANSFORM': 'TNO-2024 | TRANSFORM',
-    'TNOAT2024_TRANSFORM_CI': 'TNO-2024 | TRANSFORM | Competitief & Import',
-    'TNOAT2024_TRANSFORM_MC': 'TNO-2024 | TRANSFORM | Competitief',
-    'TNOAT2024_TRANSFORM_MCI': 'TNO-2024 | TRANSFORM | Minder Competitief & Import',
-    'PBLTVKN2024_OP_CO2_opslag_40': 'PBL-2024 | TVKN | Pragmatisch Ruim 40',
-    'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty': 'PBL-2024 | TVKN | Specifiek Ruim 20',
-    'PBLTVKN2024_PP_CCS_30_in_2050': 'PBL-2024 | TVKN | Pragmatisch Beperkt 30',
-    'NBNL2025_koersvaste_middenweg': 'NBNL-2025 | II3050 v3 | Koersvaste Middenweg',
-    'NBNL2025_eigen_vermogen': 'NBNL-2025 | II3050 v3 | Eigen Vermogen',
-    'NBNL2025_gezamenlijke_balans': 'NBNL-2025 | II3050 v3 | Gezamenlijke Balans',
-    'NBNL2025_horizon_aanvoer': 'NBNL-2025 | II3050 v3 | Horizon Aanvoer',
-    'NBNL2023_nationale_drijfveren': 'NBNL-2023 | II3050 v2 | Nationale Drijfveren',
-    'NBNL2023_internationale_ambitie': 'NBNL-2023 | II3050 v2 | Internationale Ambitie',
-    'NBNL2025_industrievariant_definitief': 'NBNL-2025 | KM Industrievariant',
-    'PBLWLO2025_HOOGSNEL': 'PBL-2025 | WLO | Hoog Snel',
-    'PBLWLO2025_LAAGSNEL': 'PBL-2025 | WLO | Laag Snel',
-    'PBLWLO2025_HOOGVERTRAAGD': 'PBL-2025 | WLO | Hoog Vertraagd',
-    'PBLWLO2025_LAAGVERTRAAGD': 'PBL-2025 | WLO | Laag Vertraagd',
-    'TNO-2025-NPEREF-CI-11112025': 'TNO-2025 | NPEREF CI 11-11-2025',
-    'TNO-2025-NPEREF-LCI-11112025': 'TNO-2025 | NPEREF LCI 11-11-2025',
-    'TNO-2025-NPEREF-CI-25112025': 'TNO-2025 | NPEREF CI 11-11-2025',
-    'TENNET2025_electrostate_postprocessed': 'TENNET-2025 | TARGET GRID | ELECTROSTATE'
+        if (matchingScenario) {
+          displayNameToDataMap[scenarioId][year] = matchingScenario[1]
+        }
+      })
+    })
   }
 
-  const categoryInfo = {
-    'ADAPT/TRANSFORM': {
-      baseColor: '#1f78b4', // blue
-      scenarios: ['TNOAT2024_ADAPT', 'TNOAT2024_TRANSFORM', 'TNOAT2024_TRANSFORM_CI', 'TNOAT2024_TRANSFORM_MC', 'TNOAT2024_TRANSFORM_MCI']
-    },
-    TVKN: {
-      baseColor: '#33a02c', // green
-      scenarios: ['PBLTVKN2024_OP_CO2_opslag_40', 'PBLTVKN2024_OptimistischSelectiefFossilCarbonPenalty', 'PBLTVKN2024_PP_CCS_30_in_2050']
-    },
-    NBNL: {
-      baseColor: '#ff7f00', // orange
-      scenarios: ['NBNL2025_koersvaste_middenweg', 'NBNL2025_eigen_vermogen', 'NBNL2025_gezamenlijke_balans', 'NBNL2025_horizon_aanvoer', 'NBNL2023_nationale_drijfveren', 'NBNL2023_internationale_ambitie', 'NBNL2025_industrievariant_definitief']
-    },
-    WLO: {
-      baseColor: '#e31a1c', // red
-      scenarios: ['PBLWLO2025_HOOGSNEL', 'PBLWLO2025_LAAGSNEL', 'PBLWLO2025_HOOGVERTRAAGD', 'PBLWLO2025_LAAGVERTRAAGD']
-    },
-    TNO: {
-      baseColor: 'purple', // green
-      scenarios: ['TNO2025_NPEREF_CI_11112025', 'TNO2025_NPEREF_LCI_11112025', 'TNO2025_NPEREF_CI_25112025']
-    },
-    TENNET: {
-      baseColor: ' #497E96', // light blue
-      scenarios: ['TENNET2025_electrostate_postprocessed']
-    }
-  }
-
+  // Build scenario colors from config
   const scenarioColors = {}
   Object.values(categoryInfo).forEach(cat => {
     const colorScale = d3.scaleLinear()
@@ -381,7 +373,7 @@ function drawBarGraph (data, config) {
   })
 
   if (globalVisibleScenarios === undefined) {
-    globalVisibleScenarios = new Set(varianten) // All scenarios visible by default
+    globalVisibleScenarios = new Set(varianten)
   }
 
   // x-scale for years
@@ -399,10 +391,9 @@ function drawBarGraph (data, config) {
     .x(d => x(d.year))
     .y(d => y(d.value))
 
-  /* remove axis domain strokes */
   canvas.selectAll('.domain').remove()
 
-  // Add a filter for the drop shadow
+  // Add filter for drop shadow
   const defs = svg.append('defs')
 
   const filter = defs.append('filter')
@@ -436,22 +427,24 @@ function drawBarGraph (data, config) {
     .style('font-size', '12px')
     .attr('text-anchor', 'middle')
 
-  function updateGraph () {
-    // Clear existing lines and dots
+  function updateGraph() {
     canvas.selectAll('.scenario-line').remove()
     canvas.selectAll('.scenario-dot').remove()
     canvas.selectAll('.hover-label').remove()
 
-    // draw lines and dots for each scenario
     varianten.forEach((scenarioName) => {
-
       if (!globalVisibleScenarios.has(scenarioName)) {
+        return
+      }
+
+      // Skip scenarios with all zero values (if function is available)
+      if (typeof scenariosWithZeroValues !== 'undefined' && scenariosWithZeroValues.has(scenarioName)) {
+        console.log(`Skipping ${scenarioName} - all values are zero`)
         return
       }
 
       const scenarioDataForYears = displayNameToDataMap[scenarioName]
 
-      // Skip if no data available for this scenario
       if (!scenarioDataForYears) {
         console.log(`No data available for ${scenarioName}, skipping`)
         return
@@ -459,21 +452,19 @@ function drawBarGraph (data, config) {
 
       const color = scenarioColors[scenarioName]
 
-      // Build data points for this scenario across all available years
       const scenarioData = years.map((year) => {
         const yearValue = scenarioDataForYears[year]
         if (yearValue !== undefined && yearValue !== null) {
           return {year: year, value: yearValue, original: {year: year, value: yearValue}}
         }
         return null
-      }).filter(d => d !== null) // Only include points with valid data
+      }).filter(d => d !== null)
 
       if (scenarioData.length === 0) {
         console.log(`No valid data points for ${scenarioName}, skipping`)
-        return // Skip scenarios with no data
+        return
       }
 
-      // Draw line
       canvas.append('path')
         .datum(scenarioData)
         .attr('class', 'scenario-line')
@@ -482,7 +473,6 @@ function drawBarGraph (data, config) {
         .attr('stroke-width', 2)
         .attr('d', line)
 
-      // Draw dots
       const symbolGenerator = d3.symbol().type(scenarioSymbols[scenarioName]).size(64)
       scenarioData.forEach((d, i) => {
         canvas.append('path')
@@ -490,7 +480,7 @@ function drawBarGraph (data, config) {
           .attr('class', 'scenario-dot')
           .attr('transform', `translate(${x(d.year)}, ${y(d.value)})`)
           .attr('fill', color)
-          .on('mouseover', function (event) { // d is from closure
+          .on('mouseover', function(event) {
             tooltip.raise().style('display', 'block')
 
             const scenarioTitle = variantTitles[scenarioName] || scenarioName
@@ -522,7 +512,6 @@ function drawBarGraph (data, config) {
               .attr('width', tooltipWidth)
               .attr('height', tooltipHeight)
 
-            // Vertically and horizontally center the text block
             textEl.attr('transform', `translate(${tooltipWidth / 2}, ${padding - textBBox.y})`)
 
             const pointerSize = 8
@@ -530,16 +519,14 @@ function drawBarGraph (data, config) {
             const yPos = y(d.value)
 
             let tooltipX = xPos - (tooltipWidth / 2)
-            let tooltipY = yPos - tooltipHeight - pointerSize - 5; // 5px margin from point, above by default
+            let tooltipY = yPos - tooltipHeight - pointerSize - 5
 
             let pointerPath
 
-            // Check top overflow
             if (tooltipY < graphTop) {
-              tooltipY = yPos + pointerSize + 10 // position below point
+              tooltipY = yPos + pointerSize + 10
             }
 
-            // Check side overflows
             if (tooltipX < shiftX) {
               tooltipX = shiftX
             }
@@ -547,11 +534,11 @@ function drawBarGraph (data, config) {
               tooltipX = shiftX + graphWidth - tooltipWidth
             }
 
-            const pointerX = xPos - tooltipX; // pointer's x relative to tooltip's origin
+            const pointerX = xPos - tooltipX
 
-            if (tooltipY > yPos) { // tooltip is below point, pointer points up
+            if (tooltipY > yPos) {
               pointerPath = `M${pointerX - pointerSize},0 L${pointerX},-${pointerSize} L${pointerX + pointerSize},0 Z`
-            } else { // tooltip is above point, pointer points down
+            } else {
               pointerPath = `M${pointerX - pointerSize},${tooltipHeight} L${pointerX},${tooltipHeight + pointerSize} L${pointerX + pointerSize},${tooltipHeight} Z`
             }
 
@@ -561,7 +548,7 @@ function drawBarGraph (data, config) {
 
             tooltip.attr('transform', `translate(${tooltipX}, ${tooltipY})`)
           })
-          .on('mouseout', function () {
+          .on('mouseout', function() {
             tooltip.style('display', 'none')
           })
       })
@@ -570,7 +557,7 @@ function drawBarGraph (data, config) {
 
   // Add legend
   const legend = canvas.append('g')
-    .attr('transform', `translate(${shiftX}, ${graphBottom + 70})`) // Position under the graph
+    .attr('transform', `translate(${shiftX}, ${graphBottom + 70})`)
 
   legend.append('text')
     .attr('x', 0)
@@ -579,9 +566,9 @@ function drawBarGraph (data, config) {
     .style('font-weight', 'bold')
     .text('Scenarios')
 
-  function updateLegend () {
+  function updateLegend() {
     legend.selectAll('.legend-item')
-      .each(function (d) {
+      .each(function(d) {
         const item = d3.select(this)
         const isVisible = globalVisibleScenarios.has(d)
         item.select('.checkmark-box')
@@ -593,10 +580,9 @@ function drawBarGraph (data, config) {
   }
 
   const itemsPerColumn = Math.ceil(varianten.length / 3)
-  const columnWidth = 320 // Adjust as needed
+  const columnWidth = 320
   const itemHeight = 25
 
-  // Add legend items
   const legendItems = legend.selectAll('.legend-item')
     .data(varianten)
     .enter()
@@ -608,7 +594,7 @@ function drawBarGraph (data, config) {
       return `translate(${col * columnWidth}, ${row * itemHeight})`
     })
     .style('cursor', 'pointer')
-    .on('click', function (event, d) {
+    .on('click', function(event, d) {
       if (globalVisibleScenarios.has(d)) {
         globalVisibleScenarios.delete(d)
       } else {
@@ -638,14 +624,12 @@ function drawBarGraph (data, config) {
     .style('pointer-events', 'none')
     .text('✔')
 
-  // Add symbol
   legendItems.append('path')
     .attr('d', d => d3.symbol().type(scenarioSymbols[d]).size(64)())
     .attr('transform', `translate(28, 7)`)
     .attr('fill', d => scenarioColors[d])
     .style('pointer-events', 'none')
 
-  // Add text label
   legendItems.append('text')
     .attr('x', 45)
     .attr('y', 12)
@@ -670,7 +654,7 @@ function drawBarGraph (data, config) {
     .style('font-size', '13px')
     .select('.domain').remove()
 
-  // Add Y-axis title
+  // Y-axis title
   canvas.append('text')
     .attr('transform', `translate(${shiftX - 60}, ${(graphBottom + graphTop) / 2}) rotate(-90)`)
     .style('text-anchor', 'middle')
@@ -704,10 +688,10 @@ function drawBarGraph (data, config) {
   verticalGrid.lower()
   bandGroup.lower()
 
-  // Add a unit toggle inside the popup
+  // Add unit toggle
   const unitToggle = canvas.append('g')
     .attr('class', 'unit-toggle-popup')
-    .attr('transform', `translate(${1100 - 180}, 40) scale(0.9)`)
+    .attr('transform', `translate(${popupWidth - 180}, 40) scale(0.9)`)
     .style('cursor', 'pointer')
     .on('click', () => {
       document.getElementById('sankeyUnitToggle').dispatchEvent(new MouseEvent('click'))
@@ -741,7 +725,6 @@ function drawBarGraph (data, config) {
     .style('font-size', '15px')
     .text('TWh')
 
-  // remove old bar elements
   canvas.selectAll('.bar_').remove()
   canvas.selectAll('.value-label_').remove()
   canvas.selectAll('.domain').remove()

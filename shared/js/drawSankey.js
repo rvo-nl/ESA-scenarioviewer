@@ -26,6 +26,213 @@ let currentScenarioID = 0
 
 selectionButtonsHaveInitialized = false
 
+// Track scenarios with all zero values
+let scenariosWithZeroValues = new Set()
+
+/**
+ * Check if all link values are zero for a given scenario across all scopes and years
+ * @param {string} scenarioId - The scenario ID to check
+ * @param {Object} config - The configuration object with scenarios
+ * @returns {boolean} - True if scenario has data columns (for any year) but all values are zero, false otherwise
+ */
+function checkScenarioHasAllZeroValues(scenarioId, config) {
+  // Check if scenario has any years defined in scenarioIdLookup
+  const scenarioYears = scenarioIdLookup[scenarioId]
+
+  if (!scenarioYears || Object.keys(scenarioYears).length === 0) {
+    return false // Scenario has no years defined - don't grey out
+  }
+
+  // Check all sankey data objects (different scopes) for any year's data
+  let hasAnyNonZeroValue = false
+  let hasAnyDataColumn = false
+
+  // Use for...of loops instead of forEach to enable proper early returns
+  for (const scopeKey of Object.keys(sankeyDataObjects)) {
+    const sankeyData = sankeyDataObjects[scopeKey]
+
+    if (sankeyData && sankeyData.links) {
+      // For each year this scenario has data for
+      for (const year of Object.keys(scenarioYears)) {
+        const scenarioIndex = scenarioYears[year]
+
+        if (scenarioIndex !== undefined) {
+          // Build the full column name: scenario{index}_x{year}x_{scenarioId}
+          const scenarioKey = `scenario${scenarioIndex}_x${year}x_${scenarioId}`
+
+          // Check if any link has this scenario as a column and if any value is non-zero
+          for (let i = 0; i < sankeyData.links.length; i++) {
+            const link = sankeyData.links[i]
+
+            // Check if this link has a column for this scenario
+            if (scenarioKey in link) {
+              hasAnyDataColumn = true
+              const value = link[scenarioKey]
+
+              if (value && Math.abs(value) > 0.001) { // Use small threshold to account for floating point
+                hasAnyNonZeroValue = true
+                break
+              }
+            }
+          }
+        }
+
+        if (hasAnyNonZeroValue) {
+          break // Exit year loop
+        }
+      }
+    }
+
+    if (hasAnyNonZeroValue) {
+      break // Exit scope loop
+    }
+  }
+
+  // Return true (grey out) if there are no non-zero values
+  // This covers both cases:
+  // 1. No data columns exist at all (scenario not in data)
+  // 2. Data columns exist but all values are zero
+  const result = !hasAnyNonZeroValue
+  return result
+}
+
+/**
+ * Update the scenario availability UI based on which scenarios have all zero values
+ * @param {Object} config - The configuration object
+ */
+function updateScenarioAvailability(config) {
+  scenariosWithZeroValues.clear()
+
+  // Check each scenario for zero values
+  if (viewerConfig && viewerConfig.scenarios) {
+    viewerConfig.scenarios.forEach(scenario => {
+      if (checkScenarioHasAllZeroValues(scenario.id, config)) {
+        scenariosWithZeroValues.add(scenario.id)
+      }
+    })
+  }
+
+  // Update scenario button states
+  const scenarioButtonsContainer = document.getElementById('scenarioButtons')
+  if (scenarioButtonsContainer) {
+    const buttons = scenarioButtonsContainer.getElementsByTagName('button')
+
+    // Find the scenario title to button mapping
+    if (viewerConfig && viewerConfig.scenarios) {
+      viewerConfig.scenarios.forEach((scenario, index) => {
+        // Find button by matching text content
+        for (let i = 0; i < buttons.length; i++) {
+          if (buttons[i].textContent === scenario.title) {
+            if (scenariosWithZeroValues.has(scenario.id)) {
+              // Grey out the button
+              buttons[i].style.opacity = '0.4'
+              buttons[i].style.pointerEvents = 'none'
+              buttons[i].style.cursor = 'not-allowed'
+              buttons[i].title = 'Dit scenario is niet beschikbaar voor de gegeven selectie'
+            } else {
+              // Restore button
+              buttons[i].style.opacity = '1'
+              buttons[i].style.pointerEvents = 'auto'
+              buttons[i].style.cursor = 'pointer'
+              buttons[i].title = ''
+            }
+            break
+          }
+        }
+      })
+    }
+  }
+
+  // Check if current active scenario is available in the current diagram
+  // A scenario is unavailable if:
+  // 1. It's not in scenarioIdLookup at all (no data for this diagram), OR
+  // 2. It has all zero values
+  const currentScenarioId = globalActiveScenario?.id
+  let isCurrentScenarioUnavailable = false
+
+  if (currentScenarioId) {
+    // Check if scenario exists in scenarioIdLookup
+    const scenarioYears = scenarioIdLookup[currentScenarioId]
+    const hasNoData = !scenarioYears || Object.keys(scenarioYears).length === 0
+    const hasAllZeroValues = scenariosWithZeroValues.has(currentScenarioId)
+
+    isCurrentScenarioUnavailable = hasNoData || hasAllZeroValues
+  }
+
+  // Show/hide message on sankey diagram
+  showScenarioUnavailableMessage(isCurrentScenarioUnavailable)
+}
+
+/**
+ * Show or hide the "scenario not available" message on the sankey diagram
+ * @param {boolean} show - Whether to show the message
+ */
+function showScenarioUnavailableMessage(show) {
+  const targetDiv = document.getElementById('sankeyContainer') || document.querySelector('[id$="sankeyContainer"]')
+
+  if (!targetDiv) {
+    return
+  }
+
+  // Find the sankey SVG element and backdrop SVG
+  const sankeySvg = targetDiv.querySelector('svg:not([id$="_backdropSVG"])')
+  const backdropSvg = targetDiv.querySelector('svg[id$="_backdropSVG"]')
+
+  // Remove existing message if any
+  let messageDiv = targetDiv.querySelector('#scenarioUnavailableMessage')
+
+  if (show) {
+    // Hide the sankey diagram (main SVG and backdrop SVG)
+    if (sankeySvg) {
+      sankeySvg.style.display = 'none'
+    }
+    if (backdropSvg) {
+      backdropSvg.style.display = 'none'
+    }
+
+    // Show the unavailable message
+    if (!messageDiv) {
+      messageDiv = document.createElement('div')
+      messageDiv.id = 'scenarioUnavailableMessage'
+      messageDiv.style.position = 'absolute'
+      messageDiv.style.top = '50%'
+      messageDiv.style.left = '50%'
+      messageDiv.style.transform = 'translate(-50%, -50%)'
+      messageDiv.style.backgroundColor = '#FFF3CD'
+      messageDiv.style.border = '1px solid #FFC107'
+      messageDiv.style.borderRadius = '4px'
+      messageDiv.style.padding = '20px 30px'
+      messageDiv.style.fontSize = '16px'
+      messageDiv.style.fontWeight = '500'
+      messageDiv.style.color = '#856404'
+      messageDiv.style.zIndex = '1000'
+      messageDiv.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'
+      messageDiv.style.textAlign = 'center'
+      messageDiv.textContent = 'Scenario is niet beschikbaar voor gegeven selectie'
+
+      targetDiv.appendChild(messageDiv)
+    }
+    messageDiv.style.display = 'block'
+  } else {
+    // Show the sankey diagram (main SVG and backdrop SVG)
+    if (sankeySvg) {
+      sankeySvg.style.display = 'block'
+    }
+    if (backdropSvg) {
+      backdropSvg.style.display = 'block'
+    }
+
+    // Hide the unavailable message
+    if (messageDiv) {
+      messageDiv.style.display = 'none'
+    }
+  }
+}
+
+// Make function globally available
+window.checkScenarioHasAllZeroValues = checkScenarioHasAllZeroValues
+window.updateScenarioAvailability = updateScenarioAvailability
+
 // function process_xlsx_edit (config, rawSankeyData) {
 //   if (dataSource == 'url') {
 //   }
@@ -228,12 +435,29 @@ function drawSankey (sankeyDataInput, config) {
   // console.log(sankeyDataInput)
   sankeyData = sankeyDataInput
   d3.select('#' + config.sankeyInstanceID + '_sankeySVGPARENT').remove()
+  d3.select('#' + config.sankeyInstanceID + '_backdropSVG').remove()
 
   assetslog = {}
 
   let scrollExtentWidth = config.settings[0].scrollExtentWidth
   let scrollExtentHeight = config.settings[0].scrollExtentHeight
 
+  // Ensure target DIV has position relative for absolute positioning of backdrop
+  d3.select('#' + config.targetDIV).style('position', 'relative')
+
+  // Create backdrop SVG (for delineators and other backdrop elements)
+  d3.select('#' + config.targetDIV)
+    .append('svg')
+    .style('position', 'absolute')
+    .style('top', '20px')
+    .style('left', '20px')
+    .attr('id', config.sankeyInstanceID + '_backdropSVG')
+    .attr('width', scrollExtentWidth + 'px')
+    .attr('height', scrollExtentHeight + 'px')
+    .style('pointer-events', 'none')
+    .append('g')
+
+  // Create sankey SVG (for sankey diagram content)
   d3.select('#' + config.targetDIV)
     .append('svg')
     .style('position', 'relative')
@@ -243,73 +467,90 @@ function drawSankey (sankeyDataInput, config) {
     // .style('pointer-events', 'auto')
     .append('g')
 
-  // backdropCanvas = d3.select('#sankeySVGbackdrop')
+  // Store references to both SVGs
+  sankeyInstances[config.sankeyInstanceID].backdropCanvas = d3.select('#' + config.sankeyInstanceID + '_backdropSVG')
   sankeyInstances[config.sankeyInstanceID].sankeyCanvas = d3.select('#' + config.sankeyInstanceID + '_sankeySVGPARENT')
   // buttonsCanvas = d3.select('#' + config.targetDIV + '_buttonsSVG').append('g')
   sankeyInstances[config.sankeyInstanceID].parentCanvas = d3.select('#' + config.sankeyInstanceID + '_sankeySVGPARENT').append('g')
 
   sankeyCanvas = d3.select('#' + config.sankeyInstanceID + '_sankeySVGPARENT')
+  let backdropCanvas = d3.select('#' + config.sankeyInstanceID + '_backdropSVG')
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_bronnen').attr('width', 300).attr('height', 2).attr('x', 15).attr('y', 70).attr('fill', '#888').attr('rx', 2.5).attr('ry', 2.5)
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_conversie').attr('width', 606).attr('height', 2).attr('x', 350).attr('y', 70).attr('fill', '#888').attr('rx', 2.5).attr('ry', 2.5)
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_finaal').attr('width', 590).attr('height', 2).attr('x', 990).attr('y', 70).attr('fill', '#888').attr('rx', 2.5).attr('ry', 2.5)
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_keteninvoer').attr('width', 230).attr('height', 2).attr('x', 340).attr('y', 70).attr('fill', '#888').attr('rx', 2.5).attr('ry', 2.5).style('opacity', 0)
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_ketenuitvoer').attr('width', 250).attr('height', 2).attr('x', 970).attr('y', 70).attr('fill', '#888').attr('rx', 2.5).attr('ry', 2.5).style('opacity', 0)
+  // Determine which backdrop to use based on settings
+  const diagramBackdrop = config.settings && config.settings[0] && config.settings[0].diagramBackdrop
+    ? config.settings[0].diagramBackdrop
+    : 'defaultSystemDiagram'
 
-  sankeyCanvas.append('text').attr('id', 'delineator_text_bronnen').attr('x', 20).attr('y', 53).attr('fill', '#666').style('font-weight', 400).style('font-size', '20px').text('BRONNEN')
-  sankeyCanvas.append('text').attr('id', 'delineator_text_conversie').attr('x', 355).attr('y', 53).attr('fill', '#666').style('font-weight', 400).style('font-size', '20px').text('CONVERSIE')
-  sankeyCanvas.append('text').attr('id', 'delineator_text_finaal').attr('x', 995).attr('y', 53).attr('fill', '#666').style('font-weight', 400).style('font-size', '20px').text('FINAAL VERBRUIK')
-  sankeyCanvas.append('text').attr('id', 'delineator_text_keteninvoer').attr('x', 345).attr('y', 53).attr('fill', '#666').style('font-weight', 400).style('font-size', '20px').text('INVOER UIT KETEN').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_ketenuitvoer').attr('x', 975).attr('y', 53).attr('fill', '#666').style('font-weight', 400).style('font-size', '20px').text('UITVOER NAAR KETEN').style('opacity', 0)
+  // For custom backdrop, render rectangles from snky_rectangles data after sankey is drawn
+  if (diagramBackdrop === 'custom') {
+    console.log('Using custom backdrop from snky_rectangles data')
+    setTimeout(() => {
+      renderBackgroundRectangles(config)
+    }, 100)
+  } else {
+    // Default system diagram: use hardcoded delineators
+    // All delineator elements go to the backdrop SVG
+    backdropCanvas.append('rect').attr('id', 'delineator_rect_bronnen').attr('width', 300).attr('height', 2).attr('x', 15).attr('y', 70).attr('fill', '#888').attr('rx', 2.5).attr('ry', 2.5)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_conversie').attr('width', 606).attr('height', 2).attr('x', 350).attr('y', 70).attr('fill', '#888').attr('rx', 2.5).attr('ry', 2.5)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal').attr('width', 590).attr('height', 2).attr('x', 990).attr('y', 70).attr('fill', '#888').attr('rx', 2.5).attr('ry', 2.5)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_keteninvoer').attr('width', 230).attr('height', 2).attr('x', 340).attr('y', 70).attr('fill', '#888').attr('rx', 2.5).attr('ry', 2.5).style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_ketenuitvoer').attr('width', 250).attr('height', 2).attr('x', 970).attr('y', 70).attr('fill', '#888').attr('rx', 2.5).attr('ry', 2.5).style('opacity', 0)
+
+  backdropCanvas.append('text').attr('id', 'delineator_text_bronnen').attr('x', 20).attr('y', 53).attr('fill', '#666').style('font-weight', 400).style('font-size', '20px').text('BRONNEN')
+  backdropCanvas.append('text').attr('id', 'delineator_text_conversie').attr('x', 355).attr('y', 53).attr('fill', '#666').style('font-weight', 400).style('font-size', '20px').text('CONVERSIE')
+  backdropCanvas.append('text').attr('id', 'delineator_text_finaal').attr('x', 995).attr('y', 53).attr('fill', '#666').style('font-weight', 400).style('font-size', '20px').text('FINAAL VERBRUIK')
+  backdropCanvas.append('text').attr('id', 'delineator_text_keteninvoer').attr('x', 345).attr('y', 53).attr('fill', '#666').style('font-weight', 400).style('font-size', '20px').text('INVOER UIT KETEN').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_ketenuitvoer').attr('x', 975).attr('y', 53).attr('fill', '#666').style('font-weight', 400).style('font-size', '20px').text('UITVOER NAAR KETEN').style('opacity', 0)
 
   // UIT / NAAR KETEN DILINEATORS
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_koolstofketen_uit').attr('width', 230).attr('height', 250).attr('x', 290).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_koolstofketen_uit').attr('x', 315).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('KOOLSTOFKETEN').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_koolstofketen_uit').attr('width', 230).attr('height', 250).attr('x', 290).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_koolstofketen_uit').attr('x', 315).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('KOOLSTOFKETEN').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_waterstofketen_uit').attr('width', 230).attr('height', 190).attr('x', 290).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_waterstofketen_uit').attr('x', 315).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('WATERSTOFKETEN').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_waterstofketen_uit').attr('width', 230).attr('height', 190).attr('x', 290).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_waterstofketen_uit').attr('x', 315).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('WATERSTOFKETEN').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_elektriciteitsketen_uit').attr('width', 230).attr('height', 190).attr('x', 290).attr('y', 330).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_elektriciteitsketen_uit').attr('x', 315).attr('y', 368).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('ELEKTRICITEITSKETEN').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_elektriciteitsketen_uit').attr('width', 230).attr('height', 190).attr('x', 290).attr('y', 330).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_elektriciteitsketen_uit').attr('x', 315).attr('y', 368).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('ELEKTRICITEITSKETEN').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_warmteketen_in').attr('width', 230).attr('height', 140).attr('x', 970).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_warmteketen_in').attr('x', 995).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('WARMTEKETEN').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_warmteketen_in').attr('width', 230).attr('height', 140).attr('x', 970).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_warmteketen_in').attr('x', 995).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('WARMTEKETEN').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_waterstofketen_in').attr('width', 230).attr('height', 120).attr('x', 970).attr('y', 275).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_waterstofketen_in').attr('x', 995).attr('y', 313).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('WATERSTOFKETEN').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_waterstofketen_in').attr('width', 230).attr('height', 120).attr('x', 970).attr('y', 275).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_waterstofketen_in').attr('x', 995).attr('y', 313).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('WATERSTOFKETEN').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_elektriciteitsketen_in').attr('width', 230).attr('height', 140).attr('x', 970).attr('y', 95).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_elektriciteitsketen_in').attr('x', 995).attr('y', 133).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('ELEKTRICITEITSKETEN').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_elektriciteitsketen_in').attr('width', 230).attr('height', 140).attr('x', 970).attr('y', 95).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_elektriciteitsketen_in').attr('x', 995).attr('y', 133).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('ELEKTRICITEITSKETEN').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_koolstofketen_in').attr('width', 230).attr('height', 140).attr('x', 970).attr('y', 600).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_koolstofketen_in').attr('x', 995).attr('y', 638).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('KOOLSTOFKETEN').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_koolstofketen_in').attr('width', 230).attr('height', 140).attr('x', 970).attr('y', 600).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_koolstofketen_in').attr('x', 995).attr('y', 638).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('KOOLSTOFKETEN').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_finaal_go').attr('width', 230).attr('height', 140).attr('x', 1350).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_finaal_go').attr('x', 1375).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('GEBOUWDE OMGEVING').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_go').attr('width', 230).attr('height', 140).attr('x', 1350).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_finaal_go').attr('x', 1375).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('GEBOUWDE OMGEVING').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_finaal_mobiliteit').attr('width', 230).attr('height', 140).attr('x', 1350).attr('y', 680).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_finaal_mobiliteit').attr('x', 1375).attr('y', 680 + 30).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('MOBILITEIT').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_mobiliteit').attr('width', 230).attr('height', 140).attr('x', 1350).attr('y', 680).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_finaal_mobiliteit').attr('x', 1375).attr('y', 680 + 30).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('MOBILITEIT').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_finaal_industrie').attr('width', 230).attr('height', 300).attr('x', 1350).attr('y', 370).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_finaal_industrie').attr('x', 1375).attr('y', 400).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('INDUSTRIE').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_industrie').attr('width', 230).attr('height', 300).attr('x', 1350).attr('y', 370).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_finaal_industrie').attr('x', 1375).attr('y', 400).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('INDUSTRIE').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_finaal_landbouw').attr('width', 230).attr('height', 110).attr('x', 1352).attr('y', 250).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_finaal_landbouw').attr('x', 1377).attr('y', 285).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('LANDBOUW').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_landbouw').attr('width', 230).attr('height', 110).attr('x', 1352).attr('y', 250).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_finaal_landbouw').attr('x', 1377).attr('y', 285).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('LANDBOUW').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_finaal_overige').attr('width', 230).attr('height', 200).attr('x', 1352).attr('y', 830).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_finaal_overige').attr('x', 1377).attr('y', 860).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('OVERIGE').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_overige').attr('width', 230).attr('height', 200).attr('x', 1352).attr('y', 830).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_finaal_overige').attr('x', 1377).attr('y', 860).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('OVERIGE').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_vlak_conversie').attr('width', 278).attr('height', 945).attr('x', 600).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_vlak_conversie').attr('x', 625).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('CONVERSIE').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_vlak_conversie').attr('width', 278).attr('height', 945).attr('x', 600).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_vlak_conversie').attr('x', 625).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('CONVERSIE').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_productie').attr('width', 228).attr('height', 945).attr('x', 25).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_productie').attr('x', 50).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('IMPORT & PRODUCTIE').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_productie').attr('width', 228).attr('height', 945).attr('x', 25).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_productie').attr('x', 50).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('IMPORT & PRODUCTIE').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_warmteketen_uit').attr('width', 230).attr('height', 110).attr('x', 290).attr('y', 390).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_warmteketen_uit').attr('x', 315).attr('y', 528).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('WARMTEKETEN').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_warmteketen_uit').attr('width', 230).attr('height', 110).attr('x', 290).attr('y', 390).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_warmteketen_uit').attr('x', 315).attr('y', 528).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('WARMTEKETEN').style('opacity', 0)
 
-  sankeyCanvas.append('rect').attr('id', 'delineator_rect_warmteproductie_bij_finaal_verbruik_uit').attr('width', 230).attr('height', 305).attr('x', 290).attr('y', 740).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
-  sankeyCanvas.append('text').attr('id', 'delineator_text_warmteproductie_bij_finaal_verbruik_uit').attr('x', 315).attr('y', 638 + 130).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('LOKAAL').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_warmteproductie_bij_finaal_verbruik_uit').attr('width', 230).attr('height', 305).attr('x', 290).attr('y', 740).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('text').attr('id', 'delineator_text_warmteproductie_bij_finaal_verbruik_uit').attr('x', 315).attr('y', 638 + 130).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('LOKAAL').style('opacity', 0)
+  } // End of default system diagram backdrop
 
   // draw scenario buttons
   let spacing = 7
@@ -898,4 +1139,189 @@ function showValueOnHover (value) {
     .style('background-color', value._groups[0][0].__data__.color).interrupt().style('opacity', 1)
   d3.select('#showValueOnHover').transition().duration(4000).style('opacity', 0)
   if (value._groups[0][0].__data__.color == '#F8D377' || value._groups[0][0].__data__.color == '#62D3A4') {d3.select('#showValueOnHover').style('color', 'black')} else {d3.select('#showValueOnHover').style('color', 'white')}
+}
+
+// ============================================================
+// Custom Backdrop Rectangle Functions
+// ============================================================
+
+// Global storage for background rectangles
+window.backgroundRectangles = window.backgroundRectangles || []
+
+// Helper function to convert hex color + opacity to rgba
+function hexToRgba(hex, opacity) {
+  if (!hex) return 'rgba(0, 0, 0, 0)'
+
+  // Remove # if present
+  hex = hex.replace('#', '')
+
+  // Parse hex values
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
+
+  // Convert opacity from 0-100 to 0-1
+  const alpha = (opacity || 100) / 100
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+// Import rectangles data from Excel snky_rectangles sheet
+function importRectanglesFromExcel(rectanglesData) {
+  console.log('importRectanglesFromExcel() called with data:', rectanglesData)
+
+  if (!rectanglesData || rectanglesData.length === 0) {
+    console.log('No rectangles data to import')
+    window.backgroundRectangles = []
+    return
+  }
+
+  window.backgroundRectangles = rectanglesData.map(rect => ({
+    id: rect.id || 'rect_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+    x: parseFloat(rect.x) || 0,
+    y: parseFloat(rect.y) || 0,
+    width: parseFloat(rect.width) || 300,
+    height: parseFloat(rect.height) || 200,
+    title: rect.title || '',
+    titlePosition: rect.titlePosition || 'top-left',
+    titleFontSize: parseFloat(rect.titleFontSize) || 14,
+    titleFontWeight: rect.titleFontWeight || 'normal',
+    titleColor: rect.titleColor || '#666666',
+    fill: rect.fill || '#dee6ee',
+    fillOpacity: parseFloat(rect.fillOpacity) || 100,
+    stroke: rect.stroke || '#ffffff',
+    strokeOpacity: parseFloat(rect.strokeOpacity) || 100,
+    strokeWidth: parseFloat(rect.strokeWidth) || 0,
+    cornerRadius: parseFloat(rect.cornerRadius) || 10,
+    shadowEnabled: rect.shadowEnabled === true || rect.shadowEnabled === 'true' || rect.shadowEnabled === 1
+  }))
+
+  console.log(`Imported ${window.backgroundRectangles.length} rectangles:`, window.backgroundRectangles)
+}
+
+// Render background rectangles on the sankey canvas
+function renderBackgroundRectangles(config) {
+  const sankeyInstanceID = config ? config.sankeyInstanceID : 'energyflows'
+  const svgElement = document.querySelector('#' + sankeyInstanceID + '_sankeySVGPARENT')
+
+  if (!svgElement) {
+    console.warn('SVG element not found for rendering rectangles:', sankeyInstanceID)
+    return
+  }
+
+  const svg = d3.select(svgElement)
+
+  // Remove existing rectangles group
+  svg.select('.background-rectangles-group').remove()
+
+  if (!window.backgroundRectangles || window.backgroundRectangles.length === 0) {
+    console.log('No background rectangles to render')
+    return
+  }
+
+  // Create new group for rectangles (at the beginning so it's behind everything)
+  const rectsGroup = svg.insert('g', ':first-child')
+    .attr('class', 'background-rectangles-group')
+
+  // Draw each rectangle
+  window.backgroundRectangles.forEach(rect => {
+    const rectGroup = rectsGroup.append('g')
+      .attr('class', 'background-rectangle')
+      .attr('data-rect-id', rect.id)
+
+    // Convert colors with opacity
+    const fillColor = hexToRgba(rect.fill, rect.fillOpacity)
+    const strokeColor = hexToRgba(rect.stroke, rect.strokeOpacity)
+
+    // Draw the rectangle with rounded corners
+    const rectangleElement = rectGroup.append('rect')
+      .attr('x', rect.x)
+      .attr('y', rect.y)
+      .attr('width', rect.width)
+      .attr('height', rect.height)
+      .attr('rx', rect.cornerRadius)
+      .attr('ry', rect.cornerRadius)
+      .attr('fill', fillColor)
+      .attr('stroke', strokeColor)
+      .attr('stroke-width', rect.strokeWidth)
+      .style('pointer-events', 'none')
+
+    // Apply subtle shadow if enabled
+    if (rect.shadowEnabled) {
+      rectangleElement.style('filter', 'drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.15))')
+    }
+
+    // Add title text if present
+    if (rect.title) {
+      const padding = 10
+      let titleX, titleY
+      let textAnchor = 'start'
+
+      switch (rect.titlePosition) {
+        case 'top-left':
+          titleX = rect.x + padding
+          titleY = rect.y + padding + rect.titleFontSize
+          textAnchor = 'start'
+          break
+        case 'top-center':
+          titleX = rect.x + rect.width / 2
+          titleY = rect.y + padding + rect.titleFontSize
+          textAnchor = 'middle'
+          break
+        case 'top-right':
+          titleX = rect.x + rect.width - padding
+          titleY = rect.y + padding + rect.titleFontSize
+          textAnchor = 'end'
+          break
+        case 'center':
+          titleX = rect.x + rect.width / 2
+          titleY = rect.y + rect.height / 2 + rect.titleFontSize / 2
+          textAnchor = 'middle'
+          break
+        case 'bottom-left':
+          titleX = rect.x + padding
+          titleY = rect.y + rect.height - padding
+          textAnchor = 'start'
+          break
+        case 'bottom-center':
+          titleX = rect.x + rect.width / 2
+          titleY = rect.y + rect.height - padding
+          textAnchor = 'middle'
+          break
+        case 'bottom-right':
+          titleX = rect.x + rect.width - padding
+          titleY = rect.y + rect.height - padding
+          textAnchor = 'end'
+          break
+        default:
+          titleX = rect.x + padding
+          titleY = rect.y + padding + rect.titleFontSize
+          textAnchor = 'start'
+      }
+
+      rectGroup.append('text')
+        .attr('x', titleX)
+        .attr('y', titleY)
+        .attr('text-anchor', textAnchor)
+        .style('font-size', rect.titleFontSize + 'px')
+        .style('font-weight', rect.titleFontWeight)
+        .style('fill', rect.titleColor)
+        .style('pointer-events', 'none')
+        .text(rect.title)
+    }
+  })
+
+  console.log(`Rendered ${window.backgroundRectangles.length} background rectangles`)
+}
+
+// Clear background rectangles
+function clearBackgroundRectangles(config) {
+  const sankeyInstanceID = config ? config.sankeyInstanceID : 'energyflows'
+  const svgElement = document.querySelector('#' + sankeyInstanceID + '_sankeySVGPARENT')
+
+  if (svgElement) {
+    d3.select(svgElement).select('.background-rectangles-group').remove()
+  }
+
+  window.backgroundRectangles = []
 }

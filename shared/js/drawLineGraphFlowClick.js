@@ -73,15 +73,16 @@ function drawBarGraph(data, config) {
 
   // Calculate available width for title (leave space for export button)
   const EXPORT_BUTTON_SPACE = 350  // Space reserved for export button + margin
-  const titleMaxWidth = popupWidth - 100 - EXPORT_BUTTON_SPACE
+  const titleMaxWidth = popupWidth - 50 - EXPORT_BUTTON_SPACE
 
+  // Main title - matching node popup style
   canvas.append('text')
-    .attr('x', 100)
-    .attr('y', 50)
-    .style('font-size', '14px')
-    .style('font-weight', 500)
+    .attr('x', 50)
+    .attr('y', 40)
+    .style('font-size', '18px')
+    .style('font-weight', 600)
     .style('max-width', `${titleMaxWidth}px`)
-    .text(`Flow '${sourceNode['title.system']} → ${targetNode['title.system']}' (${data.legend === 'co2flow' ? 'kton CO2' : (currentUnit === 'TWh' ? 'TWh' : 'PJ')})`)
+    .text(`Flow: ${sourceNode['title.system']} → ${targetNode['title.system']} (${data.legend === 'co2flow' ? 'kton CO2' : (currentUnit === 'TWh' ? 'TWh' : 'PJ')})`)
     .each(function() {
       // Truncate text if it's too long
       const textElement = d3.select(this)
@@ -95,45 +96,26 @@ function drawBarGraph(data, config) {
       }
     })
 
+  // Subtitle line 1 - source and target node IDs
   canvas.append('text')
-    .attr('x', 100)
-    .attr('y', 70)
+    .attr('x', 50)
+    .attr('y', 62)
     .style('font-size', '12px')
     .style('fill', '#666')
-    .html(null)
-    .append('tspan')
-    .style('font-weight', '300')
-    .text('source node: ')
-    .append('tspan')
-    .style('font-weight', '400')
-    .text(data.source)
-    .append('tspan')
-    .style('font-weight', '300')
-    .text(' | ')
-    .append('tspan')
-    .style('font-weight', '300')
-    .text('target node: ')
-    .append('tspan')
-    .style('font-weight', '400')
-    .text(data.target)
+    .text(`source node: ${data.source} | target node: ${data.target}`)
 
+  // Subtitle line 2 - flow type
   canvas.append('text')
-    .attr('x', 100)
-    .attr('y', 90)
+    .attr('x', 50)
+    .attr('y', 80)
     .style('font-size', '12px')
     .style('fill', '#666')
-    .html(null)
-    .append('tspan')
-    .style('font-weight', '300')
-    .text('type: ')
-    .append('tspan')
-    .style('font-weight', '400')
-    .text(data.legend)
+    .text(`type: ${data.legend}`)
 
   /* ----------  CLOSE BUTTON  ---------- */
   const CLOSE_SIZE = 30
   const CLOSE_X = popupWidth - 50
-  const CLOSE_Y = 30
+  const CLOSE_Y = 25
 
   const closeGroup = canvas.append('g')
     .attr('class', 'close-btn')
@@ -146,7 +128,7 @@ function drawBarGraph(data, config) {
     .attr('height', CLOSE_SIZE)
     .attr('rx', 4)
     .attr('fill', '#fff')
-    .on('mouseover', function() { d3.select(this).attr('fill', '#999') })
+    .on('mouseover', function() { d3.select(this).attr('fill', '#eee') })
     .on('mouseout', function() { d3.select(this).attr('fill', '#fff') })
 
   const ICON_PATH = 'm249 849-42-42 231-231-231-231 42-42 231 231 231-231 42 42-231 231 231 231-42 42-231-231-231 231Z'
@@ -158,10 +140,10 @@ function drawBarGraph(data, config) {
     .style('pointer-events', 'none')
 
   /* ----------  EXPORT BUTTON  ---------- */
-  const EXPORT_WIDTH = 110
-  const EXPORT_HEIGHT = 26
-  const EXPORT_X = popupWidth - 330  // More spacing from the PJ/TWh toggle
-  const EXPORT_Y = 40
+  const EXPORT_WIDTH = 130
+  const EXPORT_HEIGHT = 28
+  const EXPORT_X = popupWidth - 530  // Position to the left, with space for copy button
+  const EXPORT_Y = 30
 
   const exportGroup = canvas.append('g')
     .attr('class', 'export-btn')
@@ -251,11 +233,105 @@ function drawBarGraph(data, config) {
     .style('pointer-events', 'none')
     .text('Export data (xlsx)')
 
+  /* ----------  COPY TO CLIPBOARD BUTTON  ---------- */
+  const COPY_WIDTH = 140
+  const COPY_HEIGHT = 28
+  const COPY_X = popupWidth - 390  // To the right of export button, left of toggle
+  const COPY_Y = 30
+
+  const copyGroup = canvas.append('g')
+    .attr('class', 'copy-btn')
+    .attr('transform', `translate(${COPY_X}, ${COPY_Y})`)
+    .style('cursor', 'pointer')
+    .on('click', function() {
+      // Prepare data for clipboard (same as export)
+      const sourceNode = nodesGlobal.find(n => n.id === data.source) || {'title.system': 'Unknown source'}
+      const targetNode = nodesGlobal.find(n => n.id === data.target) || {'title.system': 'Unknown target'}
+      const flowTitle = `${sourceNode['title.system']}_to_${targetNode['title.system']}`
+      const exportUnit = (typeof currentUnit !== 'undefined' && currentUnit === 'TWh') ? 'TWh' : 'PJ'
+
+      // Get getValue function
+      const pjToTWh = 3.6
+      const getExportValue = (value) => {
+        if (data.legend === 'co2flow') {
+          return value * globalCO2flowScale
+        }
+        if (exportUnit === 'TWh') {
+          return value / pjToTWh
+        }
+        return value
+      }
+
+      // Extract all scenario data from the data object
+      const exportData = []
+
+      // Find all available years from data keys
+      const availableYears = [...new Set(
+        Object.keys(data)
+          .filter(k => k.includes('scenario') && k.includes('x') && k.includes('x'))
+          .map(k => {
+            const match = k.match(/x(\d{4})x/)
+            return match ? match[1] : null
+          })
+          .filter(year => year !== null)
+      )].sort()
+
+      // Extract data for each year and scenario
+      availableYears.forEach(year => {
+        Object.keys(data).forEach(key => {
+          if (key.includes(`x${year}x`) && key.includes('scenario')) {
+            // Extract scenario name from key
+            const parts = key.split('_')
+            const scenarioName = parts.slice(2).join('_')
+
+            exportData.push({
+              year: year,
+              value: getExportValue(data[key]),
+              scenario: scenarioName
+            })
+          }
+        })
+      })
+
+      // Call copy function
+      if (typeof window.copyLinegraphToClipboard === 'function') {
+        window.copyLinegraphToClipboard({
+          nodeTitle: flowTitle,
+          sourceNode: sourceNode['title.system'],
+          targetNode: targetNode['title.system'],
+          flowType: data.legend,
+          scenario: 'all_scenarios',
+          data: exportData,
+          unit: exportUnit
+        })
+      }
+    })
+
+  copyGroup.append('rect')
+    .attr('width', COPY_WIDTH)
+    .attr('height', COPY_HEIGHT)
+    .attr('rx', 4)
+    .attr('fill', '#f5f5f5')
+    .attr('stroke', '#ccc')
+    .attr('stroke-width', 1)
+    .on('mouseover', function() { d3.select(this).attr('fill', '#e8e8e8') })
+    .on('mouseout', function() { d3.select(this).attr('fill', '#f5f5f5') })
+
+  copyGroup.append('text')
+    .attr('x', COPY_WIDTH / 2)
+    .attr('y', COPY_HEIGHT / 2 + 4)
+    .attr('text-anchor', 'middle')
+    .attr('fill', '#444')
+    .style('font-size', '12px')
+    .style('font-weight', '400')
+    .style('pointer-events', 'none')
+    .text('Copy data to clipboard')
+
   /* ----------  CONSTANTS  ---------- */
   const graphWidth = 900
-  const graphHeight = 350
-  const shiftX = 100
-  const graphTop = 130
+  const graphHeight = 330
+  const shiftX = 100  // Left margin with padding
+  const graphTop = 120  // Top spacing below header
   const graphBottom = graphTop + graphHeight
 
   /* ----------  DATA WRANGLING  ---------- */

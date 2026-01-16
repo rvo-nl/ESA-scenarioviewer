@@ -401,10 +401,12 @@ function processData (links, nodes, legend, settings, remarks, config) {
   if (!(config.sankeyInstanceID in sankeyInstances)) {
     sankeyInstances[config.sankeyInstanceID] = {}
 
-    sankeyInstances[config.sankeyInstanceID].sankeyLayout = d3.sankey().extent([
-      [settings[0].horizontalMargin, settings[0].verticalMargin],
-      [width - settings[0].horizontalMargin, height - settings[0].verticalMargin]
-    ])
+    sankeyInstances[config.sankeyInstanceID].sankeyLayout = d3.sankey()
+      .nodeWidth(3)  // Set node width smaller (default is 15px)
+      .extent([
+        [settings[0].horizontalMargin, settings[0].verticalMargin],
+        [width - settings[0].horizontalMargin, height - settings[0].verticalMargin]
+      ])
 
     sankeyInstances[config.sankeyInstanceID].sankeyDiagram = d3
       .sankeyDiagram()
@@ -1049,19 +1051,110 @@ function updateSankey (json, offsetX, offsetY, fontSize, fontFamily, config) {
       }
     })
 
-  d3.selectAll('#' + config.sankeyInstanceID + ' .node').style('pointer-events', 'auto')
-  d3.selectAll('#' + config.sankeyInstanceID + ' .node-backdrop-title').style('pointer-events', 'none')
-  d3.selectAll('#' + config.sankeyInstanceID + ' .node-click-target')
-    .style('fill', '#555')
-    .style('stroke-width', 0)
-    .attr('width', 10)
-    .attr('rx', 0)
-    .attr('ry', 0)
-    .attr('transform', 'translate(-4,0)scale(1.005)')
-    .attr('id', function (d, i) { return 'nodeindex_' + d.index })
-    .on('click', function () {
-      nodeVisualisatieSingular(config, sankeyDataObjects[globalActiveEnergyflowsSankey.id].nodes[this.id.slice(10)], sankeyDataObjects[globalActiveEnergyflowsSankey.id], config.scenarios, config.targetDIV)
-    })
+  // Use the correct SVG parent selector
+  const svgSelector = '#' + config.sankeyInstanceID + '_sankeySVGPARENT'
+
+  d3.selectAll(svgSelector + ' .node').style('pointer-events', 'auto')
+  d3.selectAll(svgSelector + ' .node-backdrop-title').style('pointer-events', 'none')
+
+  // Helper function to handle node click - needs to be attached after transition
+  const setupNodeClickHandlers = function() {
+    console.log('Setting up node click handlers for:', svgSelector)
+
+    // Helper function to handle node click
+    const handleNodeClick = function(d) {
+      console.log('Node clicked, d =', d)
+      // All scopes (system, heat, electricity, etc.) use the same underlying data stored in 'system'
+      // The globalActiveEnergyflowsSankey.id represents the filter/view, not the data source
+      // So we always use 'system' as the data source key
+      const sankeyDataId = 'system'
+      console.log('Using sankeyDataId:', sankeyDataId)
+      const sankeyData = sankeyDataObjects[sankeyDataId]
+      console.log('sankeyData:', sankeyData)
+      if (sankeyData && sankeyData.nodes) {
+        const nodeIndex = typeof d === 'object' ? d.index : d
+        console.log('nodeIndex:', nodeIndex)
+        const node = sankeyData.nodes[nodeIndex]
+        console.log('node:', node)
+        if (node && typeof nodeVisualisatieSingular === 'function') {
+          nodeVisualisatieSingular(config, node, sankeyData, config.scenarios, config.targetDIV)
+        } else {
+          console.error('nodeVisualisatieSingular not available or node is undefined')
+        }
+      } else {
+        console.error('sankeyData or sankeyData.nodes not available')
+      }
+    }
+
+    // Check how many elements we're selecting
+    const nodeClickTargets = d3.selectAll(svgSelector + ' .node-click-target')
+    console.log('Found node-click-target elements:', nodeClickTargets.size())
+
+    nodeClickTargets
+      .style('fill', '#555')
+      .style('stroke-width', 0)
+      .style('opacity', 0)  // Hide the click target rectangles
+      .style('display', 'none')  // Completely hide and remove from layout
+      .attr('width', 10)
+      .attr('rx', 0)
+      .attr('ry', 0)
+      .attr('transform', 'translate(-4,0)scale(1.005)')
+      .attr('id', function (d, i) { return 'nodeindex_' + d.index })
+      .style('cursor', 'pointer')
+      .style('pointer-events', 'none')  // Disable pointer events
+      .on('click', function (event, d) {
+        event.stopPropagation()
+        handleNodeClick(d)
+      })
+
+    // Make node titles clickable
+    d3.selectAll(svgSelector + ' .node-title')
+      .style('pointer-events', 'all')
+      .style('cursor', 'pointer')
+      .on('click', function (event, d) {
+        event.stopPropagation()
+        handleNodeClick(d)
+      })
+
+    // Make node values clickable
+    d3.selectAll(svgSelector + ' .node-value')
+      .style('pointer-events', 'all')
+      .style('cursor', 'pointer')
+      .on('click', function (event, d) {
+        event.stopPropagation()
+        handleNodeClick(d)
+      })
+
+    // Make node body (main rectangle) clickable
+    d3.selectAll(svgSelector + ' .node-body')
+      .style('pointer-events', 'all')
+      .style('cursor', 'pointer')
+      .on('click', function (event, d) {
+        event.stopPropagation()
+        handleNodeClick(d)
+      })
+
+    // Make backdrop rects clickable too
+    d3.selectAll(svgSelector + ' .node-backdrop-title')
+      .style('pointer-events', 'all')
+      .style('cursor', 'pointer')
+      .on('click', function (event, d) {
+        event.stopPropagation()
+        handleNodeClick(d)
+      })
+
+    d3.selectAll(svgSelector + ' .node-backdrop-value')
+      .style('pointer-events', 'all')
+      .style('cursor', 'pointer')
+      .on('click', function (event, d) {
+        event.stopPropagation()
+        handleNodeClick(d)
+      })
+  }
+
+  // Attach click handlers immediately and also after transition completes
+  setupNodeClickHandlers()
+  setTimeout(setupNodeClickHandlers, duration + 100)
 }
 
 setTimeout(() => {

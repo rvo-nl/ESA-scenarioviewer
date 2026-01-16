@@ -59,6 +59,52 @@ function exportSankeyToXLSX(options) {
 }
 
 /**
+ * Copy sankey diagram data to clipboard as TSV
+ * @param {Object} options - Export options
+ * @param {string} options.scenario - Current scenario ID
+ * @param {string} options.year - Current year
+ * @param {string} options.scope - Current scope (system, electricity, etc.)
+ * @param {Array} options.links - Sankey links data
+ * @param {Array} options.nodes - Sankey nodes data
+ */
+function copySankeyToClipboard(options) {
+  const { scenario, year, scope, links, nodes } = options
+
+  // Build TSV data
+  let tsvData = `Sankey Diagram Data\n`
+  tsvData += `Scenario\t${scenario}\n`
+  tsvData += `Year\t${year}\n`
+  tsvData += `Scope\t${scope}\n`
+  tsvData += `Export Date\t${new Date().toISOString().slice(0, 10)}\n`
+  tsvData += `\n`
+  tsvData += `LINKS\n`
+  tsvData += `Source\tTarget\tValue\tLegend\n`
+
+  // Add links data
+  links
+    .filter(link => link.value !== 0 && link.value !== '0')
+    .forEach(link => {
+      tsvData += `${link.source?.title || link.source}\t${link.target?.title || link.target}\t${link.value}\t${link.legend || ''}\n`
+    })
+
+  // Add nodes data
+  tsvData += `\n`
+  tsvData += `NODES\n`
+  tsvData += `ID\tTitle\tColumn\tRow\tCluster\n`
+
+  nodes.forEach(node => {
+    tsvData += `${node.id}\t${node.title}\t${node.column}\t${node.row}\t${node.cluster}\n`
+  })
+
+  // Copy to clipboard
+  navigator.clipboard.writeText(tsvData).then(() => {
+    console.log('Sankey data copied to clipboard')
+  }).catch(err => {
+    console.error('Failed to copy:', err)
+  })
+}
+
+/**
  * Export linegraph data to XLSX
  * @param {Object} options - Export options
  * @param {string} options.nodeTitle - Node title
@@ -150,6 +196,77 @@ function exportLinegraphToXLSX(options) {
 }
 
 /**
+ * Copy linegraph data to clipboard as TSV
+ * @param {Object} options - Export options
+ * @param {string} options.nodeTitle - Node title
+ * @param {string} options.sourceNode - Source node title
+ * @param {string} options.targetNode - Target node title
+ * @param {string} options.flowType - Flow type
+ * @param {string} options.scenario - Current scenario ID
+ * @param {Array} options.data - Linegraph data with scenario, year, and value
+ * @param {string} options.unit - Unit of measurement
+ */
+function copyLinegraphToClipboard(options) {
+  const { nodeTitle, sourceNode, targetNode, flowType, scenario, data, unit } = options
+
+  // Group data by scenario and year
+  const dataByScenario = {}
+  const allYears = new Set()
+
+  data.forEach(point => {
+    const scenarioId = point.scenario
+    const year = point.year
+    const value = point.value
+
+    if (!dataByScenario[scenarioId]) {
+      dataByScenario[scenarioId] = {}
+    }
+    dataByScenario[scenarioId][year] = value
+    allYears.add(year)
+  })
+
+  // Sort years
+  const sortedYears = Array.from(allYears).sort()
+
+  // Get scenario titles
+  const getScenarioTitle = (scenarioId) => {
+    if (typeof viewerConfig !== 'undefined' && viewerConfig.scenarios) {
+      const scenarioConfig = viewerConfig.scenarios.find(s => s.id === scenarioId)
+      return scenarioConfig ? scenarioConfig.title : scenarioId
+    }
+    return scenarioId
+  }
+
+  // Build TSV data
+  let tsvData = `Flow data\n`
+  tsvData += `Source\t${sourceNode || ''}\n`
+  tsvData += `Target\t${targetNode || ''}\n`
+  tsvData += `Type\t${flowType || ''}\n`
+  tsvData += `Unit\t${unit}\n`
+  tsvData += `Export Date\t${new Date().toISOString().slice(0, 10)}\n`
+  tsvData += `\n`
+
+  // Header row
+  tsvData += `Scenario\t${sortedYears.join('\t')}\n`
+
+  // Data rows
+  Object.keys(dataByScenario).forEach(scenarioId => {
+    tsvData += `${getScenarioTitle(scenarioId)}`
+    sortedYears.forEach(year => {
+      tsvData += `\t${dataByScenario[scenarioId][year] || ''}`
+    })
+    tsvData += `\n`
+  })
+
+  // Copy to clipboard
+  navigator.clipboard.writeText(tsvData).then(() => {
+    console.log('Linegraph data copied to clipboard')
+  }).catch(err => {
+    console.error('Failed to copy:', err)
+  })
+}
+
+/**
  * Create export button and add to container
  * @param {string} containerId - ID of container element
  * @param {Function} exportFunction - Function to call when button is clicked
@@ -208,15 +325,40 @@ function initializeSankeyExportButton() {
         exportContainer.style.display = 'none'
       }
 
-      // Create a container div for the export button positioned to the left of the unit toggle
+      // Create a container div for the buttons positioned to the left of the unit toggle
       const exportButtonContainer = document.createElement('div')
       exportButtonContainer.id = 'sankeyExportButtonContainer'
       exportButtonContainer.style.position = 'absolute'
       exportButtonContainer.style.top = '2px'
-      exportButtonContainer.style.right = '200px'  // More spacing to the left of the PJ/TWh toggle
+      exportButtonContainer.style.right = '200px'
       exportButtonContainer.style.zIndex = '10'
+      exportButtonContainer.style.display = 'flex'
+      exportButtonContainer.style.gap = '6px'
 
-      // Create the button element - styled to match linegraph popup export button
+      // Helper function to get current sankey data
+      const getSankeyDataForExport = () => {
+        const scenario = globalActiveScenario?.id || 'unknown'
+        const year = globalActiveYear?.id || 'unknown'
+        const scope = globalActiveEnergyflowsSankey?.id || 'system'
+        const sankeyData = sankeyDataObjects[scope] || sankeyDataObjects['system']
+
+        if (!sankeyData || !sankeyData.links || !sankeyData.nodes) {
+          console.error('No sankey data available for export. Available keys:', Object.keys(sankeyDataObjects))
+          alert('No sankey data available for export')
+          return null
+        }
+
+        return {
+          scenario: scenario,
+          year: year,
+          scope: scope,
+          links: sankeyData.links || [],
+          nodes: sankeyData.nodes || [],
+          settings: {}
+        }
+      }
+
+      // Create the export button
       const exportButton = document.createElement('button')
       exportButton.id = 'sankeyExportButton'
       exportButton.textContent = 'Export data (xlsx)'
@@ -237,7 +379,6 @@ function initializeSankeyExportButton() {
       exportButton.style.textTransform = 'none'
       exportButton.style.letterSpacing = 'normal'
 
-      // Hover effects
       exportButton.onmouseover = function() {
         this.style.backgroundColor = '#e8e8e8'
       }
@@ -245,34 +386,46 @@ function initializeSankeyExportButton() {
         this.style.backgroundColor = '#f5f5f5'
       }
 
-      // Click handler
       exportButton.onclick = function() {
-        // Get current state
-        const scenario = globalActiveScenario?.id || 'unknown'
-        const year = globalActiveYear?.id || 'unknown'
-        const scope = globalActiveEnergyflowsSankey?.id || 'system'
+        const data = getSankeyDataForExport()
+        if (data) exportSankeyToXLSX(data)
+      }
 
-        // Get sankey data for current scope - sankeyDataObjects is indexed by scope ID
-        const sankeyData = sankeyDataObjects[scope] || sankeyDataObjects['system']
+      // Create the copy button
+      const copyButton = document.createElement('button')
+      copyButton.id = 'sankeyCopyButton'
+      copyButton.textContent = 'Copy data to clipboard'
+      copyButton.style.width = '130px'
+      copyButton.style.height = '26px'
+      copyButton.style.padding = '0'
+      copyButton.style.fontSize = '11px'
+      copyButton.style.fontWeight = '400'
+      copyButton.style.fontFamily = 'Arial, sans-serif'
+      copyButton.style.backgroundColor = '#f5f5f5'
+      copyButton.style.color = '#444'
+      copyButton.style.border = '1px solid #ccc'
+      copyButton.style.borderRadius = '4px'
+      copyButton.style.cursor = 'pointer'
+      copyButton.style.transition = 'background-color 0.2s'
+      copyButton.style.textAlign = 'center'
+      copyButton.style.lineHeight = '26px'
+      copyButton.style.textTransform = 'none'
+      copyButton.style.letterSpacing = 'normal'
 
-        if (!sankeyData || !sankeyData.links || !sankeyData.nodes) {
-          console.error('No sankey data available for export. Available keys:', Object.keys(sankeyDataObjects))
-          alert('No sankey data available for export')
-          return
-        }
+      copyButton.onmouseover = function() {
+        this.style.backgroundColor = '#e8e8e8'
+      }
+      copyButton.onmouseout = function() {
+        this.style.backgroundColor = '#f5f5f5'
+      }
 
-        // Export the data
-        exportSankeyToXLSX({
-          scenario: scenario,
-          year: year,
-          scope: scope,
-          links: sankeyData.links || [],
-          nodes: sankeyData.nodes || [],
-          settings: {}
-        })
+      copyButton.onclick = function() {
+        const data = getSankeyDataForExport()
+        if (data) copySankeyToClipboard(data)
       }
 
       exportButtonContainer.appendChild(exportButton)
+      exportButtonContainer.appendChild(copyButton)
       unitSelector.appendChild(exportButtonContainer)
     }
   }, 100)
@@ -280,7 +433,9 @@ function initializeSankeyExportButton() {
 
 // Make functions globally available
 window.exportSankeyToXLSX = exportSankeyToXLSX
+window.copySankeyToClipboard = copySankeyToClipboard
 window.exportLinegraphToXLSX = exportLinegraphToXLSX
+window.copyLinegraphToClipboard = copyLinegraphToClipboard
 window.createExportButton = createExportButton
 window.initializeSankeyExportButton = initializeSankeyExportButton
 

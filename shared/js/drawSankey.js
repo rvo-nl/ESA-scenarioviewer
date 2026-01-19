@@ -1,3 +1,42 @@
+// Global error handler for sankey-related errors
+window.addEventListener('error', function(event) {
+  // Skip errors that are not critical or are known issues
+  const message = event.message || (event.error && event.error.message) || ''
+  const ignoredErrors = [
+    'duration is not defined',
+    'transition is not defined'
+  ]
+
+  // Check if this is an error we should ignore
+  const shouldIgnore = ignoredErrors.some(ignored => message.includes(ignored))
+  if (shouldIgnore) {
+    return
+  }
+
+  // Only handle errors from d3-sankey-diagram.js or related sankey code
+  if (event.filename && (event.filename.includes('d3-sankey-diagram') || event.filename.includes('drawSankey'))) {
+    event.preventDefault() // Prevent default console error
+
+    if (typeof showErrorPopup === 'function') {
+      showErrorPopup({
+        title: 'Sankey Rendering Error',
+        message: 'An error occurred while rendering the sankey diagram. This is often caused by missing or invalid node references in the data.',
+        error: event.error,
+        context: {
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+          message: event.message,
+          scenario: globalActiveScenario ? globalActiveScenario.id : 'unknown',
+          year: globalActiveYear ? globalActiveYear.id : 'unknown',
+          filter: globalActiveEnergyflowsFilter || 'unknown'
+        },
+        stackTrace: event.error ? event.error.stack : null
+      })
+    }
+  }
+})
+
 let sankeyInstances = {}
 let sankeyDataObjects = {}
 // let sankeyLayout
@@ -894,25 +933,59 @@ function tick (config) {
   // d3.select('#delineator_text_ketenuitvoer')
 
   Object.keys(sankeyInstances).forEach(key => {
-    // console.log(globalActiveEnergyflowsSankey.id)
+    try {
+      // console.log(globalActiveEnergyflowsSankey.id)
 
-    var sankeyData = sankeyDataObjects[globalSankeyInstancesActiveDataset[key].id]
+      var sankeyData = sankeyDataObjects[globalSankeyInstancesActiveDataset[key].id]
 
-    sankeyData.links.forEach(item => {
-      item.visibility = item['filter_' + globalActiveEnergyflowsFilter] === 'x' ? 1 : 0;})
-      // console.log(sankeyData)
+      if (!sankeyData) {
+        throw new Error(`Sankey data not found for dataset: ${globalSankeyInstancesActiveDataset[key].id}`)
+      }
 
-    for (i = 0; i < sankeyData.links.length; i++) {
-      // console.log(sankeyData.links[i].visibility)
-      if (sankeyData.links[i]['filter_' + globalActiveEnergyflowsFilter] == 'x') {
-        sankeyData.links[i].value = Math.round(sankeyData.links[i][config.scenarios[activeScenario].id])
-      } else {sankeyData.links[i].value = 0}
-    }
+      if (!sankeyData.links || !sankeyData.nodes) {
+        throw new Error(`Invalid sankey data structure - missing links or nodes for dataset: ${globalSankeyInstancesActiveDataset[key].id}`)
+      }
 
-    for (i = 0; i < sankeyData.nodes.length; i++) {
-      sankeyData.nodes[i].x = sankeyData.nodes[i]['x.' + globalActiveEnergyflowsFilter]
-      sankeyData.nodes[i].y = sankeyData.nodes[i]['y.' + globalActiveEnergyflowsFilter]
-      sankeyData.nodes[i].title = sankeyData.nodes[i]['title.' + globalActiveEnergyflowsFilter]
+      sankeyData.links.forEach(item => {
+        item.visibility = item['filter_' + globalActiveEnergyflowsFilter] === 'x' ? 1 : 0;})
+        // console.log(sankeyData)
+
+      for (i = 0; i < sankeyData.links.length; i++) {
+        // console.log(sankeyData.links[i].visibility)
+        if (sankeyData.links[i]['filter_' + globalActiveEnergyflowsFilter] == 'x') {
+          const scenarioId = config.scenarios[activeScenario].id
+          if (sankeyData.links[i][scenarioId] === undefined) {
+            console.warn(`Missing scenario data for link ${i}, scenario: ${scenarioId}`)
+            sankeyData.links[i].value = 0
+          } else {
+            sankeyData.links[i].value = Math.round(sankeyData.links[i][scenarioId])
+          }
+        } else {sankeyData.links[i].value = 0}
+      }
+
+      for (i = 0; i < sankeyData.nodes.length; i++) {
+        sankeyData.nodes[i].x = sankeyData.nodes[i]['x.' + globalActiveEnergyflowsFilter]
+        sankeyData.nodes[i].y = sankeyData.nodes[i]['y.' + globalActiveEnergyflowsFilter]
+        sankeyData.nodes[i].title = sankeyData.nodes[i]['title.' + globalActiveEnergyflowsFilter]
+      }
+    } catch (e) {
+      if (typeof showErrorPopup === 'function') {
+        showErrorPopup({
+          title: 'Sankey Data Processing Error',
+          message: 'Failed to process sankey data. This may be due to missing node/link data or invalid scenario configuration.',
+          error: e,
+          context: {
+            function: 'tick',
+            sankeyInstance: key,
+            datasetId: globalSankeyInstancesActiveDataset[key] ? globalSankeyInstancesActiveDataset[key].id : 'unknown',
+            scenario: config.scenarios[activeScenario] ? config.scenarios[activeScenario].id : 'unknown',
+            filter: globalActiveEnergyflowsFilter || 'unknown',
+            activeScenarioIndex: activeScenario
+          }
+        })
+      }
+      console.error('Error processing sankey data:', e)
+      return // Skip this instance
     }
 
     // console.log(sankeyData.links.filter(item => item['filter_heat'] !== 'x'))
@@ -1014,15 +1087,52 @@ function updateSankey (json, offsetX, offsetY, fontSize, fontFamily, config) {
   try {
     var json = JSON.parse(json)
     d3.select('#error').text('')
-  } catch (e) { d3.select('#error').text(e); return; }
-
-  sankeyInstances[config.sankeyInstanceID].sankeyLayout.nodePosition(function (node) {
-    return [node.x, node.y]
-  })
+  } catch (e) {
+    d3.select('#error').text(e)
+    if (typeof showErrorPopup === 'function') {
+      showErrorPopup({
+        title: 'JSON Parse Error',
+        message: 'Failed to parse sankey data JSON',
+        error: e,
+        context: {
+          function: 'updateSankey',
+          sankeyInstanceID: config.sankeyInstanceID,
+          jsonLength: json ? json.length : 'null'
+        }
+      })
+    }
+    return
+  }
 
   let duration = 1000
 
-  d3.select('#' + config.sankeyInstanceID + '_sankeySVGPARENT').datum(sankeyInstances[config.sankeyInstanceID].sankeyLayout.scale(scaleInit)(json)).transition().duration(duration).ease(d3.easeCubicInOut).call(sankeyInstances[config.sankeyInstanceID].sankeyDiagram)
+  try {
+    sankeyInstances[config.sankeyInstanceID].sankeyLayout.nodePosition(function (node) {
+      return [node.x, node.y]
+    })
+
+    d3.select('#' + config.sankeyInstanceID + '_sankeySVGPARENT').datum(sankeyInstances[config.sankeyInstanceID].sankeyLayout.scale(scaleInit)(json)).transition().duration(duration).ease(d3.easeCubicInOut).call(sankeyInstances[config.sankeyInstanceID].sankeyDiagram)
+  } catch (e) {
+    if (typeof showErrorPopup === 'function') {
+      showErrorPopup({
+        title: 'Sankey Diagram Error',
+        message: 'Failed to update sankey diagram. This usually happens when there is a missing node reference in the data.',
+        error: e,
+        context: {
+          function: 'updateSankey',
+          sankeyInstanceID: config.sankeyInstanceID,
+          scenario: globalActiveScenario ? globalActiveScenario.id : 'unknown',
+          year: globalActiveYear ? globalActiveYear.id : 'unknown',
+          filter: globalActiveEnergyflowsFilter || 'unknown',
+          numberOfNodes: json.nodes ? json.nodes.length : 0,
+          numberOfLinks: json.links ? json.links.length : 0,
+          visibleLinks: json.links ? json.links.filter(l => l.visibility === 1).length : 0
+        }
+      })
+    }
+    console.error('Sankey update error:', e)
+    return
+  }
   d3.select('#' + config.sankeyInstanceID + ' .sankey').attr('transform', 'translate(' + offsetX + ',' + offsetY + ')')
   d3.selectAll('#' + config.sankeyInstanceID + ' .node-title').style('font-size', fontSize + 'tepx')
 

@@ -931,7 +931,9 @@ function showCapacityPopup(categoryData) {
       const scenarioData = categoryDataAll[scenarioId];
       if (scenarioData && scenarioData.year === currentYear) {
         const scenarioName = scenarioData.scenarioName || scenarioId;
-        if (!scenarioName.includes('WLO')) {
+        // Exclude WLO scenarios - all other scenarios should be shown
+        const isWLO = scenarioName.includes('WLO') || scenarioName.includes('Hoog') || scenarioName.includes('Laag');
+        if (!isWLO) {
           scenarioComparisons.push({
             scenarioId: scenarioId,
             scenarioName: scenarioName,
@@ -963,6 +965,23 @@ function showCapacityPopup(categoryData) {
     .domain([0, maxCapacity * 1.3])
     .range([height, 0]);
 
+  // Get or create tooltip (reuse the existing one if available)
+  let popupTooltip = d3.select('body').select('.capacity-popup-tooltip');
+  if (popupTooltip.empty()) {
+    popupTooltip = d3.select('body').append('div')
+      .attr('class', 'capacity-popup-tooltip')
+      .style('position', 'absolute')
+      .style('visibility', 'hidden')
+      .style('background-color', 'rgba(0, 0, 0, 0.85)')
+      .style('color', 'white')
+      .style('padding', '10px')
+      .style('border-radius', '5px')
+      .style('font-size', '12px')
+      .style('pointer-events', 'none')
+      .style('z-index', '10001')
+      .style('box-shadow', '0 2px 4px rgba(0,0,0,0.2)');
+  }
+
   chartGroup.selectAll('.popup-bar')
     .data(scenarioComparisons)
     .enter()
@@ -974,7 +993,46 @@ function showCapacityPopup(categoryData) {
     .attr('height', d => height - y(d.capacity))
     .attr('fill', categoryData.color || '#3F88AE')
     .style('stroke', '#fff')
-    .style('stroke-width', 1);
+    .style('stroke-width', 1)
+    .style('cursor', 'pointer')
+    .on('mouseover', function(_event, d) {
+      if (d.capacity > 0 || d.volume > 0) {
+        d3.select(this).style('opacity', 0.7);
+
+        const capacityText = d.capacity > 999
+          ? `${(d.capacity / 1000).toFixed(1)} GW`
+          : `${Math.round(d.capacity)} MW`;
+        const capacityFactor = (d.fullLoadHours / 8760) * 100;
+
+        let volumeText;
+        if (capacityEnergyUnit === 'PJ') {
+          const volumePJ = d.volume / 1000000000;
+          volumeText = `${volumePJ.toFixed(1)} PJ`;
+        } else {
+          const volumeTWh = d.volume / 3600000000;
+          volumeText = `${volumeTWh.toFixed(1)} TWh`;
+        }
+
+        popupTooltip
+          .style('visibility', 'visible')
+          .html(`
+            <strong>${d.scenarioName}</strong><br/>
+            Capacity: ${capacityText}<br/>
+            Volume: ${volumeText}<br/>
+            Full Load Hours: ${Math.round(d.fullLoadHours)} h<br/>
+            Capacity Factor: ${capacityFactor.toFixed(1)}%
+          `);
+      }
+    })
+    .on('mousemove', function(event) {
+      popupTooltip
+        .style('top', (event.pageY - 10) + 'px')
+        .style('left', (event.pageX + 10) + 'px');
+    })
+    .on('mouseout', function() {
+      d3.select(this).style('opacity', 1);
+      popupTooltip.style('visibility', 'hidden');
+    });
 
   chartGroup.append('g')
     .attr('transform', `translate(0, ${height})`)

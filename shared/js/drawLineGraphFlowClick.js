@@ -143,7 +143,7 @@ function drawBarGraph(data, config) {
   const EXPORT_WIDTH = 130
   const EXPORT_HEIGHT = 28
   const EXPORT_X = popupWidth - 530  // Position to the left, with space for copy button
-  const EXPORT_Y = 30
+  const EXPORT_Y = 50
 
   const exportGroup = canvas.append('g')
     .attr('class', 'export-btn')
@@ -237,7 +237,7 @@ function drawBarGraph(data, config) {
   const COPY_WIDTH = 140
   const COPY_HEIGHT = 28
   const COPY_X = popupWidth - 390  // To the right of export button, left of toggle
-  const COPY_Y = 30
+  const COPY_Y = 50
 
   const copyGroup = canvas.append('g')
     .attr('class', 'copy-btn')
@@ -528,19 +528,17 @@ function drawBarGraph(data, config) {
 
       const color = scenarioColors[scenarioName]
 
-      const scenarioData = years.map((year) => {
-        const yearValue = scenarioDataForYears[year]
-        if (yearValue !== undefined && yearValue !== null) {
-          return {year: year, value: yearValue, original: {year: year, value: yearValue}}
-        }
-        return null
-      }).filter(d => d !== null)
+      // Create data points only for years that have data (this connects points properly)
+      const scenarioData = years
+        .filter(year => scenarioDataForYears[year] !== undefined && scenarioDataForYears[year] !== null)
+        .map((year) => ({year: year, value: getValue(scenarioDataForYears[year])}))
 
       if (scenarioData.length === 0) {
         console.log(`No valid data points for ${scenarioName}, skipping`)
         return
       }
 
+      // Draw line connecting only the points that have data
       canvas.append('path')
         .datum(scenarioData)
         .attr('class', 'scenario-line')
@@ -641,6 +639,64 @@ function drawBarGraph(data, config) {
     .style('font-size', '14px')
     .style('font-weight', 'bold')
     .text('Scenarios')
+
+  // Select All button (positioned to the right of "Scenarios" text)
+  const selectAllBtn = legend.append('g')
+    .attr('transform', 'translate(110, -32)')
+    .style('cursor', 'pointer')
+    .on('click', function() {
+      globalVisibleScenarios = new Set(varianten)
+      updateGraph()
+      updateLegend()
+    })
+
+  selectAllBtn.append('rect')
+    .attr('width', 70)
+    .attr('height', 22)
+    .attr('rx', 3)
+    .attr('fill', '#f5f5f5')
+    .attr('stroke', '#ccc')
+    .attr('stroke-width', 1)
+    .on('mouseover', function() { d3.select(this).attr('fill', '#e8e8e8') })
+    .on('mouseout', function() { d3.select(this).attr('fill', '#f5f5f5') })
+
+  selectAllBtn.append('text')
+    .attr('x', 35)
+    .attr('y', 15)
+    .attr('text-anchor', 'middle')
+    .style('font-size', '11px')
+    .style('fill', '#444')
+    .style('pointer-events', 'none')
+    .text('Select All')
+
+  // Deselect All button
+  const deselectAllBtn = legend.append('g')
+    .attr('transform', 'translate(188, -32)')
+    .style('cursor', 'pointer')
+    .on('click', function() {
+      globalVisibleScenarios = new Set()
+      updateGraph()
+      updateLegend()
+    })
+
+  deselectAllBtn.append('rect')
+    .attr('width', 80)
+    .attr('height', 22)
+    .attr('rx', 3)
+    .attr('fill', '#f5f5f5')
+    .attr('stroke', '#ccc')
+    .attr('stroke-width', 1)
+    .on('mouseover', function() { d3.select(this).attr('fill', '#e8e8e8') })
+    .on('mouseout', function() { d3.select(this).attr('fill', '#f5f5f5') })
+
+  deselectAllBtn.append('text')
+    .attr('x', 40)
+    .attr('y', 15)
+    .attr('text-anchor', 'middle')
+    .style('font-size', '11px')
+    .style('fill', '#444')
+    .style('pointer-events', 'none')
+    .text('Deselect All')
 
   function updateLegend() {
     legend.selectAll('.legend-item')
@@ -767,7 +823,7 @@ function drawBarGraph(data, config) {
   // Add unit toggle
   const unitToggle = canvas.append('g')
     .attr('class', 'unit-toggle-popup')
-    .attr('transform', `translate(${popupWidth - 180}, 40) scale(0.9)`)
+    .attr('transform', `translate(${popupWidth - 180}, 60) scale(0.9)`)
     .style('cursor', 'pointer')
     .on('click', () => {
       document.getElementById('sankeyUnitToggle').dispatchEvent(new MouseEvent('click'))

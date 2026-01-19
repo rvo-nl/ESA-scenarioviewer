@@ -575,11 +575,6 @@ passphraseWrapper.appendChild(passphraseInput);
       }, 100);
     }
 
-    // Store mapping CSV data globally for node popup mapping lookup
-    // This makes the CSV data from the ZIP available to drawNodeFlowPopup.js
-    window.mappingCsvData = csvData;
-    console.log('Mapping CSV data stored globally:', Object.keys(csvData));
-
      // Pass CSV data to capacity visualization module if available
      if ((csvData['processed_capacities'] || csvData['etm_production_parameters_mapping']) && typeof window.setCapacityZipData === 'function') {
        window.setCapacityZipData(csvData);

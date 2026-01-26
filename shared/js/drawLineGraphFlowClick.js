@@ -348,9 +348,6 @@ function drawBarGraph(data, config) {
     return value
   }
 
-  const determineMaxValue = Object.entries(data)
-    .filter(([k]) => k.includes('scenario'))
-
   const co2Scale = v => data.legend !== 'co2flow' ? v : v * globalCO2flowScale
 
   const yearData = y => Object.entries(data)
@@ -457,9 +454,9 @@ function drawBarGraph(data, config) {
     .domain(years)
     .range([shiftX, shiftX + graphWidth])
 
-  // y-scale for values
-  const y = d3.scaleLinear()
-    .domain([0, d3.max(determineMaxValue, ([, v]) => getValue(v))])
+  // y-scale for values - will be updated in updateGraph
+  let y = d3.scaleLinear()
+    .domain([0, 100])  // Initial domain, will be recalculated
     .range([graphBottom, graphTop])
 
   // line generator
@@ -507,6 +504,54 @@ function drawBarGraph(data, config) {
     canvas.selectAll('.scenario-line').remove()
     canvas.selectAll('.scenario-dot').remove()
     canvas.selectAll('.hover-label').remove()
+
+    // Recalculate max value based on visible scenarios with current unit conversion
+    let maxValue = 0
+    varianten.forEach((scenarioName) => {
+      if (!globalVisibleScenarios.has(scenarioName)) {
+        return
+      }
+      const scenarioDataForYears = displayNameToDataMap[scenarioName]
+      if (!scenarioDataForYears) {
+        return
+      }
+      years.forEach(year => {
+        if (scenarioDataForYears[year] !== undefined && scenarioDataForYears[year] !== null) {
+          const convertedValue = getValue(scenarioDataForYears[year])
+          if (convertedValue > maxValue) {
+            maxValue = convertedValue
+          }
+        }
+      })
+    })
+
+    // Update y-scale domain
+    y.domain([0, maxValue * 1.1]) // Add 10% padding at top
+
+    // Redraw y-axis
+    canvas.selectAll('.y-axis').remove()
+    canvas.append('g')
+      .attr('class', 'y-axis')
+      .attr('transform', `translate(${shiftX}, 0)`)
+      .call(d3.axisLeft(y).ticks(10).tickSize(0).tickPadding(10))
+      .style('font-size', '13px')
+      .select('.domain').remove()
+
+    // Redraw horizontal bands
+    canvas.selectAll('.grid-bands').remove()
+    const yTicks = y.ticks(10)
+    const bandGroup = canvas.append('g')
+      .attr('class', 'grid-bands')
+    bandGroup.selectAll('rect')
+      .data(d3.range(0, yTicks.length - 1, 2))
+      .enter()
+      .append('rect')
+      .attr('x', shiftX)
+      .attr('y', i => y(yTicks[i + 1]))
+      .attr('width', graphWidth)
+      .attr('height', i => y(yTicks[i]) - y(yTicks[i + 1]))
+      .style('fill', '#f0f0f0')
+    bandGroup.lower()
 
     varianten.forEach((scenarioName) => {
       if (!globalVisibleScenarios.has(scenarioName)) {
@@ -779,33 +824,12 @@ function drawBarGraph(data, config) {
     .style('font-size', '13px')
     .select('.domain').remove()
 
-  // y-axis
-  canvas.append('g')
-    .attr('transform', `translate(${shiftX}, 0)`)
-    .call(d3.axisLeft(y).ticks(10).tickSize(0).tickPadding(10))
-    .style('font-size', '13px')
-    .select('.domain').remove()
-
   // Y-axis title
   canvas.append('text')
     .attr('transform', `translate(${shiftX - 60}, ${(graphBottom + graphTop) / 2}) rotate(-90)`)
     .style('text-anchor', 'middle')
     .style('font-size', '13px')
     .text(data.legend === 'co2flow' ? 'kton CO2/jaar' : (unit === 'TWh' ? 'TWh/jaar' : 'PJ/jaar'))
-
-  // Add horizontal bands
-  const yTicks = y.ticks(10)
-  const bandGroup = canvas.append('g')
-    .attr('class', 'grid-bands')
-  bandGroup.selectAll('rect')
-    .data(d3.range(0, yTicks.length - 1, 2))
-    .enter()
-    .append('rect')
-    .attr('x', shiftX)
-    .attr('y', i => y(yTicks[i + 1]))
-    .attr('width', graphWidth)
-    .attr('height', i => y(yTicks[i]) - y(yTicks[i + 1]))
-    .style('fill', '#f0f0f0')
 
   // Add vertical gridlines
   const verticalGrid = canvas.append('g')
@@ -818,7 +842,6 @@ function drawBarGraph(data, config) {
     .style('stroke', '#cccccc')
     .style('stroke-dasharray', '2 2')
   verticalGrid.lower()
-  bandGroup.lower()
 
   // Add unit toggle
   const unitToggle = canvas.append('g')

@@ -38,14 +38,21 @@ const resizeObserver = new ResizeObserver((entries) => {
 
     sankeyConfigs.forEach(element => {
       const svgElement = d3.select('#' + element.sankeyInstanceID + '_sankeySVGPARENT')
+      const backdropElement = d3.select('#' + element.sankeyInstanceID + '_backdropSVG')
       const containerWidth = document.getElementById(element.targetDIV).offsetWidth - 40
       const originalWidth = element.width; // Adjust based on your SVG's original width
       const originalHeight = element.height; // Adjust based on your SVG's original heigh
       const scale = containerWidth / originalWidth
 
+      // Update sankey SVG
       svgElement.attr('viewBox', `0 0 ${originalWidth} ${originalHeight}`)
       svgElement.attr('width', originalWidth * scale)
       svgElement.attr('height', originalHeight * scale)
+
+      // Update backdrop SVG with same dimensions
+      backdropElement.attr('viewBox', `0 0 ${originalWidth} ${originalHeight}`)
+      backdropElement.attr('width', originalWidth * scale)
+      backdropElement.attr('height', originalHeight * scale)
 
       d3.select(element.targetDIV).style('height', document.getElementById(element.sankeyInstanceID + '_sankeySVGPARENT').getBoundingClientRect().height + 'px')
     })

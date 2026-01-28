@@ -6,7 +6,7 @@
   <!-- Basic Page Needs
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <meta charset="utf-8">
-  <title>Scenarioviewer ESA TenneT</title>
+  <title>Scenarioviewer ESA TENNET </title>
   <meta name="description" content="">
   <meta name="author" content="">
 
@@ -61,9 +61,9 @@
             <div class="welcome-header">
             
               <h1 class="welcome-title" style="font-size: 40px!important;">Scenarioviewer</h1>
-               <h1 class="welcome-title" style="font-size: 20px!important;">TenneT</h1>
+               <h1 class="welcome-title" style="font-size: 20px!important;">TENNET</h1>
               <p class="welcome-subtitle"></p>
-              <div class="version-badge">NBNL • TVKN • NPE</div>
+              <div class="version-badge">AT • TVKN • WLO • NBNL • NPE • PEH • KEV • TG</div>
             </div>
             <div class="welcome-content">
               <div class="input-group">
@@ -97,26 +97,26 @@
   </script>
   <div id="main-container">
     <div class="content-fullwidth" style="padding:0px">
-      <div class="concept-label" style="float: right;">
-        CONCEPT
+      <div id="topRightLabel" class="concept-label" style="float: right;">
+        ...
       </div>
       <div class="content-fullwidth" style="padding:0px;background-color: white;">
-        <div class="version-label">
-          Versie 18.12.2025.TENNET
+        <div id="versionLabel" class="version-label">
+          ...
         </div>
       </div>
 
       <div class="full-width-container">
         <div class="content-constrained" style="background-color: white;">
           <br><br><br>
-          <h3>Scenarioviewer Energiesysteem</h3>
+          <h3>Scenarioviewer</h3>
           <br><br>
           <p style="line-height:30px; width: 70%;">
-            Deze viewer bundelt de uitkomsten uit een
-            aantal systeemstudies in een
-            uniform dataformaat om ze integraal met elkaar te kunnen vergelijken. Dit is een
-            conceptversie. Er volgen nog uitbreidingen, waaronder overzichten van opgesteld vermogen, een
-            koolstofbalans en de exogene uitgangspunten die in de modelleringen zijn gebruikt.</p>
+            Netbeheer Nederland, het Planbureau voor de Leefomgeving (PBL), TNO en RVO doen scenario-studies met hun
+            ETM, OPERA en pyPSA modellen
+            waarin zij het toekomstige energiesysteem verkennen en analyseren. Deze viewer bundelt de uitkomsten uit een
+            aantal studies in een
+            uniform dataformaat om ze integraal met elkaar te kunnen vergelijken.</p>
         </div>
         <!-- <div class="content-fullwidth" style="padding:0px;background-color:#DCE6EF;height:40px;"></div> -->
         <div class="content-fullwidth sticky" style="background-color:#DCE6EF;padding-bottom:0px;padding-top:0px;">
@@ -130,6 +130,9 @@
             <div class="menuContainer-part" id="sankeyEnergiestromenSelectieMenu">
               <div class="menu-label">Scope</div>
             </div>
+            <div class="menuContainer-part" id="exportButtonsContainer">
+              <div class="menu-label">Export</div>
+            </div>
           </div>
         </div>
 
@@ -137,7 +140,7 @@
           <div id="unitSelector"></div>
           <div class="content-fullwidth" style="padding-bottom:0px;">
             <br>
-            <h4 style="margin-bottom:0px;margin-left:15px;" id="sankeyTitle">Energiesysteem</h4>
+            <h4 style="margin-bottom:0px;margin-left:15px;" id="sankeyTitle">Integraal</h4>
           </div>
 
           <div class="content-constrained" style="padding-bottom:0px;padding-top:30px;">
@@ -368,7 +371,6 @@
                   </p> -->
                   <p>Dit onderdeel is momenteel in ontwikkeling, de specificatie van indeling van conversies naar nodes
                     wordt op korte termijn opnieuw toegevoegd.</p>
-
                   <div id="remarksContainer"></div>
                 </div>
               </div>
@@ -423,21 +425,12 @@
           </blockquote>
         </div>
 
-        <div class="content-constrained"
+        <!-- <div class="content-constrained"
           style="padding-bottom:20px;padding-top:40px;background-color: rgb(220, 230, 239); margin-bottom:30px;">
-          <h4>Vergelijking modelscenario's met NPE Cijferbasis</h4>
-          <p><strong>Let op:</strong> voor de II3050-scenario’s is het verbruik van elektriciteit en waterstof voor de
-            productie van
-            synthetische brandstoffen nog niet volledig correct opgenomen in de overzichten, omdat het verbruik van
-            waterstof en elektriciteit voor synthetische brandstofproductie provisorisch onder 'biobrandstoffen' is
-            gevoegd in de huidige boekhouding van het ETM. Raadpleeg de kolom
-            ‘Opmerkingen’ in de tabellen voor meer informatie. </p>
-          <p>De tabelnummering is overeenkomstig met bijlage 1 van het
-            NPE-2023 (<a
-              href="https://www.rijksoverheid.nl/documenten/rapporten/2023/09/25/bijlage-1-toelichting-cijferbasis-concept-npe">link</a>).</Data>
-          </p>
+          <h4>NPE Cijferbasis</h4>
           <div id="cijferbasis_container"></div>
-        </div>
+        </div> -->
+
 
 
 
@@ -461,26 +454,6 @@
 
         <div class="content-constrained" style="padding-bottom:0px;padding-top:20px;">
           <h4>Finaal verbruik</h4>
-          <p>Dit watervaldigram mapt de primaire herkomst (fossiel versus CO2-vrij/neutraal) op het finaal verbruik van
-            energie en grondstoffen. Je kan er in een oogopslag uit aflezen hoe het af/opbouwpad voor een scenario
-            verloopt over alle doorgerekende zichtjaren, en welke energiedragers en grondstoffen er met welke (duurzame)
-            alternatieven worden vervangen.
-            <br><br>
-            Het finaal verbruik is uitgesplitst naar zowel sectoren als toepassingen. De
-            toepassing 'warmte' omvat al het finaal verbruik voot installaties die uitsluitend worden toegepast voor de
-            productie van warmte (ketels, boilers, warmtepompen, directe ondervuring en stoomrecompressie) en alle
-            warmte die aan het finaal verbruik wordt geleverd vanuit collectieve warmtenetten. De toepassing 'proces'
-            omvat alle
-            industriele installaties anders dan installaties die uitsluitend voor de productie van warmte worden
-            toegepast (bijvoorbeeld processen voor de productie van staal, ammoniak en chemie). De toepassing
-            'transport' omvat zowel alle nationale mobiliteit als internationale mobiliteit (bunkers). De toepassing
-            'overige' omvat bijvoorbeeld het elektriciteitsverbruik van datacenters en van witgoed in de
-            gebouwde omgeving.
-          </p>
-
-
-
-
           <span id="waterval-selection-display" style="font-size: 14px; color: #666; margin-left: 5px;"></span>
         </div>
         <div class="scaled-wrapper-waterfall">
@@ -501,37 +474,33 @@
         </div>
 
 
-
-
         <!-- <div class=" content-fullwidth" style="height:600px;"></div> -->
       </div>
-
     </div>
-    <p style="text-align: right; font-size:12px; margin-right: 30px;">Developed by Tijs
-      Langeveld</a> using <a href="https://d3js.org/">d3.js</a>, <a
-        href="https://github.com/ricklupton/d3-sankey-diagram">d3-sankey</a> and <a
-        href="https://milligram.io/">milligram</a>. <a href="https://www.linkedin.com/in/tijslangeveld/">Get in touch.
-    </p>
   </div>
-
-  <script src="js/scrollBehavior.js"></script>
+  <!-- Shared libraries from central location -->
+  <script src="../shared/js/scrollBehavior.js"></script>
 </body>
-<script src="js/jszip.min.js"></script>
-<script src="js/jszip-utils.min.js"></script>
+<!-- Shared libraries from central location -->
+<script src="../shared/js/jszip.min.js"></script>
+<script src="../shared/js/jszip-utils.min.js"></script>
 <script src="js/UIlisteners.js"></script>
-<script src="js/helpers.js"></script>
-<script src="js/xlsx.full.min.js"></script>
-<script src="js/d3-collection.v1.min.js"></script>
-<script src="js/d3-sankey-diagram.js"></script>
-<script src="js/drawSankey.js"></script>
+<script src="../shared/js/helpers.js"></script>
+<script src="../shared/js/xlsx.full.min.js"></script>
+<script src="../shared/js/exportData.js"></script>
+<script src="../shared/js/errorPopup.js"></script>
+<script src="../shared/js/d3-collection.v1.min.js"></script>
+<script src="../shared/js/d3-sankey-diagram.js"></script>
+<script src="../shared/js/drawSankey.js"></script>
 <script src="js/loadData.js"></script>
-<script src="js/drawRemarks.js"></script>
-<script src="js/fileLoadButton.js"></script>
-<script src="js/drawLineGraphFlowClick.js"></script>
-<script src="js/drawSelectionButtons.js"></script>
-<script src="js/drawMainContainer.js" charset="utf-8"></script>
-<script src="js/drawWaterfall.js" charset="utf-8"></script>
-<script src="js/drawCijferBasis.js" charset="utf-8"></script>
-<script src="js/drawCapacityVisualization.js" charset="utf-8"></script>
+<script src="../shared/js/drawRemarks.js"></script>
+<script src="../shared/js/fileLoadButton.js"></script>
+<!-- Generic JS files that load from config/viewer-config.json -->
+<script src="../shared/js/drawSelectionButtons.js"></script>
+<script src="../shared/js/drawLineGraphFlowClick.js"></script>
+<script src="../shared/js/drawNodeFlowPopup.js"></script>
+<script src="../shared/js/drawWaterfall.js" charset="utf-8"></script>
+<script src="../shared/js/drawCijferBasis.js" charset="utf-8"></script>
+<script src="../shared/js/drawCapacityVisualization.js" charset="utf-8"></script>
 
 </html>

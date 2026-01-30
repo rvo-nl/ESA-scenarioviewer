@@ -181,6 +181,9 @@ function fileLoadButton () {
     config.settings = settings
     config.legend = legend
 
+    // Make config globally accessible for export functions
+    window.sankeyExportConfig = config
+
     globalScaleInit = settings[0].scaleInit
     globalCO2flowScale = settings[0].scaleDataValueCO2flow
 

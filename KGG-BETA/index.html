@@ -196,15 +196,16 @@
 
               <div class="collapse mt-2" id="carriersCollapse">
                 <div class="card card-body" style="border:none;background-color: #EEF5FA;">
-                  <div style="width:100%;margin-left:35px;">
-                    <p>De energiedragers uit de OPERA- en ETM-data zijn, conform de indeling in onderstaande tabel,
-                      samengevoegd tot 20 hoofdcategorieën en geaggregeerd weergegeven in het diagram.</p>
+                  <div style="width:100%;margin-left:0px;">
+                    <p>De energiedragers uit de OPERA, ETM en CBS-data zijn, conform de indeling in onderstaande tabel,
+                      samengevoegd tot 21 hoofdcategorieën en geaggregeerd in het diagram weergegeven.</p>
                     <table style="font-size:12px;">
                       <thead>
                         <tr>
-                          <th>Flows diagram</th>
-                          <th>Flows model (OPERA)</th>
-                          <th>Flows model (ETM)</th>
+                          <th>Diagram</th>
+                          <th>OPERA</th>
+                          <th>ETM</th>
+                          <th>CBS Energiebalans</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -212,12 +213,14 @@
                           <td>Ammoniak</td>
                           <td>Ammonia, Ammonia export, Ammonia import</td>
                           <td>ammonia, imported_ammonia</td>
+                          <td></td>
 
                         </tr>
                         <tr>
                           <td>Afval</td>
                           <td>Afval (niet-biogeen)</td>
                           <td>non_biogenic_waste</td>
+                          <td>Niet biogeen Indu afval + overige gassen, Niet hernieuwbaar huishuidelijk afval</td>
                         </tr>
                         <tr>
                           <td>Biomassa ruw</td>
@@ -230,6 +233,7 @@
                             mest</td>
                           <td>wet_biomass, dry_biomass, oily_biomass, biogenic_waste
                           </td>
+                          <td>Vaste biomassa, exclusief houtskool, Hernieuwbaar huishoudelijk afval</td>
                         </tr>
                         <tr>
                           <td>Biomassa product</td>
@@ -239,52 +243,75 @@
                           <td>wood_pellets, biogas, bio_kerosene, biodiesel, bio_oil, greengas,
                             torrefied_biomass_pellets, bio_ethanol, bio_lng
                           </td>
+                          <td>Houtskool, Biobenzine puur, Biobenzine bijgemengd, Biodiesel puur, Biodiesel gemengd in
+                            gas- en dieselolie, Biokerosine puur, Biokerosine bijgemengd, Overige vloeibare biomassa,
+                            Biogas, </td>
                         </tr>
                         <tr>
                           <td>Elektriciteit</td>
                           <td>Electricity</td>
                           <td>electricity</td>
+                          <td>Elektriciteit</td>
                         </tr>
                         <tr>
                           <td>Overige</td>
                           <td>Ethylene</td>
                           <td>gas_power_fuelmix, waste_mix</td>
+                          <td>Gasexpansie-energie</td>
                         </tr>
                         <tr>
                           <td>Geothermie</td>
                           <td>Aardwarmte</td>
                           <td>geothermal</td>
+                          <td>Aardwarmte</td>
                         </tr>
                         <tr>
                           <td>Kolen(derivaten)</td>
                           <td>Cokes, Cokesovengas, Hoogovengas, Kolen</td>
                           <td>coal, cokes, coal_gas, lignite</td>
+                          <td>Steenkool en bruinkool, Antraciet, Cokeskool, Ketelkolen, Bruinkool, Cokesovencokes,
+                            Fabriekscokes, Bruinkoolbriketten, Steenkoolbriketten, Steenkoolteer, Fabrieksgas,
+                            Cokesovengas, Hoogovengas</td>
                         </tr>
                         <tr>
                           <td>Methaan</td>
                           <td>Aardgas, Aardgas feedstock, Gas winning, Biogas</td>
                           <td>network_gas, lng, natural_gas, compressed_network_gas</td>
+                          <td>Aardgas</td>
                         </tr>
                         <tr>
                           <td>Methanol (fossiel)</td>
                           <td>Methanol, Methanol for shipping</td>
                           <td>methanol</td>
+                          <td>-</td>
                         </tr>
                         <tr>
-                          <td>Olie(derivaten)</td>
-                          <td>Benzine, Diesel, HFO, Kerosine, LNG for shipping, LPG, Naphta, Olie, Oliegrondstoffen,
+                          <td>Ruwe aardoliegrondstoffen</td>
+                          <td>Olie, Oliegrondstoffen</td>
+                          <td>crude_oil</td>
+                          <td>Ruwe aardolie, Aardgascondensaat, Additieven, Overige aardoliegrondstoffen</td>
+                        </tr>
+                        <tr>
+                          <td>Olieproducten</td>
+                          <td>Benzine, Diesel, HFO, Kerosine, LNG for shipping, LPG, Naphta,
                             Overige
                             olieproducten, Restgassen, Aromatics</td>
-                          <td>crude_oil, diesel, kerosene, lpg, heavy_fuel_oil, gasoline, propane, refinery_gas</td>
+                          <td>diesel, kerosene, lpg, heavy_fuel_oil, gasoline, propane, refinery_gas</td>
+                          <td>Restgassen uit olie, Lpg, Nafta, Motorbenzine fossiele deel, Jetfuel op benzinebasis,
+                            Vliegtuigbenzine, Vliegtuigkerosine fossiel, Overige kerosine (petroleum), Gas- en
+                            dieselolie fossiele deel, Zware stookolie, Terpentine en speciale benzine, Smeermiddelen,
+                            Bitumen, Minerale wassen, Petroleumcokes, Overige aardolieproducten</td>
                         </tr>
                         <tr>
                           <td>Omgevingswarmte</td>
                           <td>Omgevingswarmte</td>
                           <td>ambient_heat</td>
+                          <td>Omgevingsenergie</td>
                         </tr>
                         <tr>
                           <td>Plastic afval</td>
                           <td>Plastic waste, Rejected plastic waste</td>
+                          <td>-</td>
                           <td>-</td>
                         </tr>
                         <tr>
@@ -306,32 +333,38 @@
                           <td>Uranium</td>
                           <td>Uranium</td>
                           <td>uranium_oxide</td>
+                          <td>Kernenergie</td>
                         </tr>
                         <tr>
                           <td>Warmte</td>
                           <td>Heat100to200, Heat200to400, HeatDir200to400, HeatHT400, Warmte</td>
                           <td>steam_hot_water, imported_heat</td>
+                          <td>Warmte, Warmte uit chemische reacties</td>
                         </tr>
                         <tr>
                           <td>Waterstof</td>
                           <td>Hydrogen import, Hydrogen export, Waterstof</td>
                           <td>hydrogen, liquid_hydrogen, lohc, imported_hydrogen, imported_liquid_hydrogen,
                             imported_lohc</td>
+                          <td>Waterstof</td>
                         </tr>
                         <tr>
                           <td>Wind</td>
                           <td>Wind</td>
                           <td>wind</td>
+                          <td>Windenergie op land, Windenergie op zee</td>
                         </tr>
                         <tr>
                           <td>Zon</td>
                           <td>Zon</td>
                           <td>solar_radiation</td>
+                          <td>Zonnestroom</td>
                         </tr>
                         <tr>
                           <td>Zon thermisch</td>
                           <td>Zon thermisch</td>
                           <td>solar_thermal</td>
+                          <td>Zonnewarmte</td>
                         </tr>
                       </tbody>
                     </table>
@@ -356,25 +389,7 @@
                 });
               });
             </script>
-            <blockquote style=" background-color:none;margin-left:30px;border-left:0.5rem solid #999">
-              <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#remarksCollapse"
-                aria-expanded="false" aria-controls="remarksCollapse">
-                <span class="toggle-icon">+</span>
-                <span style="margin-left:30px;">Mapping opties - nodes</span>
-              </div>
 
-              <div class="collapse mt-2" id="remarksCollapse">
-                <div class="card card-body" style="border:none;background-color: #EEF5FA;">
-                  <!-- <p style="margin-left:30px;">De OPERA-opties en energiestromen uit de ETM-energieboekhouding zijn
-                    conform onderstaande indeling onderverdeeld in
-                    categorieën energie- en grondstofconversie en finaal verbruik.
-                  </p> -->
-                  <p>Dit onderdeel is momenteel in ontwikkeling, de specificatie van indeling van conversies naar nodes
-                    wordt op korte termijn opnieuw toegevoegd.</p>
-                  <div id="remarksContainer"></div>
-                </div>
-              </div>
-            </blockquote>
           </div>
         </div>
 

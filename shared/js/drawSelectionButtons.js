@@ -178,8 +178,10 @@ function drawSelectionButtons(config) {
       console.warn(`Scenario ${globalActiveScenario.id} is not available for year ${globalActiveYear.id}. Aborting update.`)
       return
     }
-    if (!config.scenarios || activeScenario >= config.scenarios.length) {
-      console.warn(`Scenario index ${activeScenario} is out of bounds for the loaded data. Scenarios available: ${config.scenarios.length}. Aborting update.`)
+    // Use global scenarios from current diagram (updated on diagram switch)
+    const currentScenarios = window.currentDiagramScenarios || config.scenarios
+    if (!currentScenarios || activeScenario >= currentScenarios.length) {
+      console.warn(`Scenario index ${activeScenario} is out of bounds for the loaded data. Scenarios available: ${currentScenarios ? currentScenarios.length : 0}. Aborting update.`)
       return
     }
     currentScenarioID = activeScenario
@@ -228,7 +230,10 @@ function drawSelectionButtons(config) {
       IP2024_KA_2025: 'Getoond: SSS',
       DUMMY_2050: 'Getoond: DUMMY - 2050'
     }
-    d3.select('#huidigGetoond').html(scenarioTitles[config.scenarios[activeScenario].title])
+    const indicatorScenarios = window.currentDiagramScenarios || config.scenarios
+    if (indicatorScenarios && indicatorScenarios[activeScenario]) {
+      d3.select('#huidigGetoond').html(scenarioTitles[indicatorScenarios[activeScenario].title])
+    }
   }
 
   // Color lookup function

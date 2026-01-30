@@ -291,6 +291,9 @@ function processData (links, nodes, legend, settings, remarks, config) {
   config.settings = settings
   config.legend = legend
 
+  // Make config globally accessible for export functions
+  window.sankeyExportConfig = config
+
   globalScaleInit = settings[0].scaleInit
   globalCO2flowScale = settings[0].scaleDataValueCO2flow
 
@@ -390,23 +393,25 @@ function processData (links, nodes, legend, settings, remarks, config) {
   const scenarios = []
   let counter = 0
   for (let s = 0; s < Object.keys(links[0]).length; s++) {
-    if (Object.keys(links[0])[s].includes('scenario')) {
-      if (counter < 10) {
-        scenarios.push({
-          title: Object.keys(links[0])[s].slice(10),
-          id: Object.keys(links[0])[s]
-        })
-      } else {
-        scenarios.push({
-          title: Object.keys(links[0])[s].slice(11),
-          id: Object.keys(links[0])[s]
-        })
-      }
+    const key = Object.keys(links[0])[s]
+    if (key.includes('scenario')) {
+      // Extract the title by finding the first underscore and taking everything after "scenario{N}_"
+      const firstUnderscoreIndex = key.indexOf('_')
+      const title = firstUnderscoreIndex !== -1 ? key.slice(firstUnderscoreIndex + 1) : key
+
+      scenarios.push({
+        title: title,
+        id: key
+      })
       counter++
     }
   }
 
   config.scenarios = scenarios
+  console.log('Total scenarios parsed:', scenarios.length)
+
+  // Make scenarios globally accessible for diagram switching
+  window.currentDiagramScenarios = scenarios
 
   // Generate links object
   for (let i = 0; i < links.length; i++) {
@@ -953,7 +958,9 @@ function tick (config) {
       for (i = 0; i < sankeyData.links.length; i++) {
         // console.log(sankeyData.links[i].visibility)
         if (sankeyData.links[i]['filter_' + globalActiveEnergyflowsFilter] == 'x') {
-          const scenarioId = config.scenarios[activeScenario].id
+          // Use global scenarios from current diagram (updated on diagram switch)
+          const currentScenarios = window.currentDiagramScenarios || config.scenarios
+          const scenarioId = currentScenarios[activeScenario].id
           if (sankeyData.links[i][scenarioId] === undefined) {
             console.warn(`Missing scenario data for link ${i}, scenario: ${scenarioId}`)
             sankeyData.links[i].value = 0
@@ -970,6 +977,7 @@ function tick (config) {
       }
     } catch (e) {
       if (typeof showErrorPopup === 'function') {
+        const errorScenarios = window.currentDiagramScenarios || config.scenarios
         showErrorPopup({
           title: 'Sankey Data Processing Error',
           message: 'Failed to process sankey data. This may be due to missing node/link data or invalid scenario configuration.',
@@ -978,7 +986,7 @@ function tick (config) {
             function: 'tick',
             sankeyInstance: key,
             datasetId: globalSankeyInstancesActiveDataset[key] ? globalSankeyInstancesActiveDataset[key].id : 'unknown',
-            scenario: config.scenarios[activeScenario] ? config.scenarios[activeScenario].id : 'unknown',
+            scenario: errorScenarios && errorScenarios[activeScenario] ? errorScenarios[activeScenario].id : 'unknown',
             filter: globalActiveEnergyflowsFilter || 'unknown',
             activeScenarioIndex: activeScenario
           }
@@ -1187,7 +1195,8 @@ function updateSankey (json, offsetX, offsetY, fontSize, fontFamily, config) {
         const node = sankeyData.nodes[nodeIndex]
         console.log('node:', node)
         if (node && typeof nodeVisualisatieSingular === 'function') {
-          nodeVisualisatieSingular(config, node, sankeyData, config.scenarios, config.targetDIV)
+          const nodeScenarios = window.currentDiagramScenarios || config.scenarios
+          nodeVisualisatieSingular(config, node, sankeyData, nodeScenarios, config.targetDIV)
         } else {
           console.error('nodeVisualisatieSingular not available or node is undefined')
         }

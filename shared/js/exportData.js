@@ -59,6 +59,144 @@ function exportSankeyToXLSX(options) {
 }
 
 /**
+ * Export sankey diagram data to Flux format XLSX
+ * Flux format has 4 tabs: links, nodes, carriers, settings
+ * @param {Object} options - Export options
+ * @param {string} options.scenario - Current scenario ID
+ * @param {string} options.year - Current year
+ * @param {string} options.scope - Current scope (system, electricity, etc.)
+ * @param {Array} options.links - Sankey links data
+ * @param {Array} options.nodes - Sankey nodes data
+ * @param {Array} options.legend - Legend array with carrier colors
+ * @param {string} options.unit - Current unit (PJ or TWh)
+ * @param {Object} options.settings - Sankey settings
+ */
+function exportSankeyToFlux(options) {
+  const { scenario, year, scope, links, nodes, legend, unit, settings } = options
+
+  console.log('Flux export - legend:', legend)
+  console.log('Flux export - settings:', settings)
+
+  // Create workbook
+  const wb = XLSX.utils.book_new()
+
+  // Helper function to get color for a carrier
+  const getCarrierColor = (carrierId) => {
+    if (legend && Array.isArray(legend)) {
+      const legendEntry = legend.find(entry => entry.id === carrierId)
+      if (legendEntry) {
+        console.log(`Found color for ${carrierId}: ${legendEntry.color}`)
+        return legendEntry.color
+      }
+    }
+    console.log(`No color found for ${carrierId}, using default`)
+    return '#999999' // Default gray color
+  }
+
+  // 1. LINKS TAB
+  // Format: source.id, target.id, value, carrier, type, visibility, direction
+  const linksData = links
+    .filter(link => link.value !== 0 && link.value !== '0')
+    .map(link => ({
+      'source.id': typeof link.source === 'object' ? link.source.id : link.source,
+      'target.id': typeof link.target === 'object' ? link.target.id : link.target,
+      'value': link.value,
+      'carrier': link.legend || '',
+      'type': link.type || 0,
+      'visibility': link.visibility !== undefined ? link.visibility : 1,
+      'direction': link.direction || 'r'
+    }))
+
+  // 2. NODES TAB
+  // Format: id, title, x, y, direction, labelposition
+  const nodesData = nodes.map(node => ({
+    'id': node.id,
+    'title': node.title || node.id,
+    'x': node.x || 0,
+    'y': node.y || 0,
+    'direction': node.direction || 'right',
+    'labelposition': node.labelposition || 'right'
+  }))
+
+  // 3. CARRIERS TAB
+  // Format: id, color
+  // Extract unique carriers from links and get their colors from legend
+  const carrierMap = new Map()
+  links.forEach(link => {
+    const carrier = link.legend || ''
+    if (carrier && !carrierMap.has(carrier)) {
+      const color = getCarrierColor(carrier)
+      carrierMap.set(carrier, color)
+    }
+  })
+  const carriersData = Array.from(carrierMap.entries()).map(([id, color]) => ({
+    'id': id,
+    'color': color
+  }))
+
+  // 4. SETTINGS TAB
+  // Format: setting, waarde
+  // Use fluxfileSetting_* settings from the original Excel file, with fallbacks
+
+  // Use fluxfile-specific settings from Excel if available
+  const scaleHeight = settings?.fluxfileSetting_scaleHeight ?? 0.3
+  const scaleCanvas = settings?.fluxfileSetting_scaleCanvas ?? 0.8
+  const backgroundColor = settings?.fluxfileSetting_backgroundColor ?? '#efeffa'
+  const canvasWidth = settings?.fluxfileSetting_canvasWidth ?? settings?.diagramWidth ?? 1250
+  const canvasHeight = settings?.fluxfileSetting_canvasHeight ?? settings?.diagramHeight ?? 1900
+
+  console.log('Flux export settings values:')
+  console.log('  scaleHeight:', scaleHeight, '(from fluxfileSetting_scaleHeight:', settings?.fluxfileSetting_scaleHeight, ')')
+  console.log('  scaleCanvas:', scaleCanvas, '(from fluxfileSetting_scaleCanvas:', settings?.fluxfileSetting_scaleCanvas, ')')
+  console.log('  backgroundColor:', backgroundColor, '(from fluxfileSetting_backgroundColor:', settings?.fluxfileSetting_backgroundColor, ')')
+  console.log('  canvasWidth:', canvasWidth, '(from fluxfileSetting_canvasWidth:', settings?.fluxfileSetting_canvasWidth, ')')
+  console.log('  canvasHeight:', canvasHeight, '(from fluxfileSetting_canvasHeight:', settings?.fluxfileSetting_canvasHeight, ')')
+
+  const settingsData = [
+    { 'setting': 'scaleDataValue', 'waarde': settings?.scaleDataValue ?? '' },
+    { 'setting': 'scaleHeight', 'waarde': scaleHeight },
+    { 'setting': 'scaleCanvas', 'waarde': scaleCanvas },
+    { 'setting': 'canvasWidth', 'waarde': canvasWidth },
+    { 'setting': 'canvasHeight', 'waarde': canvasHeight },
+    { 'setting': 'title', 'waarde': `${scenario} | ${year}` },
+    { 'setting': 'titleFontSize', 'waarde': 20 },
+    { 'setting': 'titlePositionX', 'waarde': settings?.titlePositionX ?? 40 },
+    { 'setting': 'titlePositionY', 'waarde': settings?.titlePositionY ?? 45 },
+    { 'setting': 'titleColor', 'waarde': '#000000' },
+    { 'setting': 'backgroundColor', 'waarde': backgroundColor },
+    { 'setting': 'globalFlowOpacity', 'waarde': 0.9 },
+    { 'setting': 'nodeWidth', 'waarde': 4 },
+    { 'setting': 'nodeColor', 'waarde': '#000000' },
+    { 'setting': 'labelFillColor', 'waarde': '#ffffff' },
+    { 'setting': 'labelTextColor', 'waarde': '#000000' },
+    { 'setting': 'showValueLabels', 'waarde': 'Yes' },
+    { 'setting': 'showLabelBackground', 'waarde': 'No' },
+    { 'setting': 'unit', 'waarde': unit || 'PJ' },
+    { 'setting': 'decimalsRoundValues', 'waarde': 1 }
+  ]
+
+  // Create worksheets
+  const wsLinks = XLSX.utils.json_to_sheet(linksData)
+  const wsNodes = XLSX.utils.json_to_sheet(nodesData)
+  const wsCarriers = XLSX.utils.json_to_sheet(carriersData)
+  const wsSettings = XLSX.utils.json_to_sheet(settingsData)
+
+  // Add worksheets to workbook
+  XLSX.utils.book_append_sheet(wb, wsLinks, 'links')
+  XLSX.utils.book_append_sheet(wb, wsNodes, 'nodes')
+  XLSX.utils.book_append_sheet(wb, wsCarriers, 'carriers')
+  XLSX.utils.book_append_sheet(wb, wsSettings, 'settings')
+
+  // Generate filename
+  const filename = `flux_${scenario}_${year}_${scope}_${new Date().toISOString().slice(0, 10)}.xlsx`
+
+  // Save file
+  XLSX.writeFile(wb, filename)
+
+  console.log(`Exported sankey data to flux format: ${filename}`)
+}
+
+/**
  * Copy sankey diagram data to clipboard as TSV
  * @param {Object} options - Export options
  * @param {string} options.scenario - Current scenario ID
@@ -348,13 +486,43 @@ function initializeSankeyExportButton() {
           return null
         }
 
+        // Get legend (carrier colors) and settings from global config
+        let legend = []
+        let configSettings = null
+
+        console.log('getSankeyDataForExport - checking for config...')
+        console.log('  window.sankeyExportConfig:', window.sankeyExportConfig)
+
+        // Use the globally stored config
+        if (window.sankeyExportConfig) {
+          const config = window.sankeyExportConfig
+          console.log('  Found config:', config ? 'yes' : 'no')
+
+          if (config.legend) {
+            legend = config.legend
+            console.log('  Found legend with', legend.length, 'entries')
+          }
+          // Get all settings from config (loaded from Excel file settings tab)
+          if (config.settings && config.settings[0]) {
+            configSettings = config.settings[0]
+            console.log('  Found settings:', Object.keys(configSettings).length, 'keys')
+          }
+        } else {
+          console.log('  window.sankeyExportConfig not found!')
+        }
+
+        // Get current unit (PJ or TWh)
+        const unit = (typeof currentUnit !== 'undefined' && currentUnit === 'TWh') ? 'TWh' : 'PJ'
+
         return {
           scenario: scenario,
           year: year,
           scope: scope,
           links: sankeyData.links || [],
           nodes: sankeyData.nodes || [],
-          settings: {}
+          legend: legend,
+          unit: unit,
+          settings: configSettings
         }
       }
 
@@ -368,7 +536,7 @@ function initializeSankeyExportButton() {
       exportButton.style.fontSize = '11px'
       exportButton.style.fontWeight = '400'
       exportButton.style.fontFamily = 'Arial, sans-serif'
-      exportButton.style.backgroundColor = '#f5f5f5'
+      exportButton.style.backgroundColor = '#FFF'
       exportButton.style.color = '#444'
       exportButton.style.border = '1px solid #ccc'
       exportButton.style.borderRadius = '4px'
@@ -383,7 +551,7 @@ function initializeSankeyExportButton() {
         this.style.backgroundColor = '#e8e8e8'
       }
       exportButton.onmouseout = function() {
-        this.style.backgroundColor = '#f5f5f5'
+        this.style.backgroundColor = '#FFF'
       }
 
       exportButton.onclick = function() {
@@ -401,7 +569,7 @@ function initializeSankeyExportButton() {
       copyButton.style.fontSize = '11px'
       copyButton.style.fontWeight = '400'
       copyButton.style.fontFamily = 'Arial, sans-serif'
-      copyButton.style.backgroundColor = '#f5f5f5'
+      copyButton.style.backgroundColor = '#FFF'
       copyButton.style.color = '#444'
       copyButton.style.border = '1px solid #ccc'
       copyButton.style.borderRadius = '4px'
@@ -416,7 +584,7 @@ function initializeSankeyExportButton() {
         this.style.backgroundColor = '#e8e8e8'
       }
       copyButton.onmouseout = function() {
-        this.style.backgroundColor = '#f5f5f5'
+        this.style.backgroundColor = '#FFF'
       }
 
       copyButton.onclick = function() {
@@ -424,8 +592,42 @@ function initializeSankeyExportButton() {
         if (data) copySankeyToClipboard(data)
       }
 
+      // Create the flux export button
+      const fluxButton = document.createElement('button')
+      fluxButton.id = 'sankeyFluxButton'
+      fluxButton.textContent = 'Export flux (xlsx)'
+      fluxButton.style.width = '110px'
+      fluxButton.style.height = '26px'
+      fluxButton.style.padding = '0'
+      fluxButton.style.fontSize = '11px'
+      fluxButton.style.fontWeight = '400'
+      fluxButton.style.fontFamily = 'Arial, sans-serif'
+      fluxButton.style.backgroundColor = '#FFF'
+      fluxButton.style.color = '#444'
+      fluxButton.style.border = '1px solid #ccc'
+      fluxButton.style.borderRadius = '4px'
+      fluxButton.style.cursor = 'pointer'
+      fluxButton.style.transition = 'background-color 0.2s'
+      fluxButton.style.textAlign = 'center'
+      fluxButton.style.lineHeight = '26px'
+      fluxButton.style.textTransform = 'none'
+      fluxButton.style.letterSpacing = 'normal'
+
+      fluxButton.onmouseover = function() {
+        this.style.backgroundColor = '#e8e8e8'
+      }
+      fluxButton.onmouseout = function() {
+        this.style.backgroundColor = '#FFF'
+      }
+
+      fluxButton.onclick = function() {
+        const data = getSankeyDataForExport()
+        if (data) exportSankeyToFlux(data)
+      }
+
       exportButtonContainer.appendChild(exportButton)
       exportButtonContainer.appendChild(copyButton)
+      exportButtonContainer.appendChild(fluxButton)
       unitSelector.appendChild(exportButtonContainer)
     }
   }, 100)
@@ -433,6 +635,7 @@ function initializeSankeyExportButton() {
 
 // Make functions globally available
 window.exportSankeyToXLSX = exportSankeyToXLSX
+window.exportSankeyToFlux = exportSankeyToFlux
 window.copySankeyToClipboard = copySankeyToClipboard
 window.exportLinegraphToXLSX = exportLinegraphToXLSX
 window.copyLinegraphToClipboard = copyLinegraphToClipboard

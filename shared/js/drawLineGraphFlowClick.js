@@ -453,9 +453,19 @@ function drawBarGraph(data, config) {
     globalVisibleScenarios = new Set(varianten)
   }
 
-  // x-scale for years
+  // Year range filter state
+  const allYears = availableYears
+
+  // Check if CBS diagram (variant4) is selected - if so, show all years
+  const isCBSDiagram = window.activeDiagramId === 'variant4'
+
+  // Default: show all years for CBS diagram, only 2025+ for other diagrams
+  let showAllYears = isCBSDiagram
+  let filteredYears = showAllYears ? allYears : allYears.filter(y => y >= 2025)
+
+  // x-scale for years (will be updated when year filter changes)
   const x = d3.scalePoint()
-    .domain(years)
+    .domain(filteredYears)
     .range([shiftX, shiftX + graphWidth])
 
   // y-scale for values
@@ -530,7 +540,7 @@ function drawBarGraph(data, config) {
       const color = scenarioColors[scenarioName]
 
       // Create data points only for years that have data (this connects points properly)
-      const scenarioData = years
+      const scenarioData = filteredYears
         .filter(year => scenarioDataForYears[year] !== undefined && scenarioDataForYears[year] !== null)
         .map((year) => ({year: year, value: getValue(scenarioDataForYears[year])}))
 
@@ -699,6 +709,65 @@ function drawBarGraph(data, config) {
     .style('pointer-events', 'none')
     .text('Deselect All')
 
+  // Year range toggle button
+  const yearToggleBtn = legend.append('g')
+    .attr('transform', 'translate(276, -32)')
+    .style('cursor', 'pointer')
+    .on('click', function() {
+      showAllYears = !showAllYears
+      filteredYears = showAllYears ? allYears : allYears.filter(y => y >= 2025)
+
+      // Update x-scale domain
+      x.domain(filteredYears)
+
+      // Update button text
+      yearToggleBtn.select('text').text(showAllYears ? 'Hide ≤2024' : 'Show All Years')
+
+      // Redraw x-axis
+      canvas.selectAll('.x-axis').remove()
+      canvas.append('g')
+        .attr('class', 'x-axis')
+        .attr('transform', `translate(0, ${graphBottom})`)
+        .call(d3.axisBottom(x).tickFormat(d3.format('d')).tickSize(0).tickPadding(10))
+        .style('font-size', '13px')
+        .select('.domain').remove()
+
+      // Redraw vertical gridlines
+      canvas.selectAll('.grid').remove()
+      const verticalGrid = canvas.append('g')
+        .attr('class', 'grid')
+        .attr('transform', `translate(0, ${graphBottom})`)
+        .call(d3.axisBottom(x)
+          .tickSize(-graphHeight)
+          .tickFormat(''))
+      verticalGrid.selectAll('line')
+        .style('stroke', '#cccccc')
+        .style('stroke-dasharray', '2 2')
+      verticalGrid.lower()
+      canvas.select('.grid-bands').lower()
+
+      updateGraph()
+    })
+
+  yearToggleBtn.append('rect')
+    .attr('width', 100)
+    .attr('height', 22)
+    .attr('rx', 3)
+    .attr('fill', '#f5f5f5')
+    .attr('stroke', '#ccc')
+    .attr('stroke-width', 1)
+    .on('mouseover', function() { d3.select(this).attr('fill', '#e8e8e8') })
+    .on('mouseout', function() { d3.select(this).attr('fill', '#f5f5f5') })
+
+  yearToggleBtn.append('text')
+    .attr('x', 50)
+    .attr('y', 15)
+    .attr('text-anchor', 'middle')
+    .style('font-size', '11px')
+    .style('fill', '#444')
+    .style('pointer-events', 'none')
+    .text(showAllYears ? 'Hide ≤2024' : 'Show All Years')
+
   function updateLegend() {
     legend.selectAll('.legend-item')
       .each(function(d) {
@@ -775,6 +844,7 @@ function drawBarGraph(data, config) {
 
   // x-axis
   canvas.append('g')
+    .attr('class', 'x-axis')
     .attr('transform', `translate(0, ${graphBottom})`)
     .call(d3.axisBottom(x).tickFormat(d3.format('d')).tickSize(0).tickPadding(10))
     .style('font-size', '13px')

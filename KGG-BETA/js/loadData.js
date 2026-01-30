@@ -138,6 +138,7 @@ function switchDiagram(diagramId) {
   }
 
   activeDiagramId = diagramId
+  window.activeDiagramId = diagramId
   const rawSankeyData = sankeyDataLibraries[diagramId]
 
   // Clear existing sankey

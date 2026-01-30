@@ -31,6 +31,9 @@ function drawBarGraph(data, config) {
   const categoryInfo = lineGraphConfig.categoryInfo || {}
 
   /* ----------  POP-UP SHELL  ---------- */
+  // Remove any existing popup first
+  d3.select('#nodeInfoPopup').remove()
+
   d3.select('#popupContainer')
     .style('background-color', 'rgba(0,0,0,0.3)')
     .style('pointer-events', 'auto')
@@ -348,9 +351,6 @@ function drawBarGraph(data, config) {
     return value
   }
 
-  const determineMaxValue = Object.entries(data)
-    .filter(([k]) => k.includes('scenario'))
-
   const co2Scale = v => data.legend !== 'co2flow' ? v : v * globalCO2flowScale
 
   const yearData = y => Object.entries(data)
@@ -468,9 +468,30 @@ function drawBarGraph(data, config) {
     .domain(filteredYears)
     .range([shiftX, shiftX + graphWidth])
 
-  // y-scale for values
+  // y-scale for values - compute max from visible scenarios only
+  // Uses displayNameToDataMap which contains only the scenarios that will actually be drawn
+  function computeMaxValue(visibleScenarios, yearsToInclude) {
+    let maxValue = 0
+    visibleScenarios.forEach(scenarioId => {
+      const scenarioYearData = displayNameToDataMap[scenarioId]
+      if (scenarioYearData) {
+        yearsToInclude.forEach(year => {
+          const value = scenarioYearData[year]
+          if (value !== undefined && value !== null) {
+            // getValue is already applied when data is stored in displayNameToDataMap
+            if (value > maxValue) {
+              maxValue = value
+            }
+          }
+        })
+      }
+    })
+    return maxValue
+  }
+
+  const maxVal = computeMaxValue(globalVisibleScenarios, filteredYears)
   const y = d3.scaleLinear()
-    .domain([0, d3.max(determineMaxValue, ([, v]) => getValue(v))])
+    .domain([0, maxVal * 1.05]) // Add 5% padding at top
     .range([graphBottom, graphTop])
 
   // line generator
@@ -519,6 +540,35 @@ function drawBarGraph(data, config) {
     canvas.selectAll('.scenario-dot').remove()
     canvas.selectAll('.hover-label').remove()
 
+    // Recalculate y-scale based on currently visible scenarios
+    const newMaxVal = computeMaxValue(globalVisibleScenarios, filteredYears)
+    y.domain([0, newMaxVal * 1.05]) // Add 5% padding at top
+
+    // Update y-axis
+    canvas.selectAll('.y-axis').remove()
+    canvas.append('g')
+      .attr('class', 'y-axis')
+      .attr('transform', `translate(${shiftX}, 0)`)
+      .call(d3.axisLeft(y).ticks(10).tickSize(0).tickPadding(10))
+      .style('font-size', '13px')
+      .select('.domain').remove()
+
+    // Update horizontal bands
+    canvas.selectAll('.grid-bands').remove()
+    const yTicks = y.ticks(10)
+    const bandGroup = canvas.append('g')
+      .attr('class', 'grid-bands')
+    bandGroup.selectAll('rect')
+      .data(d3.range(0, yTicks.length - 1, 2))
+      .enter()
+      .append('rect')
+      .attr('x', shiftX)
+      .attr('y', i => y(yTicks[i + 1]))
+      .attr('width', graphWidth)
+      .attr('height', i => y(yTicks[i]) - y(yTicks[i + 1]))
+      .style('fill', '#f0f0f0')
+    bandGroup.lower()
+
     varianten.forEach((scenarioName) => {
       if (!globalVisibleScenarios.has(scenarioName)) {
         return
@@ -540,9 +590,10 @@ function drawBarGraph(data, config) {
       const color = scenarioColors[scenarioName]
 
       // Create data points only for years that have data (this connects points properly)
+      // Note: values in displayNameToDataMap already have getValue applied, so don't apply it again
       const scenarioData = filteredYears
         .filter(year => scenarioDataForYears[year] !== undefined && scenarioDataForYears[year] !== null)
-        .map((year) => ({year: year, value: getValue(scenarioDataForYears[year])}))
+        .map((year) => ({year: year, value: scenarioDataForYears[year]}))
 
       if (scenarioData.length === 0) {
         console.log(`No valid data points for ${scenarioName}, skipping`)
@@ -852,6 +903,7 @@ function drawBarGraph(data, config) {
 
   // y-axis
   canvas.append('g')
+    .attr('class', 'y-axis')
     .attr('transform', `translate(${shiftX}, 0)`)
     .call(d3.axisLeft(y).ticks(10).tickSize(0).tickPadding(10))
     .style('font-size', '13px')
@@ -897,7 +949,22 @@ function drawBarGraph(data, config) {
     .attr('transform', `translate(${popupWidth - 180}, 60) scale(0.9)`)
     .style('cursor', 'pointer')
     .on('click', () => {
-      document.getElementById('sankeyUnitToggle').dispatchEvent(new MouseEvent('click'))
+      // Toggle the unit directly
+      if (typeof currentUnit !== 'undefined') {
+        currentUnit = (currentUnit === 'PJ') ? 'TWh' : 'PJ'
+      }
+      // Update the main sankey toggle indicator
+      d3.selectAll('#selectorStatus').transition().duration(200).attr('cx', function () {
+        return currentUnit === 'PJ' ? 63 : 87
+      })
+      // Redraw sankey with new unit
+      if (typeof tick === 'function') {
+        sankeyConfigs.forEach(element => {
+          tick({ ...config, sankeyDataID: element.sankeyDataID })
+        })
+      }
+      // Redraw popup with the new unit (popup removal is handled in drawBarGraph)
+      drawBarGraph(data, config)
     })
 
   unitToggle.append('rect')

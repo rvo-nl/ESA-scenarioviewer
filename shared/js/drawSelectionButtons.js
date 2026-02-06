@@ -222,6 +222,11 @@ function drawSelectionButtons(config) {
     if (typeof updateScenarioAvailability === 'function') {
       updateScenarioAvailability(config)
     }
+
+    // Update TVKN Analysis scenario when global scenario changes
+    if (typeof updateTVKNScenario === 'function') {
+      updateTVKNScenario()
+    }
   }
   window.setScenario = setScenario
 
@@ -281,7 +286,11 @@ function drawSelectionButtons(config) {
           return btnScenario?.color
         })
 
-        globalActiveScenario = scenario
+        globalActiveScenario.id = scenario.id
+        globalActiveScenario.title = scenario.title
+
+        // Update window reference to maintain consistency
+        window.globalActiveScenario = globalActiveScenario
 
         const yearButtonsContainer = document.getElementById('yearButtons')
         const yearButtons = yearButtonsContainer.getElementsByTagName('button')
@@ -380,7 +389,12 @@ function drawSelectionButtons(config) {
         if (button.disabled) return
 
         setButtonsInContainer(container, button)
-        globalActiveYear = year
+        globalActiveYear.id = year.id
+        globalActiveYear.title = year.title
+
+        // Update window reference to maintain consistency
+        window.globalActiveYear = globalActiveYear
+
         setScenario()
       }
 

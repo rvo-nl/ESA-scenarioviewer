@@ -1,3 +1,8 @@
+// Global function to retrieve TVKN CSV data from zip
+window.getTVKNZipData = function() {
+  return window.tvknZipData || null;
+};
+
 // Decryption utility functions
 async function base64ToArrayBuffer(base64) {
   // Convert URL-safe base64 to standard base64
@@ -75,7 +80,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds30012026kggbeta.enc.json');
+    const response = await fetch('public/ds06022026kggbeta.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -583,6 +588,17 @@ passphraseWrapper.appendChild(passphraseInput);
        if (typeof drawCapacityVisualization === 'function') {
          drawCapacityVisualization();
        }
+     }
+
+     // Store TVKN CSV data for TVKN Analysis module
+     if (csvData['tvkn_energy_flows'] || csvData['tvkn_service_demand'] || csvData['tvkn_carrier_color_mapping'] || csvData['tvkn_opties_metadata']) {
+       window.tvknZipData = {
+         tvkn_energy_flows: csvData['tvkn_energy_flows'],
+         tvkn_service_demand: csvData['tvkn_service_demand'],
+         tvkn_carrier_color_mapping: csvData['tvkn_carrier_color_mapping'],
+         tvkn_opties_metadata: csvData['tvkn_opties_metadata']
+       };
+       console.log('TVKN CSV data stored from zip file');
      }
 
      dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']

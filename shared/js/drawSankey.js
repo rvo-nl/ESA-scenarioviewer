@@ -51,6 +51,10 @@ let globalActiveScenario = {}
 let globalActiveYear = {}
 let globalActiveWACC = {}
 let globalActiveEnergyflowsSankey = {}
+
+// Expose to window for cross-module access
+window.globalActiveScenario = globalActiveScenario
+window.globalActiveYear = globalActiveYear
 let globalActiveEnergyflowsFilter
 let links = {}
 let nodes = {}

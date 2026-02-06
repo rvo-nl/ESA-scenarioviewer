@@ -36,8 +36,8 @@
 </head>
 
 <script>
-  dataSource = 'file';
-  // let dataSource = 'url'
+  // dataSource = 'file';
+  let dataSource = 'url'
 
   let projectID = 'ESA'
   let productID = 'A'
@@ -440,6 +440,17 @@
           </blockquote>
         </div>
 
+        <div class="content-fullwidth"
+          style="padding:0;background-color: #DCE6EF; margin-bottom:30px; position: relative;">
+          <div class="content-constrained" style="padding-bottom:24px;padding-top:40px;background-color: #DCE6EF; display: flex; align-items: center; justify-content: space-between;">
+            <h4 style="margin:0;">Service Demand</h4>
+            <div id="tvknTopControls" style="display: flex; align-items: center; gap: 12px;"></div>
+          </div>
+          <div id="tvknAnalysisContainer"></div>
+          <br>
+          <br>
+        </div>
+
         <!-- <div class="content-constrained"
           style="padding-bottom:20px;padding-top:40px;background-color: rgb(220, 230, 239); margin-bottom:30px;">
           <h4>NPE Cijferbasis</h4>
@@ -518,5 +529,12 @@
 <script src="../shared/js/drawWaterfall.js" charset="utf-8"></script>
 <script src="../shared/js/drawCijferBasis.js" charset="utf-8"></script>
 <script src="../shared/js/drawCapacityVisualization.js" charset="utf-8"></script>
+<script src="../shared/js/drawTVKNAnalysis.js" charset="utf-8"></script>
+<script>
+  // Initialize TVKN Analysis section (loads its own CSV data independently)
+  if (typeof window.initTVKNAnalysis === 'function') {
+    window.initTVKNAnalysis()
+  }
+</script>
 
 </html>

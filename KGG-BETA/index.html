@@ -531,11 +531,6 @@
 <script src="../shared/js/drawCijferBasis.js" charset="utf-8"></script>
 <script src="../shared/js/drawCapacityVisualization.js" charset="utf-8"></script>
 <script src="../shared/js/drawTVKNAnalysis.js" charset="utf-8"></script>
-<script>
-  // Initialize TVKN Analysis section (loads its own CSV data independently)
-  if (typeof window.initTVKNAnalysis === 'function') {
-    window.initTVKNAnalysis()
-  }
-</script>
+<!-- TVKN Analysis initialization moved to loadData.js after zip data is loaded -->
 
 </html>

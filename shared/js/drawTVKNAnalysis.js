@@ -196,14 +196,21 @@
       const zipData = window.getTVKNZipData()
       const filename = path.split('/').pop().replace('.csv', '')
       if (zipData && zipData[filename]) {
+        console.log(`TVKN: Loading ${filename} from zip data`)
         return d3.csvParse(zipData[filename])
       }
     }
 
     // Default: fetch from URL
+    console.log(`TVKN: Fetching ${path} from URL`)
     const resp = await fetch(path)
+    if (!resp.ok) {
+      throw new Error(`Failed to fetch ${path}: ${resp.status} ${resp.statusText}`)
+    }
     const text = await resp.text()
-    return d3.csvParse(text)
+    const parsed = d3.csvParse(text)
+    console.log(`TVKN: Loaded ${parsed.length} rows from ${path}`)
+    return parsed
   }
 
   function buildIndexes() {
@@ -311,6 +318,8 @@
       serviceDemandRaw = demand
       optiesMetadataRaw = metadata
 
+      console.log(`TVKN: Loaded ${energyFlowsRaw.length} energy flow rows, ${serviceDemandRaw.length} service demand rows, ${optiesMetadataRaw.length} metadata rows`)
+
       // Build carrier color mapping
       colorMap.forEach(row => {
         carrierColorMapping[row.carrier] = row.color
@@ -334,6 +343,9 @@
       // derive unique values
       allScenarios = [...new Set(serviceDemandRaw.map(r => r['Short.Name']))].sort()
       allServiceDemands = [...new Set(serviceDemandRaw.map(r => r['Service demand']))].sort()
+
+      console.log(`TVKN: Extracted ${allScenarios.length} unique scenarios:`, allScenarios.slice(0, 5))
+      console.log(`TVKN: Extracted ${allServiceDemands.length} unique service demands:`, allServiceDemands.slice(0, 5))
 
       // assign colours
       allScenarios.forEach((s, i) => {
@@ -1369,7 +1381,8 @@
 
       carriers.forEach(carrier => {
         const carrierEnergy = yearCarriers[carrier] || 0
-        obj[carrier] = demand > 0 ? carrierEnergy / demand : 0
+        // Use absolute value to handle both inputs (positive) and outputs (negative)
+        obj[carrier] = demand > 0 ? Math.abs(carrierEnergy) / demand : 0
       })
 
       return obj

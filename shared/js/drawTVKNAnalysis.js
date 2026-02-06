@@ -269,7 +269,7 @@
       return
     }
 
-    const matchingScenario = allScenarios.find(s => s === globalId || s.includes(globalId.split('_')[0]))
+    const matchingScenario = allScenarios.find(s => s && (s === globalId || s.includes(globalId.split('_')[0])))
 
     if (matchingScenario && matchingScenario !== selectedScenario) {
       selectedScenario = matchingScenario
@@ -344,7 +344,7 @@
       if (useGlobalScenario && window.globalActiveScenario && window.globalActiveScenario.id) {
         // Try to find matching scenario by ID
         const globalId = window.globalActiveScenario.id
-        const matchingScenario = allScenarios.find(s => s === globalId || s.includes(globalId.split('_')[0]))
+        const matchingScenario = allScenarios.find(s => s && (s === globalId || s.includes(globalId.split('_')[0])))
         selectedScenario = matchingScenario || allScenarios[0] || null
       } else {
         selectedScenario = allScenarios[0] || null

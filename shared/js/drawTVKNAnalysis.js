@@ -252,23 +252,6 @@
     const globalId = window.globalActiveScenario.id
     const globalYear = window.globalActiveYear?.id
     console.log(`TVKN Analysis: Syncing with global scenario ${globalId}, year ${globalYear}`)
-
-    // Check if scenario is ETM type or OPERA WLO type
-    const scenarioLower = globalId.toLowerCase()
-    const isETM = scenarioLower.includes('etm')
-    const isOperaWLO = scenarioLower.includes('opera') && scenarioLower.includes('wlo')
-
-    if (isETM || isOperaWLO) {
-      // Clear the display and show message for unsupported scenarios
-      selectedScenario = globalId
-      const chartDiv = document.getElementById('tvkn-charts')
-      if (chartDiv) {
-        chartDiv.innerHTML = '<p style="color:#888;font-size:13px;padding:16px;">Service demand data is not yet available for this scenario.</p>'
-      }
-      console.log(`TVKN Analysis: Scenario ${globalId} is not supported (ETM or OPERA WLO)`)
-      return
-    }
-
     const matchingScenario = allScenarios.find(s => s === globalId || s.includes(globalId.split('_')[0]))
 
     if (matchingScenario && matchingScenario !== selectedScenario) {
@@ -282,12 +265,6 @@
       renderCharts()
       console.log(`TVKN Analysis: Re-rendering for year ${globalYear}`)
     } else if (!matchingScenario) {
-      // No matching scenario found - clear the display
-      selectedScenario = null
-      const chartDiv = document.getElementById('tvkn-charts')
-      if (chartDiv) {
-        chartDiv.innerHTML = '<p style="color:#888;font-size:13px;padding:16px;">Service demand data is not yet available for this scenario.</p>'
-      }
       console.warn(`TVKN Analysis: No matching scenario found for ${globalId}. Available scenarios:`, allScenarios)
     }
   }
@@ -735,23 +712,6 @@
 
     const scenarioArr = [selectedScenario]
 
-    // Detect available years for this scenario
-    const availableYears = new Set()
-    serviceDemandRaw.forEach(row => {
-      if (row['Short.Name'] === selectedScenario && row['Service demand'] === selectedServiceDemand) {
-        const year = parseInt(row.jaar)
-        if (!isNaN(year)) {
-          availableYears.add(year)
-        }
-      }
-    })
-    const yearsToUse = Array.from(availableYears).sort((a, b) => a - b)
-
-    if (yearsToUse.length === 0) {
-      chartDiv.innerHTML = '<p style="color:#888;font-size:13px;padding:16px;">No data available for this service demand and scenario combination.</p>'
-      return
-    }
-
     // Get unit from first service demand row for this category
     let demandUnit = ''
     const unitCol = selectedDemandType === 'Activity' ? 'unit_activity' : 'unit_capacity'
@@ -780,7 +740,7 @@
       demandData[sc] = {}
       energyData[sc] = {}
       energyByCarrier[sc] = {}
-      yearsToUse.forEach(y => {
+      YEARS.forEach(y => {
         demandData[sc][y] = 0
         energyData[sc][y] = 0
       })
@@ -793,7 +753,7 @@
 
       // Sum up demand values across all options
       options.forEach(opt => {
-        yearsToUse.forEach(y => {
+        YEARS.forEach(y => {
           const demandVal = getServiceDemandValue(sc, selectedServiceDemand, opt, y)
           demandData[sc][y] += demandVal
         })
@@ -807,14 +767,14 @@
         const carrier = row.Carrier
         const yr = parseInt(row.Year)
         const val = parseVal(row.Value)
-        if (!yearsToUse.includes(yr)) return
+        if (!YEARS.includes(yr)) return
 
         // Skip CO2 flows - they are tracked separately
         if (carrier === 'CO2Flow' || carrier === 'CO2flow') return
 
         if (!energyByCarrier[sc][carrier]) {
           energyByCarrier[sc][carrier] = {}
-          yearsToUse.forEach(y => { energyByCarrier[sc][carrier][y] = 0 })
+          YEARS.forEach(y => { energyByCarrier[sc][carrier][y] = 0 })
         }
 
         // Only add positive values (inputs) to total energy
@@ -859,14 +819,13 @@
       demandUnit: demandUnit,
       serviceDemandName: selectedServiceDemand,
       energyData: energyData[sc],
-      tvknUnit: tvknUnit,
-      yearsToUse: yearsToUse
+      tvknUnit: tvknUnit
     })
 
     // Metadata tile under left chart
     const metadataWrapper = document.createElement('div')
     leftCol.appendChild(metadataWrapper)
-    renderMetadataTile(metadataWrapper, sc, demandUnit, yearsToUse)
+    renderMetadataTile(metadataWrapper, sc, demandUnit)
 
     // ── RIGHT COLUMN ──
     // CHART 2: Energy intensity per carrier
@@ -880,8 +839,7 @@
       demandData: demandData,
       energyByCarrier: energyByCarrier,
       energyData: energyData,
-      compact: true,
-      yearsToUse: yearsToUse
+      compact: true
     }) : null
 
     // Legend tile under right chart
@@ -890,17 +848,11 @@
       rightCol.appendChild(legendWrapper)
       renderLegendTile(legendWrapper, chartResult)
     }
-
-    // Options breakdown tile under legend (in right column)
-    const optionsWrapper = document.createElement('div')
-    rightCol.appendChild(optionsWrapper)
-    renderOptionsBreakdownTile(optionsWrapper, sc, demandUnit, selectedServiceDemand, yearsToUse)
   }
 
   // ── reusable D3 line chart renderer ────────────────────────────────────
   function renderLineChart(parentEl, opts) {
-    const { title, yLabel, scenarios, getData, skipUnit, demandData, demandUnit, serviceDemandName, energyData, tvknUnit, yearsToUse } = opts
-    const years = yearsToUse || YEARS
+    const { title, yLabel, scenarios, getData, skipUnit, demandData, demandUnit, serviceDemandName, energyData, tvknUnit } = opts
 
     // Dimensions - fixed height for consistency
     const W = 320
@@ -937,12 +889,12 @@
       .text(title)
 
     const x = d3.scalePoint()
-      .domain(years)
+      .domain(YEARS)
       .range([0, innerW])
 
     let maxVal = 0
     scenarios.forEach(sc => {
-      years.forEach(y => {
+      YEARS.forEach(y => {
         const v = getData(sc, y)
         if (v > maxVal) maxVal = v
       })
@@ -1006,7 +958,7 @@
 
     scenarios.forEach((sc, idx) => {
       const color = '#000000' // Always use black
-      const pts = years.map(yr => ({ year: yr, value: getData(sc, yr) }))
+      const pts = YEARS.map(yr => ({ year: yr, value: getData(sc, yr) }))
 
       g.append('path')
         .datum(pts)
@@ -1085,7 +1037,7 @@
       demandValuesDiv.style.cssText = 'display: flex; gap: 16px; flex-wrap: wrap;'
       demandSection.appendChild(demandValuesDiv)
 
-      years.forEach(yr => {
+      YEARS.forEach(yr => {
         const demand = demandData[yr] || 0
         const energy = energyData ? (energyData[yr] || 0) : 0
         const intensity = demand > 0 ? convertUnit(energy / demand) : 0
@@ -1479,9 +1431,7 @@
   }
 
   // ── metadata tile renderer ────────────────────────────────────────────
-  function renderMetadataTile(parentEl, scenario, demandUnit, yearsToUse) {
-    const years = yearsToUse || YEARS
-
+  function renderMetadataTile(parentEl, scenario, demandUnit) {
     const wrapper = document.createElement('div')
     wrapper.style.cssText = 'margin-bottom:0; background:#fff; border:1px solid #ddd; border-radius:10px; padding:10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);'
     parentEl.appendChild(wrapper)
@@ -1493,7 +1443,7 @@
 
     const title = document.createElement('div')
     title.style.cssText = 'font-size: 10px; font-weight: 500; color: #666; margin-bottom: 10px;'
-    // title.textContent = 'Flows'
+    title.textContent = 'Energy Flows & Options'
     wrapper.appendChild(title)
 
     // Get options for current service demand
@@ -1509,7 +1459,7 @@
     // CO2 flows are tracked separately and not included in energy totals
     const selectedYear = (typeof globalActiveYear !== 'undefined' && globalActiveYear?.id)
       ? parseInt(globalActiveYear.id)
-      : years[years.length - 1]
+      : YEARS[YEARS.length - 1]
     const flows = getEnergyFlows(options, scenario)
     let totalInput = 0
     let totalOutput = 0
@@ -1582,34 +1532,6 @@
 
     energySummary.innerHTML = summaryHTML
     wrapper.appendChild(energySummary)
-  }
-
-  // ── options breakdown tile renderer ────────────────────────────────────
-  function renderOptionsBreakdownTile(parentEl, scenario, demandUnit, serviceDemandName, yearsToUse) {
-    const years = yearsToUse || YEARS
-
-    const wrapper = document.createElement('div')
-    wrapper.style.cssText = 'margin-bottom:0; background:#fff; border:1px solid #ddd; border-radius:10px; padding:10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);'
-    parentEl.appendChild(wrapper)
-
-    const mainTitle = document.createElement('div')
-    mainTitle.style.cssText = 'font-size: 12px; font-weight: 700; color: #222; margin-bottom: 10px;'
-    mainTitle.textContent = `Options related to service demand ${serviceDemandName}`
-    wrapper.appendChild(mainTitle)
-
-    // Get options for current service demand
-    const sdMap = serviceDemandIndex[scenario]
-    if (!sdMap || !sdMap[selectedServiceDemand]) {
-      wrapper.innerHTML += '<p style="font-size: 10px; color: #888;">No data available</p>'
-      return
-    }
-
-    const options = Object.keys(sdMap[selectedServiceDemand])
-
-    const selectedYear = (typeof globalActiveYear !== 'undefined' && globalActiveYear?.id)
-      ? parseInt(globalActiveYear.id)
-      : years[years.length - 1]
-    const flows = getEnergyFlows(options, scenario)
 
     // Options metadata - show all options for selected service demand
     if (options.length > 0) {
@@ -2062,8 +1984,7 @@
 
   // ── multi-carrier chart renderer (stacked area for inputs, line for single carrier) ───
   function renderMultiCarrierChart(parentEl, opts) {
-    const { title, yLabel, scenario, carriers, demandData, energyByCarrier, energyData, yearsToUse } = opts
-    const years = yearsToUse || YEARS
+    const { title, yLabel, scenario, carriers, demandData, energyByCarrier, energyData } = opts
 
     // Separate carriers into inputs (positive) and outputs (negative)
     // Filter out carriers where all values are < 0.01 in absolute value
@@ -2073,7 +1994,7 @@
     carriers.forEach(carrier => {
       let totalValue = 0
       let maxAbsValue = 0
-      years.forEach(y => {
+      YEARS.forEach(y => {
         const demand = demandData[scenario] ? demandData[scenario][y] : 0
         if (demand > 0) {
           const energy = energyByCarrier[scenario][carrier] ? energyByCarrier[scenario][carrier][y] : 0
@@ -2143,14 +2064,14 @@
       .text(title)
 
     const x = d3.scalePoint()
-      .domain(years)
+      .domain(YEARS)
       .range([0, innerW])
 
     // Calculate max value considering stacked inputs and separate outputs
     let maxInputIntensity = 0
     let maxOutputIntensity = 0
 
-    years.forEach(y => {
+    YEARS.forEach(y => {
       const demand = demandData[scenario][y]
       if (demand === 0) return
 
@@ -2235,7 +2156,7 @@
     // If multiple input carriers: draw as stacked area chart
     if (inputCarriers.length > 1) {
       // Prepare data for stack layout
-      const stackData = years.map(yr => {
+      const stackData = YEARS.map(yr => {
         const demand = demandData[scenario][yr]
         const row = { year: yr }
         inputCarriers.forEach(carrier => {
@@ -2307,7 +2228,7 @@
       })
 
       // Add interactive circles on top of stacked areas
-      years.forEach(yr => {
+      YEARS.forEach(yr => {
         const demand = demandData[scenario][yr]
         if (demand === 0) return
 
@@ -2350,7 +2271,7 @@
       // Single input carrier: draw as area chart
       const carrier = inputCarriers[0]
       const color = colorMap[carrier]
-      const pts = years.map(yr => {
+      const pts = YEARS.map(yr => {
         const demand = demandData[scenario][yr]
         const energy = energyByCarrier[scenario][carrier] ? energyByCarrier[scenario][carrier][yr] : 0
         if (demand === 0) return { year: yr, value: 0 }
@@ -2413,7 +2334,7 @@
     // Draw output carriers as lines (thinner, dashed)
     outputCarriers.forEach((carrier) => {
       const color = colorMap[carrier]
-      const pts = years.map(yr => {
+      const pts = YEARS.map(yr => {
         const demand = demandData[scenario][yr]
         const energy = energyByCarrier[scenario][carrier] ? energyByCarrier[scenario][carrier][yr] : 0
         if (demand === 0) return { year: yr, value: 0 }
@@ -2459,7 +2380,7 @@
     })
 
     // Draw total line (thicker, black)
-    const totalPts = years.map(yr => {
+    const totalPts = YEARS.map(yr => {
       const demand = demandData[scenario][yr]
       const energy = energyData[scenario][yr]
       if (demand === 0) return { year: yr, value: 0 }

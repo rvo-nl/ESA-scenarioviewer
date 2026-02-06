@@ -599,6 +599,11 @@ passphraseWrapper.appendChild(passphraseInput);
          tvkn_opties_metadata: csvData['tvkn_opties_metadata']
        };
        console.log('TVKN CSV data stored from zip file');
+
+      // Initialize TVKN Analysis now that data is available
+      if (typeof window.initTVKNAnalysis === 'function') {
+        window.initTVKNAnalysis();
+      }
      }
 
      dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']

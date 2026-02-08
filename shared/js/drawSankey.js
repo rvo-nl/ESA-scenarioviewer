@@ -60,7 +60,6 @@ let links = {}
 let nodes = {}
 let legend = {}
 let settings = {}
-let remarks = {}
 let globalSankeyInstancesActiveDataset = {}
 let OriginalSankeyDataObject
 let currentUnit = 'PJ'
@@ -100,8 +99,8 @@ function checkScenarioHasAllZeroValues(scenarioId, config) {
         const scenarioIndex = scenarioYears[year]
 
         if (scenarioIndex !== undefined) {
-          // Build the full column name: scenario{index}_x{year}x_{scenarioId}
-          const scenarioKey = `scenario${scenarioIndex}_x${year}x_${scenarioId}`
+          // Build the full column name: new format "{year}_{scenarioId}" or old format "scenario{index}_x{year}x_{scenarioId}"
+          const scenarioKey = `${year}_${scenarioId}`
 
           // Check if any link has this scenario as a column and if any value is non-zero
           for (let i = 0; i < sankeyData.links.length; i++) {
@@ -277,18 +276,13 @@ window.checkScenarioHasAllZeroValues = checkScenarioHasAllZeroValues
 window.updateScenarioAvailability = updateScenarioAvailability
 
 // function process_xlsx_edit (config, rawSankeyData) {
-//   if (dataSource == 'url') {
+//   if (dataSource == 'development') {
 //   }
-//   else if (dataSource == 'file') {
+//   else if (dataSource == 'production') {
 //   }
 // }
 
-function processData (links, nodes, legend, settings, remarks, config) {
-  // console.log('Links:', links)
-  // console.log('Nodes:', nodes)
-  // console.log('Legend:', legend)
-  // console.log('Settings:', settings)
-  // console.log('Remarks:', remarks)
+function processData (links, nodes, legend, settings, config) {
 
   nodesGlobal = nodes
 
@@ -359,10 +353,8 @@ function processData (links, nodes, legend, settings, remarks, config) {
   }
 
   // Generate nodes object
-  console.log(remarks)
   for (let i = 0; i < nodes.length; i++) {
     sankeyDataObjects[config.sankeyDataID].nodes.push({
-      remark: remarks[i],
       title: nodes[i]['title.system'],
       'title.system': nodes[i]['title.system'],
       'title.electricity': nodes[i]['title.electricity'],
@@ -394,12 +386,16 @@ function processData (links, nodes, legend, settings, remarks, config) {
   }
 
   // Generate scenario object
+  // Detect scenario columns: new format "2030_TNOAT2024_ADAPT" or old format "scenario0_x2030x_TNOAT2024_ADAPT"
   const scenarios = []
   let counter = 0
   for (let s = 0; s < Object.keys(links[0]).length; s++) {
     const key = Object.keys(links[0])[s]
-    if (key.includes('scenario')) {
-      // Extract the title by finding the first underscore and taking everything after "scenario{N}_"
+    // New format: columns starting with a 4-digit year followed by underscore (e.g. "2030_TNOAT2024_ADAPT")
+    // Old format: columns starting with "scenario" (e.g. "scenario0_x2030x_TNOAT2024_ADAPT")
+    if (/^\d{4}_/.test(key) || key.includes('scenario')) {
+      // Extract the title: for new format "2030_SCENARIONAME" -> "2030_SCENARIONAME"
+      // For old format "scenario0_x2030x_SCENARIONAME" -> "x2030x_SCENARIONAME"
       const firstUnderscoreIndex = key.indexOf('_')
       const title = firstUnderscoreIndex !== -1 ? key.slice(firstUnderscoreIndex + 1) : key
 
@@ -413,6 +409,34 @@ function processData (links, nodes, legend, settings, remarks, config) {
 
   config.scenarios = scenarios
   console.log('Total scenarios parsed:', scenarios.length)
+
+  // Auto-build scenarioIdLookup from parsed scenario columns
+  // This allows the viewer to work without manual numeric indices in viewer-config.json
+  const autoScenarioIdLookup = {}
+  scenarios.forEach((scenario, index) => {
+    const key = scenario.id
+    // New format: "2030_TNOAT2024_ADAPT" -> year="2030", scenarioName="TNOAT2024_ADAPT"
+    const newFormatMatch = key.match(/^(\d{4})_(.+)$/)
+    // Old format: "scenario0_x2030x_TNOAT2024_ADAPT" -> year="2030", scenarioName="TNOAT2024_ADAPT"
+    const oldFormatMatch = key.match(/^scenario\d+_x(\d{4})x_(.+)$/)
+
+    const match = newFormatMatch || oldFormatMatch
+    if (match) {
+      const year = match[1]
+      const scenarioName = match[2]
+      if (!autoScenarioIdLookup[scenarioName]) {
+        autoScenarioIdLookup[scenarioName] = {}
+      }
+      autoScenarioIdLookup[scenarioName][year] = index
+    }
+  })
+
+  // Update the global scenarioIdLookup with auto-derived data
+  // This overrides whatever was in viewer-config.json, ensuring consistency with actual data
+  if (Object.keys(autoScenarioIdLookup).length > 0) {
+    scenarioIdLookup = autoScenarioIdLookup
+    console.log('Auto-built scenarioIdLookup from data columns:', Object.keys(autoScenarioIdLookup).length, 'scenarios')
+  }
 
   // Make scenarios globally accessible for diagram switching
   window.currentDiagramScenarios = scenarios
@@ -662,10 +686,6 @@ function drawSankey (sankeyDataInput, config) {
 }
 
 function tick (config) {
-  // sankeyData = {links: [],nodes: [],order: []}
-  // console.log(sankeyData)
-  // document.getElementById('remarksContainer').innerHTML = ''
-
   switch (globalActiveEnergyflowsFilter) {
     case 'system':
       d3.select('#delineator_rect_keteninvoer').transition().duration(1000).style('opacity', 0)
@@ -1007,88 +1027,7 @@ function tick (config) {
 
     // sankeyData.links = sankeyData.links.filter(item => item.hasOwnProperty('filter_heat'))
 
-    d3.selectAll('#' + config.sankeyInstanceID + '.node-remark-number').remove()
-    d3.selectAll('#' + config.sankeyInstanceID + '.node-remarks').remove()
-
-    let sankeyCanvas = d3.select('#' + config.sankeyInstanceID + '_sankeySVGPARENT').append('g')
-    for (i = 0; i < sankeyData.nodes.length; i++) {
-      // sankeyData.links[i].value = Math.round(sankeyData.links[i][config.scenarios[activeScenario].id])
-      // console.log(sankeyData.nodes[i])
-      let posx = sankeyData.nodes[i].x + 21
-      let posy = sankeyData.nodes[i].y + 15
-    /* Static remark drawing code - disabled
-    sankeyCanvas.append('path') // EDIT TIJS  - add
-      .attr('d', 'M152-160q-23 0-35-20.5t1-40.5l328-525q12-19 34-19t34 19l328 525q13 20 1 40.5T808-160H152Z')
-      .attr('class', 'node-remarks')
-      .style('pointer-events', 'all')
-      .attr('height', 20)
-      .attr('dy', sankeyData.nodes[i].y)
-      .attr('dx', sankeyData.nodes[i].x)
-      .attr('rx', 3).attr('ry', 3)
-      .attr('fill', 'black')
-      .attr('transform', 'translate(' + posx + ',' + posy + ')scale(0.040)rotate(180)')
-      .attr('remarksData', function () {
-        return JSON.stringify(sankeyData.nodes[i].remark)
-      })
-      .attr('fill', function (d) {
-        function containsAanname (inputString) {
-          // Create a new DOMParser to parse the input string as HTML
-          const parser = new DOMParser()
-          const parsedHTML = parser.parseFromString(inputString, 'text/html')
-          // Check if there are any <info> or <aanname> elements in the parsed HTML
-          const infoItems = parsedHTML.querySelectorAll('info')
-          const aannameItems = parsedHTML.querySelectorAll('aanname')
-          // Return TRUE if at least one <info> or <aanname> item is present, otherwise return FALSE
-          return aannameItems.length > 0
-        }
-
-        if (containsAanname(sankeyData.nodes[i].remark[currentScenarioID + 1])) {return '#c1121f'} else {return '#495057'} // if only 'info', then 'orange', if 'aanname', then 'red' 
-      }).attr('opacity', function (d) { // only show marker if there's info or aanname applicable. Note: used opacity instead of 'visibility' attribute, because visibility attribute is used elsewhere  
-        function containsInfoOrAanname (inputString) {
-          // Create a new DOMParser to parse the input string as HTML
-          const parser = new DOMParser()
-          const parsedHTML = parser.parseFromString(inputString, 'text/html')
-          // Check if there are any <info> or <aanname> elements in the parsed HTML
-          const infoItems = parsedHTML.querySelectorAll('info')
-          const aannameItems = parsedHTML.querySelectorAll('aanname')
-          const bronItems = parsedHTML.querySelectorAll('bron')
-          // Return TRUE if at least one <info> or <aanname> item is present, otherwise return FALSE
-          return infoItems.length > 0 || aannameItems.length > 0 || bronItems.length > 0
-        }
-
-        if (containsInfoOrAanname(sankeyData.nodes[i].remark[currentScenarioID + 1])) {return 1} else {return 0}
-      })
-
-    sankeyCanvas.append('text')
-      .attr('class', 'node-remark-number')
-      .attr('fill', '#FFF')
-      .style('font-weight', 800)
-      .style('font-size', '10px')
-      .attr('text-anchor', 'middle')
-      .attr('dx', -19)
-      .attr('dy', 18)
-      .attr('transform', 'translate(' + posx + ',' + posy + ')')
-      .style('pointer-events', 'none')
-      .attr('opacity', function (d) { // only show marker if there's info or aanname applicable. Note: used opacity instead of 'visibility' attribute, because visibility attribute is used elsewhere  
-        function containsInfoOrAanname (inputString) {
-          // Create a new DOMParser to parse the input string as HTML
-          const parser = new DOMParser()
-          const parsedHTML = parser.parseFromString(inputString, 'text/html')
-          // Check if there are any <info> or <aanname> elements in the parsed HTML
-          const infoItems = parsedHTML.querySelectorAll('info')
-          const aannameItems = parsedHTML.querySelectorAll('aanname')
-          const bronItems = parsedHTML.querySelectorAll('bron')
-          // Return TRUE if at least one <info> or <aanname> item is present, otherwise return FALSE
-          return infoItems.length > 0 || aannameItems.length > 0 || bronItems.length > 0
-        }
-
-        if (containsInfoOrAanname(sankeyData.nodes[i].remark[currentScenarioID + 1])) {return 1} else {return 0}
-      })
-      .text(function (d) {
-        // console.log(d)
-        return sankeyData.nodes[i].index + 1}) // start counting at 1 instead of zero
-    */
-    }
+    // (remarks functionality removed)
 
     updateSankey(JSON.stringify(sankeyData), config.settings[0].offsetX, config.settings[0].offsetY, config.settings[0].fontSize, config.settings[0].font, config)
     d3.selectAll('#' + config.sankeyInstanceID + ' .node-title').style('font-size', '11px')

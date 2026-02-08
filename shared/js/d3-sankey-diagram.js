@@ -20380,9 +20380,6 @@
 	  function sankeyNode (context) {
 	    var selection = context.selection ? context.selection() : context
 
-      // d3.select('#remarksContainer').html('') // EDIT TIJS - add
-
-
 	    if (selection.select('text').empty()) {
 	      selection.append('title')
         
@@ -20420,284 +20417,7 @@
             .style('pointer-events','none')
             .attr('opacity',0.8)
 
-            // selection.append('rect') // EDIT TIJS  - add
-            // .attr('class','node-backdrop-remarks')
-            // .attr('height',20)
-            // .attr('y', -11)
-            // .attr('x',15)
-            // .attr('rx',3).attr('ry',3)
-            // .attr('fill','#FFF')
-            // .attr('opacity',0.7)
-          
-            selection.append('path') // EDIT TIJS  - add
-            .attr('d','M152-160q-23 0-35-20.5t1-40.5l328-525q12-19 34-19t34 19l328 525q13 20 1 40.5T808-160H152Z')
-            .attr('class','node-remarks')
-            .style('pointer-events','all')
-            .attr('height',20)
-            .attr('y', -11)
-            .attr('x',15)
-            .attr('rx',3).attr('ry',3)
-            .attr('fill',function(d){
-
-            function containsAanname(inputString) {
-              // Create a new DOMParser to parse the input string as HTML
-              const parser = new DOMParser();
-              const parsedHTML = parser.parseFromString(inputString, 'text/html');
-              // Check if there are any <info> or <aanname> elements in the parsed HTML
-              const infoItems = parsedHTML.querySelectorAll('info');
-              const aannameItems = parsedHTML.querySelectorAll('aanname');
-              // Return TRUE if at least one <info> or <aanname> item is present, otherwise return FALSE
-              return aannameItems.length > 0;
-          }
-
-          if(containsAanname(d.remark[currentScenarioID+1])){return '#c1121f'} else {return '#495057'} // if only 'info', then 'orange', if 'aanname', then 'red' 
-        })
-            // .attr('opacity',1)
-            .attr('opacity', function(d){ // only show marker if there's info or aanname applicable. Note: used opacity instead of 'visibility' attribute, because visibility attribute is used elsewhere  
-              function containsInfoOrAanname(inputString) {
-                // Create a new DOMParser to parse the input string as HTML
-                const parser = new DOMParser();
-                const parsedHTML = parser.parseFromString(inputString, 'text/html');
-                // Check if there are any <info> or <aanname> elements in the parsed HTML
-                const infoItems = parsedHTML.querySelectorAll('info');
-                const aannameItems = parsedHTML.querySelectorAll('aanname');
-                const bronItems = parsedHTML.querySelectorAll('bron');
-                // Return TRUE if at least one <info> or <aanname> item is present, otherwise return FALSE
-                return infoItems.length > 0 || aannameItems.length > 0 || bronItems.length > 0 ;
-            }
-
-            if(containsInfoOrAanname(d.remark[currentScenarioID+1])){return 1} else {return 0}
-            })
-            // .on('click', function () {
-            //   const popup = document.createElement('div');
-            //   console.log('click');
-            //   popup.id = 'popup';
-              
-            //   // Dim the background
-            //   d3.select('#popupContainer').style('background-color', 'rgba(0,0,0,0.3)');
-            //   document.body.style.overflow = 'hidden';
-              
-            //   // Log the current scenario ID (assuming it's defined in your scope)
-            //   console.log('currentScenarioID: ' + currentScenarioID);
             
-            //   // Parse remarksData for the current scenario
-            //   const remarksData = JSON.parse(d3.select(this).attr('remarksData'))[currentScenarioID + 1];
-            
-            //   // Create a bullet list container
-            //   const listContainer = document.createElement('ul');
-              
-            //   // Optional: Add some basic styling to the list
-            //   listContainer.style.listStyleType = 'none'; // Remove default bullets
-            //   listContainer.style.padding = '0';
-            //   listContainer.style.margin = '0';
-            //   listContainer.style.rowGap = '10px'; // Add spacing between items
-            //   listContainer.style.width = '100%'; // Ensure it takes full width
-            
-            //   // ─────────────────────────────────────────────────────────────────────────────
-            //   // 1. Helper function to create a separate “logo” (Column 1)
-            //   //    Using the provided path data.
-            //   // ─────────────────────────────────────────────────────────────────────────────
-            //   function createLogo() {
-            //     const logo = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            //     logo.setAttribute('width', '60');
-            //     logo.setAttribute('height', '60');
-            //     // Adjust viewBox to fit the provided path
-            //     logo.setAttribute('viewBox', '0 -960 960 960'); // You might need to adjust this based on your path's coordinates
-                
-            //     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            //     path.setAttribute('d', 'M152-160q-23 0-35-20.5t1-40.5l328-525q12-19 34-19t34 19l328 525q13 20 1 40.5T808-160H152Z');
-            //     path.setAttribute('fill', '#2ecc71'); // You can change the fill color as needed
-                
-            
-            //     logo.appendChild(path);
-            //     return logo;
-            //   }
-            
-            //   // ─────────────────────────────────────────────────────────────────────────────
-            //   // 2. Helper function to create icons (Column 2) based on "type"
-            //   // ─────────────────────────────────────────────────────────────────────────────
-            //   function createIcon(type) {
-            //     const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            //     icon.setAttribute('width', '5');
-            //     icon.setAttribute('height', '5');
-            //     icon.setAttribute('viewBox', '0 -960 960 960');
-            //     // Remove or adjust the transform if not needed
-            //     // icon.setAttribute('transform', 'scale(1.5)');
-                
-            //     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                
-            //     if (type === 'aanname') {
-            //       // Path for the warning icon
-            //       path.setAttribute('d', 'M109-120q-11 0-20-5.5T75-140q-5-9-5.5-19.5T75-180l370-640q6-10 15.5-15t19.5-5q10 0 19.5 5t15.5 15l370 640q6 10 5.5 20.5T885-140q-5 9-14 14.5t-20 5.5H109Zm371-120q17 0 28.5-11.5T520-280q0-17-11.5-28.5T480-320q-17 0-28.5 11.5T440-280q0 17 11.5 28.5T480-240Zm0-120q17 0 28.5-11.5T520-400v-120q0-17-11.5-28.5T480-560q-17 0-28.5 11.5T440-520v120q0 17 11.5 28.5T480-360Z');
-            //       // path.setAttribute('fill', '#c1121f');
-            //       path.setAttribute('fill', 'none');
-            //     } else if (type === 'info') {
-            //       // Path for a gray "info" icon
-            //       path.setAttribute('d', 'M480-280q17 0 28.5-11.5T520-320v-160q0-17-11.5-28.5T480-520q-17 0-28.5 11.5T440-480v160q0 17 11.5 28.5T480-280Zm0-320q17 0 28.5-11.5T520-640q0-17-11.5-28.5T480-680q-17 0-28.5 11.5T440-640q0 17 11.5 28.5T480-600Zm0 520q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z');
-            //       // path.setAttribute('fill', '#495057');
-            //       path.setAttribute('fill', 'none');
-            //     } else if (type === 'bron') {
-            //       // Path for a blue icon
-            //       path.setAttribute('d', 'M480-280q17 0 28.5-11.5T520-320v-160q0-17-11.5-28.5T480-520q-17 0-28.5 11.5T440-480v160q0 17 11.5 28.5T480-280Zm0-320q17 0 28.5-11.5T520-640q0-17-11.5-28.5T480-680q-17 0-28.5 11.5T440-640q0 17 11.5 28.5T480-600Zm0 520q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z');
-            //       // path.setAttribute('fill', '#0096c7');
-            //       path.setAttribute('fill', 'none');
-            //     }
-            
-            //     icon.appendChild(path);
-            //     return icon;
-            //   }
-            
-            //   // ─────────────────────────────────────────────────────────────────────────────
-            //   // 3. Helper function to add list items (3-column Grid)
-            //   //    Column 1 = Logo, Column 2 = Icon, Column 3 = Text
-            //   // ─────────────────────────────────────────────────────────────────────────────
-            //   function addListItem(type, htmlContent) {
-            //     const listItem = document.createElement('li');
-            
-            //     // Use CSS Grid with 3 columns
-            //     listItem.style.display = 'grid';
-            //     listItem.style.gridTemplateColumns = '60px 30px 1fr'; // adjust widths as needed
-            //     listItem.style.columnGap = '8px';
-            //     listItem.style.alignItems = 'flex-start';
-            //     listItem.style.width = '100%'; // Ensure full width
-            
-            //     // Column 1: Logo
-            //     const logo = createLogo();
-            
-            //     // Column 2: Icon (based on "type")
-            //     const icon = createIcon(type);
-            
-            //     // Column 3: Text content
-            //     const text = document.createElement('span');
-            //     text.innerHTML = htmlContent;  // Use innerHTML to support HTML like <strong>
-            
-            //     // Optional styling based on type
-            //     if (type === 'title') {
-            //       text.style.fontSize = '20px';
-            //       text.style.fontWeight = 'bold'; // Example: Make titles bold
-            //     } else if (type === 'value') {
-            //       text.style.fontSize = '18px';
-            //     } else {
-            //       text.style.fontSize = '12px'; // Default font size for other types
-            //     }
-            
-            //     // Append columns to the list item
-            //     listItem.appendChild(logo);
-            //     listItem.appendChild(icon);
-            //     listItem.appendChild(text);
-            
-            //     // Finally, append the item to our <ul>
-            //     listContainer.appendChild(listItem);
-            //   }
-            
-            //   // Parse the remarksData content as a string of HTML
-            //   const parser = new DOMParser();
-            //   const parsedHTML = parser.parseFromString(remarksData, 'text/html');
-            
-            //   // Process <info>, <bron>, <aanname> elements
-            //   const infoItems = parsedHTML.querySelectorAll('info');
-            //   const bronItems = parsedHTML.querySelectorAll('bron');
-            //   const aannameItems = parsedHTML.querySelectorAll('aanname');
-            
-            //   // Add each <info> item
-            //   infoItems.forEach(info => {
-            //     addListItem('info', info.innerHTML);
-            //   });
-            
-            //   // Add each <bron> item
-            //   bronItems.forEach(bron => {
-            //     addListItem('bron', bron.innerHTML);
-            //   });
-            
-            //   // Add each <aanname> item
-            //   aannameItems.forEach(aanname => {
-            //     addListItem('aanname', aanname.innerHTML);
-            //   });
-            
-            //   // Create close button
-            //   const closeButton = document.createElement('button');
-            //   closeButton.id = 'closeButton';
-            //   closeButton.textContent = 'Sluit';
-              
-            //   // Optional: Style the close button
-            //   closeButton.style.marginTop = '20px';
-            //   closeButton.style.padding = '10px 20px';
-            //   closeButton.style.backgroundColor = '#f44336';
-            //   closeButton.style.color = '#fff';
-            //   closeButton.style.border = 'none';
-            //   closeButton.style.borderRadius = '4px';
-            //   closeButton.style.cursor = 'pointer';
-              
-            //   closeButton.onclick = function () {
-            //     d3.select('#popupContainer')
-            //       .style('background-color', 'rgba(0,0,0,0)')
-            //       .style('pointer-events', 'none');
-            //     popup.remove();
-            //     document.body.style.overflow = 'auto';
-            //   };
-            
-            //   // Append listContainer + closeButton to the popup
-            //   popup.appendChild(listContainer);
-            //   popup.appendChild(closeButton);
-            
-            //   // Optionally, add some styling to the popup
-            //   popup.style.position = 'fixed';
-            //   popup.style.top = '50%';
-            //   popup.style.left = '50%';
-            //   popup.style.transform = 'translate(-50%, -50%)';
-            //   popup.style.backgroundColor = '#fff';
-            //   popup.style.padding = '20px';
-            //   popup.style.borderRadius = '8px';
-            //   popup.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-            //   popup.style.zIndex = '1001'; // Ensure it's above the dimmed background
-            
-            //   // Finally, insert the popup into #popupContainer
-            //   const popupContainer = document.getElementById('popupContainer');
-            //   popupContainer.appendChild(popup);
-            
-            //   console.log('ENTER');
-            
-            //   // If you have an observer that prevents scrolling, ensure it's defined
-            //   // Example:
-            //   /*
-            //   const observer = new MutationObserver(() => {
-            //     if (document.body.style.overflow !== 'hidden') {
-            //       document.body.style.setProperty('overflow', 'hidden', 'important');
-            //     }
-            //   });
-            //   observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
-            //   */
-            // });
-      
-
-
-            selection.append('text')
-            .attr('class', 'node-remark-number')
-            .attr('dy', 6)
-            .attr('fill','#FFF')
-            .style('font-weight',800)
-            .style('font-size','10px')
-            .attr('text-anchor', 'middle')
-            .attr('dx',22)
-            .style('pointer-events','none')
-            .attr('opacity', function(d){ // only show marker if there's info or aanname applicable. Note: used opacity instead of 'visibility' attribute, because visibility attribute is used elsewhere  
-              function containsInfoOrAanname(inputString) {
-                // Create a new DOMParser to parse the input string as HTML
-                const parser = new DOMParser();
-                const parsedHTML = parser.parseFromString(inputString, 'text/html');
-                // Check if there are any <info> or <aanname> elements in the parsed HTML
-                const infoItems = parsedHTML.querySelectorAll('info');
-                const aannameItems = parsedHTML.querySelectorAll('aanname');
-                const bronItems = parsedHTML.querySelectorAll('bron');
-                // Return TRUE if at least one <info> or <aanname> item is present, otherwise return FALSE
-                return infoItems.length > 0 || aannameItems.length > 0 || bronItems.length > 0;
-            }
-
-            if(containsInfoOrAanname(d.remark[currentScenarioID+1])){return 1} else {return 0}
-            })
-            
-          
-
             selection.append('text')
             .attr('class', 'node-value')
             .attr('dy', 3)
@@ -20737,9 +20457,6 @@
 	    var value = selection.select('.node-value')
       var backdropTitle = selection.select('.node-backdrop-title') // EDIT TIJS add
       var backdropValue = selection.select('.node-backdrop-value') // EDIT TIJS add
-      var Remarks = selection.select('.node-remarks') // EDIT TIJS add
-      var backdropRemarks = selection.select('.node-backdrop-remarks') // EDIT TIJS add
-      var RemarksNumber = selection.select('.node-remark-number') // EDIT TIJS add
 	    var text = selection.select('.node-title')
 	    var line = selection.select('line')
 	    var body = selection.select('.node-body')
@@ -20855,64 +20572,6 @@
         })
         
 
-      // backdropRemarks //EDIT TIJS add
-      //     .attr('width', function (d) {
-      //       console.log(d)
-      //       return 20
-      //       // if (currentUnit == 'PJ'){return getTextWidth(d.value + ' PJ', '10px', 'Roboto')+10}
-      //       // else return getTextWidth(d.value + ' TWh', '11px', 'Roboto')+10
-      //     }) // EDIT TIJS add TODO: make font-family dynamic
-      //     .style('visibility', function (d) { if (d.value > 0) {return 'visible'} else return 'hidden'})
-        
-
-      Remarks //EDIT TIJS add
-      .style('display',function(d){if(d.value == 0){return 'none'} else return 'inherit'}) // ADD TIJS 2025 // do not compute if zero or unused
-      .attr('width', function (d) {
-        return 20
-        // if (currentUnit == 'PJ'){return getTextWidth(d.value + ' PJ', '10px', 'Roboto')+10}
-        // else return getTextWidth(d.value + ' TWh', '11px', 'Roboto')+10
-
-      }) // EDIT TIJS add TODO: make font-family dynamic
-      .style('visibility', function (d) { if (d.value > 0) {return 'visible'} else return 'hidden'})
-        .attr('remarksData',function(d){
-          return JSON.stringify(d.remark)
-        })
-        .attr('titleData',function(d){
-          return JSON.stringify(d.title)
-        })
-        .attr('valueData',function(d){
-          return JSON.stringify(d.value)
-        })
-      
-
-        RemarksNumber //EDIT TIJS add
-        .style('display',function(d){if(d.value == 0){return 'none'} else return 'inherit'}) // ADD TIJS 2025 // do not compute if zero or unused
-        // .attr('width', function (d) {
-        //   if (currentUnit == 'PJ'){return getTextWidth(d.value + ' PJ', '10px', 'Roboto')+10}
-        //   else return getTextWidth(d.value + ' TWh', '11px', 'Roboto')+10
-        // }) // EDIT TIJS add TODO: make font-family dynamic
-        .style('visibility', function (d) { if (d.value > 0) {return 'visible'} else return 'hidden'})
-        .text(function(d){
-          // console.log(d)
-
-          // add data to printable remarks list on bottom of visual
-          // console.log(d.remark[currentScenarioID])
-          // console.log(currentScenarioID)
-          // addToRemarksContainer(d.remark[currentScenarioID+1], d.index+1) // start counting at 1 instead of zero
-          return d.index+1})// start counting at 1 instead of zero
-      
-      
-      //   function getTextWidth (text, fontSize, fontFamily) { // EDIT TIJS add function
-      //   const span = document.createElement('span')
-      //   span.style.fontSize = fontSize
-      //   span.style.fontFamily = fontFamily
-      //   span.textContent = text
-      //   document.body.appendChild(span)
-      //   const width = span.offsetWidth
-      //   document.body.removeChild(span)
-      //   return width
-      // }
-
       function getTextWidth(text, fontSize, fontFamily, fontWeight = 'normal') {
         // Create a temporary <span> element
         const span = document.createElement('span');
@@ -20952,9 +20611,6 @@
 	      body = body.transition(context)
         backdropValue = backdropValue.transition(context) 
         backdropTitle = backdropTitle.transition(context) // EDIT TIJS add
-        // backdropRemarks = backdropRemarks.transition(context) // EDIT TIJS add
-        Remarks = Remarks.transition(context) // EDIT TIJS add
-        RemarksNumber = RemarksNumber.transition(context) // EDIT TIJS add
 	      clickTarget = clickTarget.transition(context)
 	    }
 
@@ -21028,45 +20684,6 @@
 	      })
 
        
-        // backdropRemarks
-        // .attr('x', function(d){return getTextWidth(d.title + d.value, '11px', 'Roboto')+19+18+25}) // EDIT TIJS FONT
-        // .attr('transform', function (d) { // EDIT TIJS ADD
-        //   // let shiftX = getTextWidth(d.title + d.value, '11px', 'Roboto')+64
-	      //   var dx = d.x1 - d.x0 
-	      //   var dy = d.y1 - d.y0
-	      //   // var theta = dx > dy ? 0 : -90
-	      //    return 'translate(' + (dx / 2) + ',' + (dy / 2) + ')'
-	      // }).style('display', function (d) {
-	      //   return (d.y0 === d.y1 || !nodeVisible(d)) ? 'none' : 'inline'
-	      // })
-
-
-        Remarks
-        .attr('x', function(d){return getTextWidth(d.title + d.value, '11px', 'Roboto')+67}) // EDIT TIJS FONT
-        .attr('transform', function (d) { // EDIT TIJS ADD
-          let shiftX = getTextWidth(d.title + d.value, '11px', 'Roboto')+63
-	        var dx = d.x1 - d.x0 
-	        var dy = d.y1 - d.y0
-	        // var theta = dx > dy ? 0 : -90
-	        // return 'translate(' + (dx / 2+shiftX) + ',' + (dy / 2+8) + ')scale(0.019)'
-           return 'translate(' + (21) + ',' + (-35) + ')scale(0.040)rotate(180)'
-	      }).style('display', function (d) {
-	        return (d.y0 === d.y1 || !nodeVisible(d)) ? 'none' : 'inline'
-	      })
-
-        RemarksNumber
-        .attr('transform', function (d) { // EDIT TIJS ADD
-          let shiftX = -250
-	        var dx = d.x1 - d.x0 
-	        var dy = d.y1 - d.y0
-	        // var theta = dx > dy ? 0 : -90
-	        return 'translate(' + (dx-21) + ',' + (-23) + ')'
-          //  return 'translate(' + (-13+35-7) + ',' + (-5-20) + ')'
-	      }).style('display', function (d) {
-	        return (d.y0 === d.y1 || !nodeVisible(d)) ? 'none' : 'inline'
-	      })
-
-
 	    function textTransform (d) {
 	      var layout = nodeLayout.get(this)
 	      var y = layout.titleAbove ? -10 : (d.y1 - d.y0) / 2

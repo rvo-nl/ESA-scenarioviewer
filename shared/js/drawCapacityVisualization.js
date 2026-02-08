@@ -118,7 +118,7 @@ function populateMappingContainers() {
 
 // Initialize config on page load
 setTimeout(() => {
-  if (typeof dataSource === 'undefined' || dataSource === 'url') {
+  if (typeof dataSource === 'undefined' || dataSource === 'development') {
     console.log('Loading category config from URL');
     loadCategoryConfig();
   }
@@ -175,9 +175,9 @@ async function loadCapacityCSVFiles() {
   }
 }
 
-// Auto-load CSV files when the script loads (only in URL mode)
+// Auto-load CSV files when the script loads (only in development mode)
 setTimeout(() => {
-  if (typeof dataSource === 'undefined' || dataSource === 'url') {
+  if (typeof dataSource === 'undefined' || dataSource === 'development') {
     loadCapacityCSVFiles();
   }
 }, 500);
@@ -246,7 +246,7 @@ function parseCapacityCSV(csvText) {
     data[techKey] = {};
 
     for (let j = 1; j < parts.length; j++) {
-      const scenarioId = `scenario${j-1}`;
+      const scenarioId = metadata.id[j] || `scenario${j-1}`;
       let valueStr = parts[j];
 
       valueStr = valueStr.replace(/"""/g, '').replace(/"/g, '').replace(/{/g, '').replace(/}/g, '');
@@ -373,7 +373,9 @@ function drawCapacityVisualization() {
 function createCapacityBarCharts() {
   const container = d3.select('#capacityVisualizationContainer');
 
-  const currentScenarioIdString = `scenario${typeof currentScenarioID !== 'undefined' ? currentScenarioID : 0}`;
+  const currentYear = typeof globalActiveYear !== 'undefined' ? globalActiveYear.id : '2030';
+  const currentScenarioName = typeof globalActiveScenario !== 'undefined' ? globalActiveScenario.id : 'TNOAT2024_ADAPT';
+  const currentScenarioIdString = `${currentYear}_${currentScenarioName}`;
 
   let globalMaxCapacity = 0;
   let allBarData = [];
@@ -649,10 +651,40 @@ function createCombinedBarChart(allBarData, groupInfo, globalMaxCapacity, contai
 
   xAxis.selectAll('text')
     .style('text-anchor', 'end')
-    .attr('dx', '-.8em')
-    .attr('dy', '1.5em')
+    .attr('dx', '-1.5em')
+    .attr('dy', '2.8em')
     .attr('transform', 'rotate(-45)')
     .style('font-size', '9px');
+
+  // Add footnote circles for categories with footnotes
+  xAxis.selectAll('.footnote-circle')
+    .data(allBarData.filter((d, i) => footnoteMap.has(d.category)))
+    .enter()
+    .append('g')
+    .attr('class', 'footnote-circle')
+    .attr('transform', (d, i) => {
+      const barIndex = allBarData.findIndex(item => item.category === d.category);
+      return `translate(${x(barIndex) + x.bandwidth() / 2}, 18)`;
+    })
+    .each(function(d) {
+      const group = d3.select(this);
+      const footnoteIndex = footnoteMap.get(d.category);
+
+      group.append('circle')
+        .attr('r', 8)
+        .attr('fill', '#FBC02D')
+        .attr('stroke', 'white')
+        .attr('stroke-width', 1);
+
+      group.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', '0.35em')
+        .style('font-size', '10px')
+        .style('font-weight', 'bold')
+        .style('fill', 'white')
+        .style('pointer-events', 'none')
+        .text(footnoteIndex);
+    });
 
   // Y-axis
   svg.append('g')
@@ -726,23 +758,52 @@ function createCombinedBarChart(allBarData, groupInfo, globalMaxCapacity, contai
       .text(`${capacityText} | ${volumeText} | ${Math.round(weightedAvgCapacityFactor)}%`);
   });
 
-  // Footnotes
+  // Footnotes (collapsible, collapsed by default)
   if (footnotes.length > 0) {
-    const footnotesDiv = chartDiv.append('div')
-      .attr('class', 'footnotes-container')
+    const footnotesWrapper = chartDiv.append('div')
       .style('margin-top', '20px')
-      .style('padding-top', '15px')
       .style('border-top', '1px solid #ddd')
+      .style('padding-top', '10px');
+
+    const toggleRow = footnotesWrapper.append('div')
+      .style('display', 'flex')
+      .style('align-items', 'center')
+      .style('gap', '8px')
+      .style('cursor', 'pointer')
+      .style('user-select', 'none')
+      .style('font-size', '12px')
+      .style('color', '#555');
+
+    const toggleIcon = toggleRow.append('span')
+      .style('font-size', '10px')
+      .style('transition', 'transform 0.2s ease')
+      .style('display', 'inline-block')
+      .text('▶');
+
+    toggleRow.append('span')
+      .style('font-weight', 'bold')
+      .text('Notes and issues');
+
+    toggleRow.append('span')
+      .style('color', '#999')
+      .style('font-size', '11px')
+      .text(`(${footnotes.length})`);
+
+    const footnotesContent = footnotesWrapper.append('div')
+      .attr('class', 'footnotes-container')
+      .style('display', 'none')
+      .style('margin-top', '10px')
       .style('font-size', '11px')
       .style('color', '#666');
 
-    footnotesDiv.append('div')
-      .style('font-weight', 'bold')
-      .style('margin-bottom', '8px')
-      .text('Notes and issues:');
+    toggleRow.on('click', function() {
+      const isVisible = footnotesContent.style('display') !== 'none';
+      footnotesContent.style('display', isVisible ? 'none' : 'block');
+      toggleIcon.style('transform', isVisible ? 'rotate(0deg)' : 'rotate(90deg)');
+    });
 
     footnotes.forEach(fn => {
-      const footnoteItem = footnotesDiv.append('div')
+      const footnoteItem = footnotesContent.append('div')
         .style('margin-bottom', '8px')
         .style('display', 'flex')
         .style('align-items', 'center')

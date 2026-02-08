@@ -1,12 +1,7 @@
-// let currentScenario = 'nat'
-// let currentSector = 'all'
-// let currentRoutekaart = 'w'
-// let currentYMax = [1400, 100, 1400]
-// let currentTitlesArray = ['Directe elektrificatie (COP~1)', 'Directe elektrificatie (COP>1)', 'Waterstofnet', 'Warmtenet', 'Biobrandstoffen', 'Omgevings-, zonne- en aardwarmte', 'Aardgas, olie, kolen', 'CCS']
-// let currentColorsArray = ['#E99172', '#F8D377', '#3F88AE', '#DD5471', '#62D3A4', '#aaaaaa', '#666666', '#444']
-// let sankeyModeActive = false
-// let currentZichtjaar = '2030'
-// let currentUnit = 'PJ'
+// Global function to retrieve TVKN CSV data from zip
+window.getTVKNZipData = function() {
+  return window.tvknZipData || null;
+};
 
 // Decryption utility functions
 async function base64ToArrayBuffer(base64) {
@@ -85,7 +80,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds18122025nbnl.enc.json');
+    const response = await fetch('public/ds09022026nbnl.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -133,154 +128,205 @@ let XLSXurl = 'private/data_sankeydiagram_december2025.xlsm'
 
 let sankeyConfigs = []
 
+// Storage for multiple sankey diagram data
+let sankeyDataLibraries = {}
+let activeDiagramId = null
+let diagramConfigs = []
+
+// Function to switch between sankey diagrams
+function switchDiagram(diagramId) {
+  console.log('Switching to diagram:', diagramId)
+
+  if (!sankeyDataLibraries[diagramId]) {
+    console.error('Diagram data not found for:', diagramId)
+    return
+  }
+
+  activeDiagramId = diagramId
+  window.activeDiagramId = diagramId
+  const rawSankeyData = sankeyDataLibraries[diagramId]
+
+  // Clear existing sankey
+  d3.select('#energyflows_sankeySVGPARENT').remove()
+  d3.select('#energyflows_backdropSVG').remove()
+
+  // Process the new diagram data (keep selection buttons, don't reset them)
+  sankeyConfigs.forEach(element => {
+    let configString = JSON.stringify(element)
+    let config = JSON.parse(configString)
+
+    var links = rawSankeyData.links[config.sankeyDataID]
+    var nodes = rawSankeyData.nodes[config.sankeyDataID]
+    var legend = rawSankeyData.legend[config.sankeyDataID]
+    var settings = rawSankeyData.settings[config.sankeyDataID]
+    var rectangles = rawSankeyData.rectangles ? rawSankeyData.rectangles[config.sankeyDataID] : null
+
+    nodesGlobal = nodes
+
+    settings = transformDataGlobal(settings)
+
+    // Update width/height from settings
+    element.width = settings[0].diagramWidth || 1600
+    element.height = settings[0].diagramHeight || 1200
+
+    // Import rectangles if available, otherwise clear existing rectangles
+    if (rectangles && rectangles.length > 0 && typeof importRectanglesFromExcel === 'function') {
+      importRectanglesFromExcel(rectangles)
+    } else {
+      window.backgroundRectangles = []
+    }
+
+    processData(links, nodes, legend, settings, config)
+  })
+
+  // Update diagram button highlighting
+  updateDiagramButtonHighlight(diagramId)
+
+  // Re-apply the current scenario/year selection to the new diagram
+  if (typeof setScenario === 'function') {
+    setTimeout(() => {
+      setScenario()
+    }, 100)
+  }
+}
+
+// Helper function to update diagram button highlight
+function updateDiagramButtonHighlight(activeDiagramId) {
+  const buttons = document.querySelectorAll('.diagram-selection-button')
+  buttons.forEach(btn => {
+    if (btn.dataset.diagramId === activeDiagramId) {
+      btn.classList.add('highlighted')
+    } else {
+      btn.classList.remove('highlighted')
+    }
+  })
+}
+
+// Global transform function for use in switchDiagram
+function transformDataGlobal(inputArray) {
+  const output = {}
+  inputArray.forEach(item => {
+    const key = item.setting
+    const value = item.waarde
+    output[key] = value
+  })
+  return [output]
+}
+
+// Make switchDiagram globally available
+window.switchDiagram = switchDiagram
+
 function initTool () {
-  sankeyConfigs.push({ sankeyDataID: 'system', sankeyInstanceID: 'energyflows', targetDIV: 'SVGContainer_energyflows', width: 1600, height: 1200})
-  // sankeyConfigs.push({ sankeyDataID: 'electricity', sankeyInstanceID: 'energyflows', targetDIV: 'SVGContainer_energyflows', width: 1600, height: 1050})
-  // sankeyConfigs.push({ sankeyDataID: 'hydrogen', sankeyInstanceID: 'energyflows', targetDIV: 'SVGContainer_energyflows', width: 1600, height: 1050})
-  // sankeyConfigs.push({ sankeyDataID: 'heat', sankeyInstanceID: 'energyflows', targetDIV: 'SVGContainer_energyflows', width: 1600, height: 1050})
-  // sankeyConfigs.push({ sankeyDataID: 'carbon', sankeyInstanceID: 'energyflows', targetDIV: 'SVGContainer_energyflows', width: 1600, height: 1050})
+  sankeyConfigs.push({ sankeyDataID: 'system', sankeyInstanceID: 'energyflows', targetDIV: 'SVGContainer_energyflows', width: null, height: null})
+  // sankeyConfigs.push({ sankeyDataID: 'electricity', sankeyInstanceID: 'energyflows', targetDIV: 'SVGContainer_energyflows', width: null, height: null})
+  // sankeyConfigs.push({ sankeyDataID: 'hydrogen', sankeyInstanceID: 'energyflows', targetDIV: 'SVGContainer_energyflows', width: null, height: null})
+  // sankeyConfigs.push({ sankeyDataID: 'heat', sankeyInstanceID: 'energyflows', targetDIV: 'SVGContainer_energyflows', width: null, height: null})
+  // sankeyConfigs.push({ sankeyDataID: 'carbon', sankeyInstanceID: 'energyflows', targetDIV: 'SVGContainer_energyflows', width: null, height: null})
 
   // console.log(sankeyConfigs)
 
-  if (dataSource == 'url') {
-    readExcelFile(XLSXurl, (rawSankeyData) => {
+  if (dataSource == 'development') {
+    // Check if viewerConfig has multiple sankey diagrams configured
+    if (viewerConfig && viewerConfig.sankeyDiagrams && viewerConfig.sankeyDiagrams.length > 0) {
+      diagramConfigs = viewerConfig.sankeyDiagrams
+      console.log('Loading multiple sankey diagrams:', diagramConfigs)
 
-      d3.select('#loadFileDialog').style('visibility', 'hidden').style('pointer-events', 'none')
-      d3.selectAll('.buttonTitles').style('visibility', 'visible')
-
-      // console.log(rawSankeyData)
-
-      sankeyConfigs.forEach(element => {
-
-        let configString = JSON.stringify(element) // stringify in order to prevent code further down the line to transform sankeyConfigs object
-        let config = JSON.parse(configString)
-
-        var links = rawSankeyData.links[config.sankeyDataID]
-        var nodes = rawSankeyData.nodes[config.sankeyDataID]
-        var legend = rawSankeyData.legend[config.sankeyDataID]
-        var settings = rawSankeyData.settings[config.sankeyDataID]
-        var remarks = rawSankeyData.remarks[config.sankeyDataID]
-
-
-        // console.log('Links:', links)
-        // console.log('Nodes:', nodes)
-        // console.log('Legend:', legend)
-        // console.log('Settings:', settings)
-        // console.log('Remarks:', remarks)
-
-        nodesGlobal = nodes
-
-        settings = transformData(settings)
-
-        if (settings[0].projectID != projectID || settings[0].versionID != versionID) {
-          return
-          console.log('ERROR')
-        }
-
-        function transformData (inputArray) { // this function converts the new input format for the settings tab to the old input format the rest of the code expects
-          const output = {}
-
-          inputArray.forEach(item => {
-            const key = item.setting; // Get the key from "horizontalMargin"
-            const value = item.waarde; // Get the value from "0"
-            output[key] = value // Assign to the output object
+      // Load all diagram files
+      let loadPromises = diagramConfigs.map(diagramConfig => {
+        return new Promise((resolve) => {
+          const fileUrl = 'private/' + diagramConfig.file
+          console.log('Loading diagram file:', fileUrl)
+          readExcelFile(fileUrl, (rawSankeyData) => {
+            sankeyDataLibraries[diagramConfig.id] = rawSankeyData
+            console.log('Loaded diagram:', diagramConfig.id)
+            resolve()
           })
-          // Wrap the resulting object in an array to match the desired structure
-          return [output]
-        }
-
-        processData(links, nodes, legend, settings, remarks, config)
+        })
       })
-    })
-  } else if (dataSource == 'file') {
+
+      // Wait for all files to load, then render the default diagram
+      Promise.all(loadPromises).then(() => {
+        console.log('All diagram files loaded')
+        d3.select('#loadFileDialog').style('visibility', 'hidden').style('pointer-events', 'none')
+        d3.selectAll('.buttonTitles').style('visibility', 'visible')
+
+        // Find default diagram or use first one
+        const defaultDiagram = diagramConfigs.find(d => d.default) || diagramConfigs[0]
+        activeDiagramId = defaultDiagram.id
+
+        // Load the default diagram
+        const rawSankeyData = sankeyDataLibraries[activeDiagramId]
+        loadSankeyDiagram(rawSankeyData)
+
+        // Make diagramConfigs globally available for buttons
+        window.diagramConfigs = diagramConfigs
+        window.activeDiagramId = activeDiagramId
+      })
+    } else {
+      // Fallback to single file loading (original behavior)
+      readExcelFile(XLSXurl, (rawSankeyData) => {
+        d3.select('#loadFileDialog').style('visibility', 'hidden').style('pointer-events', 'none')
+        d3.selectAll('.buttonTitles').style('visibility', 'visible')
+        loadSankeyDiagram(rawSankeyData)
+      })
+    }
+  } else if (dataSource == 'production') {
     console.log('FILE')
 
     d3.select('#loadFileDialog').style('visibility', 'visible').style('pointer-events', 'auto')
-    // // Get the container div with id "loadFileDialog"
-    // const loadFileDialog = document.getElementById('loadFileDialog')
-
-    // // Create the file input element
-    // const fileInput = document.createElement('input')
-    // fileInput.type = 'file'
-    // fileInput.accept = '.xlsx' // Restrict file type to Excel files
-
-    // // Append the file input element to the "loadFileDialog" div
-    // if (loadFileDialog) {
-    //   loadFileDialog.appendChild(fileInput)
-    // } else {
-    //   console.error('Element with id not found.')
-    // }
-
-    // // Listen for file selection
-    // fileInput.addEventListener('change', (event) => {
-    //   const file = event.target.files[0] // Get the selected file
-    //   if (!file) {
-    //     console.error('No file selected!')
-    //     return
-    //   }
-
-    //   // Create a FileReader to read the file
-    //   const reader = new FileReader()
-
-    //   reader.onload = (e) => {
-    //     const data = new Uint8Array(e.target.result) // Read the file as a binary array
-    //     const workbook = XLSX.read(data, { type: 'array' }) // Parse the Excel file
-
-    //     const rawSankeyData = generateSankeyLibrary(workbook)
-
-    //     sankeyConfigs.forEach(element => {
-
-    //       let configString = JSON.stringify(element) // stringify in order to prevent code further down the line to transform sankeyConfigs object
-    //       let config = JSON.parse(configString)
-
-    //       var links = rawSankeyData.links[config.sankeyDataID]
-    //       var nodes = rawSankeyData.nodes[config.sankeyDataID]
-    //       var legend = rawSankeyData.legend[config.sankeyDataID]
-    //       var settings = rawSankeyData.settings[config.sankeyDataID]
-    //       var remarks = rawSankeyData.remarks[config.sankeyDataID]
-
-    //       settings = transformData(settings)
-
-    //       // console.log(settings)
-
-    //       if (settings[0].projectID != projectID || settings[0].versionID != versionID || settings[0].productID != productID) {
-    //         console.log('ERROR - ID MISMATCH')
-    //         const loadFileDialog = document.getElementById('loadFileDialog')
-    //         // Set the inner HTML with the desired text and link
-    //         document.getElementById('loadFileDialog').innerHTML = `
-    //           <div style="max-width: 500px; word-wrap: break-word;line-height: 35px;font-size:15px; ">
-    //               <strong style="line-height: 40px; font-size:28px;font-weight:300;">Error</strong> <br><br>De identificatienummers van het opgegeven databestand (<strong>${settings[0].projectID}_${settings[0].productID}_${settings[0].versionID}</strong>) en het ingeladen visualisatiescript (<strong>${projectID}_${productID}_${versionID}</strong>) komen niet overeen.<br><br>Gebruik de onderstaande link om naar het script te gaan dat bij het opgegeven bestand hoort en probeer het opnieuw.&nbsp
-    //               <br><br>
-    //               <a href="https://rvo-nl.github.io/visualisaties/${settings[0].projectID}/${settings[0].productID}/${settings[0].versionID}" style="color: blue; text-decoration: underline;">
-    //                   https://rvo-nl.github.io/visualisaties/${settings[0].projectID}/${settings[0].productID}/${settings[0].versionID}
-    //               </a>
-    //           </div>
-    //       `
-
-    //         return
-    //       }
-
-    //       d3.select('#loadFileDialog').style('visibility', 'hidden').style('pointer-events', 'none')
-    //       d3.selectAll('.buttonTitles').style('visibility', 'visible')
-
-    //       function transformData (inputArray) { // this function converts the new input format for the settings tab to the old input format the rest of the code expects
-    //         const output = {}
-
-    //         inputArray.forEach(item => {
-    //           const key = item.setting; // Get the key from "horizontalMargin"
-    //           const value = item.waarde; // Get the value from "0"
-    //           output[key] = value // Assign to the output object
-    //         })
-    //         // Wrap the resulting object in an array to match the desired structure
-    //         return [output]
-    //       }
-    //       processData(links, nodes, legend, settings, remarks, config)
-    //     })
-    //   }
-
-    //   reader.readAsArrayBuffer(file) // Read the file as a binary array
-    // })
   }
+}
+
+// Function to load and render a sankey diagram
+function loadSankeyDiagram(rawSankeyData) {
+  sankeyConfigs.forEach(element => {
+    let configString = JSON.stringify(element)
+    let config = JSON.parse(configString)
+
+    var links = rawSankeyData.links[config.sankeyDataID]
+    var nodes = rawSankeyData.nodes[config.sankeyDataID]
+    var legend = rawSankeyData.legend[config.sankeyDataID]
+    var settings = rawSankeyData.settings[config.sankeyDataID]
+    var rectangles = rawSankeyData.rectangles ? rawSankeyData.rectangles[config.sankeyDataID] : null
+
+    nodesGlobal = nodes
+
+    settings = transformData(settings)
+
+    // Update sankeyConfigs with dynamic width and height from Excel settings
+    element.width = settings[0].diagramWidth || 1600
+    element.height = settings[0].diagramHeight || 1200
+
+    // Import rectangles if available, otherwise clear existing rectangles
+    if (rectangles && rectangles.length > 0 && typeof importRectanglesFromExcel === 'function') {
+      importRectanglesFromExcel(rectangles)
+    } else {
+      window.backgroundRectangles = []
+    }
+
+    function transformData (inputArray) {
+      const output = {}
+
+      inputArray.forEach(item => {
+        const key = item.setting
+        const value = item.waarde
+        output[key] = value
+      })
+      // Wrap the resulting object in an array to match the desired structure
+      return [output]
+    }
+
+    processData(links, nodes, legend, settings, config)
+  })
+
+  // After all data is loaded, check scenario availability
+  setTimeout(() => {
+    if (typeof updateScenarioAvailability === 'function') {
+      // Get the config object from the first sankey config
+      const firstConfig = sankeyConfigs.length > 0 ? sankeyConfigs[0] : {}
+      updateScenarioAvailability({ scenarios: config.scenarios })
+    }
+  }, 100)
 }
 
 setTimeout(() => {
@@ -317,7 +363,7 @@ function generateSankeyLibrary (workbook) {
     // Skip sheets with 'sparse' in the name to use full data sheets instead
     if (worksheet && sheetName.startsWith('snky_') && !sheetName.includes('sparse')) {
       const [before, after] = sheetName.slice(5).split('_', 2)
-      if (after && ['links', 'nodes', 'remarks', 'legend', 'settings'].includes(after)) {
+      if (after && ['links', 'nodes', 'legend', 'settings', 'rectangles'].includes(after)) {
         // Ensure the top-level object exists
         if (!sankeyDataLibrary[after]) {
           sankeyDataLibrary[after] = {}
@@ -331,23 +377,23 @@ function generateSankeyLibrary (workbook) {
   return sankeyDataLibrary
 }
 
-// setTimeout(() => { // TODO: MAKE SEQUENTIAL WITH TOKEN
-//   setScenario() // init
-// }, 1000)
 
-
-
-
-
-
-
- // Only create modern UI interface when dataSource is 'file'
- if (typeof dataSource !== 'undefined' && dataSource === 'file') {
+ // Only create modern UI interface when dataSource is 'production'
+ if (typeof dataSource !== 'undefined' && dataSource === 'production') {
    // Create modern passphrase input interface
    const passphraseWrapper = document.getElementById('passphraseWrapper');
    const buttonGroup = document.getElementById('buttonGroup');
    const statusMessage = document.getElementById('statusMessage');
- 
+
+   // Create hidden username field for browser password management
+   const usernameInput = document.createElement('input');
+   usernameInput.type = 'text';
+   usernameInput.name = 'username';
+   usernameInput.value = 'NBNL';
+   usernameInput.autocomplete = 'username';
+   usernameInput.style.display = 'none';
+   usernameInput.setAttribute('aria-hidden', 'true');
+
     // Create passphrase input with modern styling
    const passphraseInput = document.createElement('input');
    passphraseInput.type = 'password';
@@ -365,9 +411,10 @@ function generateSankeyLibrary (workbook) {
  decryptButton.className = 'modern-decrypt-button';
  decryptButton.type = 'button';
  
- passphraseWrapper.appendChild(passphraseInput);
+ passphraseWrapper.appendChild(usernameInput);
+passphraseWrapper.appendChild(passphraseInput);
  buttonGroup.appendChild(decryptButton);
- 
+
  // Enable Enter key to trigger decryption
  passphraseInput.addEventListener('keypress', (event) => {
    if (event.key === 'Enter') {
@@ -404,7 +451,7 @@ function generateSankeyLibrary (workbook) {
      for (const fileName of Object.keys(zipContent.files)) {
        const zipFile = zipContent.files[fileName];
 
-       if (!zipFile.dir) {
+       if (!zipFile.dir && !/ copy[.\s]/i.test(fileName) && !/~\$/.test(fileName)) {
          if (excelExtensions.test(fileName)) {
            // Handle Excel files
            const fileData = await zipFile.async('arraybuffer');
@@ -446,9 +493,26 @@ function generateSankeyLibrary (workbook) {
      console.log('Extracted Excel Data:', excelData);
      console.log('Extracted CSV Data:', csvData);
      console.log('Extracted JSON Data:', jsonData);
-     console.log('CSV Data keys:', Object.keys(csvData));
-     // Hide the welcome overlay immediately before heavy rendering starts
-     (function hideWelcomeOverlay() {
+     // Hide the login section and show the viewer content
+     (function hideLoginShowViewer() {
+       const loginSection = document.getElementById('loginSection');
+       if (loginSection) {
+         loginSection.style.display = 'none';
+       }
+       const viewerContent = document.getElementById('viewerContent');
+       if (viewerContent) {
+         viewerContent.style.display = 'block';
+       }
+       // Restore the liner bar and top-right label after login
+       const liner = document.getElementById('liner');
+       if (liner) {
+         liner.style.display = '';
+       }
+       const topRightLabel = document.getElementById('topRightLabel');
+       if (topRightLabel) {
+         topRightLabel.style.display = '';
+       }
+       // Also hide the old overlay elements if present
        const welcomeContainer = document.querySelector('.welcome-container');
        if (welcomeContainer) {
          welcomeContainer.style.display = 'none';
@@ -458,11 +522,41 @@ function generateSankeyLibrary (workbook) {
          loadFileDialogEl.style.display = 'none';
        }
      })();
-     
+
      // Pass CSV data to cijferbasis module if available
      if (csvData['cijferbasis_data'] && typeof window.setCijferBasisZipData === 'function') {
        window.setCijferBasisZipData(csvData);
      }
+
+     // Pass categoryConfig from ZIP if available
+     if (jsonData['categoryConfig'] && typeof window.setCategoryConfigFromZip === 'function') {
+       window.setCategoryConfigFromZip(jsonData['categoryConfig']);
+     }
+
+    // Set viewerConfig from ZIP if available (for drawSelectionButtons.js)
+    if (jsonData['viewer-config']) {
+      viewerConfig = jsonData['viewer-config'];
+      console.log('Viewer configuration loaded from zip file:', viewerConfig.viewer?.name || 'unknown');
+      // Initialize the config (sets up scenarioIdLookup and lookup_ymaxvalues)
+      if (typeof loadViewerConfig === 'function') {
+        loadViewerConfig();
+      }
+
+      // Initialize scenario settings with viewer config BEFORE drawing scenario buttons
+      // This ensures that allScenarios is populated when isScenarioVisible() is called
+      if (typeof window.ScenarioSettings !== 'undefined' && typeof window.ScenarioSettings.initialize === 'function') {
+        window.ScenarioSettings.initialize(viewerConfig);
+      }
+
+      // Set version labels after config is loaded (with small delay to ensure DOM is ready)
+      setTimeout(() => {
+        if (typeof setVersionLabels === 'function') {
+          setVersionLabels();
+        } else if (typeof setTopRightLabel === 'function') {
+          setTopRightLabel();
+        }
+      }, 100);
+    }
 
      // Pass CSV data to capacity visualization module if available
      if ((csvData['processed_capacities'] || csvData['etm_production_parameters_mapping']) && typeof window.setCapacityZipData === 'function') {
@@ -473,9 +567,20 @@ function generateSankeyLibrary (workbook) {
        }
      }
 
-     // Pass category config to capacity visualization module if available
-     if (jsonData['categoryConfig'] && typeof window.setCategoryConfigFromZip === 'function') {
-       window.setCategoryConfigFromZip(jsonData['categoryConfig']);
+     // Store TVKN CSV data for TVKN Analysis module
+     if (csvData['tvkn_energy_flows'] || csvData['tvkn_service_demand'] || csvData['tvkn_carrier_color_mapping'] || csvData['tvkn_opties_metadata']) {
+       window.tvknZipData = {
+         tvkn_energy_flows: csvData['tvkn_energy_flows'],
+         tvkn_service_demand: csvData['tvkn_service_demand'],
+         tvkn_carrier_color_mapping: csvData['tvkn_carrier_color_mapping'],
+         tvkn_opties_metadata: csvData['tvkn_opties_metadata']
+       };
+       console.log('TVKN CSV data stored from zip file');
+
+      // Initialize TVKN Analysis now that data is available (if enabled in viewer config)
+      if (typeof window.initTVKNAnalysis === 'function' && viewerConfig?.viewer?.hasServiceDemandSection !== false) {
+        window.initTVKNAnalysis();
+      }
      }
 
      dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']
@@ -496,19 +601,92 @@ function generateSankeyLibrary (workbook) {
     //  alert('Excel data extracted — check the console!');
 
      // GENERATE SANKEY
-     var rawSankeyData = generateSankeyLibrary(jsonToWorkbook(excelData.data_sankeydiagram_december2025))
-     sankeyConfigs.forEach(element => {
+     // Check if multiple sankey diagrams are configured in viewer-config
+     if (viewerConfig && viewerConfig.sankeyDiagrams && viewerConfig.sankeyDiagrams.length > 0) {
+       diagramConfigs = viewerConfig.sankeyDiagrams
 
-      let configString = JSON.stringify(element) // stringify in order to prevent code further down the line to transform sankeyConfigs object
-      let config = JSON.parse(configString)
+       // Load all configured diagrams from the ZIP
+       diagramConfigs.forEach(diagramConfig => {
+         // Convert filename to Excel data key (remove extension and path)
+         const fileKey = diagramConfig.file.replace(/\.[^.]+$/, '').split('/').pop()
 
-      var links = rawSankeyData.links[config.sankeyDataID]
-      var nodes = rawSankeyData.nodes[config.sankeyDataID]
-      var legend = rawSankeyData.legend[config.sankeyDataID]
-      var settings = rawSankeyData.settings[config.sankeyDataID]
-      var remarks = rawSankeyData.remarks[config.sankeyDataID]
+         if (excelData[fileKey]) {
+           const rawSankeyData = generateSankeyLibrary(jsonToWorkbook(excelData[fileKey]))
+           sankeyDataLibraries[diagramConfig.id] = rawSankeyData
+           console.log('Loaded diagram from ZIP:', diagramConfig.id, 'from file key:', fileKey)
+         } else {
+           console.warn('Sankey diagram file not found in ZIP:', fileKey, 'Available keys:', Object.keys(excelData))
+         }
+       })
 
-      settings = transformData(settings)
+       // Set the active diagram (default or first)
+       activeDiagramId = (diagramConfigs.find(d => d.default) || diagramConfigs[0]).id
+       const rawSankeyData = sankeyDataLibraries[activeDiagramId]
+
+       if (!rawSankeyData) {
+         console.error('No valid sankey data found in ZIP')
+         return
+       }
+
+       // Make diagramConfigs globally available for buttons
+       window.diagramConfigs = diagramConfigs
+       window.activeDiagramId = activeDiagramId
+
+       // Process the default diagram
+       sankeyConfigs.forEach(element => {
+         let configString = JSON.stringify(element)
+         let config = JSON.parse(configString)
+
+         var links = rawSankeyData.links[config.sankeyDataID]
+         var nodes = rawSankeyData.nodes[config.sankeyDataID]
+         var legend = rawSankeyData.legend[config.sankeyDataID]
+         var settings = rawSankeyData.settings[config.sankeyDataID]
+         var rectangles = rawSankeyData.rectangles ? rawSankeyData.rectangles[config.sankeyDataID] : null
+
+         settings = transformData(settings)
+
+         // Update sankeyConfigs with dynamic width and height from Excel settings
+         element.width = settings[0].diagramWidth || 1600
+         element.height = settings[0].diagramHeight || 1200
+
+         // Import rectangles if available
+         if (rectangles && rectangles.length > 0 && typeof importRectanglesFromExcel === 'function') {
+           importRectanglesFromExcel(rectangles)
+         } else {
+           window.backgroundRectangles = []
+         }
+
+         d3.select('#loadFileDialog').style('visibility', 'hidden').style('pointer-events', 'none')
+         d3.selectAll('.buttonTitles').style('visibility', 'visible')
+
+         function transformData (inputArray) {
+           const output = {}
+           inputArray.forEach(item => {
+             const key = item.setting
+             const value = item.waarde
+             output[key] = value
+           })
+           return [output]
+         }
+         processData(links, nodes, legend, settings, config)
+       })
+     } else {
+       // Fallback: single diagram mode (original behavior)
+       var rawSankeyData = generateSankeyLibrary(jsonToWorkbook(excelData.data_sankeydiagram_december2025))
+       sankeyConfigs.forEach(element => {
+
+        let configString = JSON.stringify(element) // stringify in order to prevent code further down the line to transform sankeyConfigs object
+        let config = JSON.parse(configString)
+
+        var links = rawSankeyData.links[config.sankeyDataID]
+        var nodes = rawSankeyData.nodes[config.sankeyDataID]
+        var legend = rawSankeyData.legend[config.sankeyDataID]
+        var settings = rawSankeyData.settings[config.sankeyDataID]
+        settings = transformData(settings)
+
+        // Update sankeyConfigs with dynamic width and height from Excel settings
+        element.width = settings[0].diagramWidth || 1600  // Fallback to 1600 if not set
+        element.height = settings[0].diagramHeight || 1200  // Fallback to 1200 if not set
 
       // console.log(settings)
 
@@ -542,11 +720,10 @@ function generateSankeyLibrary (workbook) {
         })
         // Wrap the resulting object in an array to match the desired structure
         return [output]
-      }
-      processData(links, nodes, legend, settings, remarks, config)
-    })
-
-
+        }
+        processData(links, nodes, legend, settings, config)
+      })
+     }
 
      updateStatusMessage('Data succesvol geladen!', 'success');
      

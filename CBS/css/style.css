@@ -26,6 +26,7 @@ body {
 
 #main-container {
   width: 1300px;
+  min-height: 100vh;
   background-color: #EEF5FA;
   padding: 0;
   box-sizing: border-box;
@@ -247,22 +248,6 @@ body {
   color: #fff;
 } */
 
-#remarksContainer {
-  /* position: relative; */
-  /* position: absolute; */
-  /* top:100px; */
-  /* margin-top: 0px; */
-  /* margin-top: 50px; */
-  /* padding-bottom: 200px; */
-  /* background-color: red; */
-  /* margin-left: 100px; */
-  /* margin-right: 200px; */
-  /* max-width: 1200px; */
-  font-size: 12px;
-  pointer-events: all;
-  z-index: 1;
-}
-
 
 /* 
       A simple keyframe animation that slides the label down from above the viewport.
@@ -287,13 +272,11 @@ body {
       - the slideDown animation is triggered once
     */
 .concept-label {
-  /* or absolute, depending on your layout needs */
-  /* position: absolute; */
   top: 0;
   margin-right: 50px;
   right: 20px;
-  width: 78px;
-  height: 60px;
+  width: auto;
+  height: auto;
 
   background-color: #999;
   color: #fff;
@@ -301,37 +284,22 @@ body {
   font-weight: 700;
   font-size: 1.2rem;
 
-
-  /* Round bottom corners */
-  border-bottom-left-radius: 0px;
-  border-bottom-right-radius: 0px;
-
   z-index: 9999;
-  /* Keep it above other elements */
   animation: slideDown 1s ease-out forwards;
 
-  /* Flex container to position text at bottom center */
-  display: flex;
+  /* Flex container to position text at bottom with equal padding */
+  display: inline-flex;
   align-items: flex-end;
-  /* push child content to bottom */
   justify-content: center;
-  /* horizontally center child content */
 
-  /* Optional padding at the bottom */
-  padding-bottom: 1rem;
-  /* border: 1px solid #ccc; */
-  /* border: 2px dashed #666; */
+  /* Top padding for height, equal left/right/bottom padding around text */
+  padding: 2.5rem 1rem 1rem 1rem;
 
 }
 
 .version-label {
-  /* or absolute, depending on your layout needs */
-  /* position: absolute; */
   top: 0;
-  margin-left: 20px;
-  right: 20px;
-  width: 170px;
-  height: 30px;
+  margin-left: 50px;
 
   background-color: #999;
   color: #FFF;
@@ -339,23 +307,15 @@ body {
   font-weight: 700;
   font-size: 1.1rem;
 
-  /* Round bottom corners */
-  border-bottom-left-radius: 0px;
-  border-bottom-right-radius: 0px;
-
   z-index: 9999;
-  /* Keep it above other elements */
   animation: slideDown 1s ease-out forwards;
 
-  /* Flex container to position text at bottom center */
-  display: flex;
-  align-items: flex-end;
-  /* push child content to bottom */
-  justify-content: center;
-  /* horizontally center child content */
+  /* Make label only as wide as content */
+  display: inline-block;
+  width: fit-content;
 
-  /* Optional padding at the bottom */
-  padding-bottom: 0.5rem;
+  /* Equal padding on all sides */
+  padding: 0.5rem 1rem;
 
 }
 
@@ -1057,7 +1017,7 @@ body {
 .lock-icon {
   width: 72px;
   height: 72px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #000, #333);
   border-radius: 24px;
   display: flex;
   align-items: center;
@@ -1095,12 +1055,9 @@ body {
   font-size: 36px;
   font-weight: 300;
   color: #1a202c;
-  margin: 0 0 12px 0;
-  letter-spacing: -0.8px;
-  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
 }
 
 .welcome-subtitle {
@@ -1113,17 +1070,14 @@ body {
 
 .version-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
-  color: #475569;
-  padding: 8px 18px;
-  border-radius: 24px;
-  font-size: 13px;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.3px;
-  box-shadow: 
-    0 2px 4px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.5px;
+  border: 1px solid #e2e8f0;
 }
 
 .welcome-content {
@@ -1153,159 +1107,79 @@ body {
 }
 
 .input-wrapper::before {
-  content: '';
-
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  border-radius: 16px;
-  padding: 2px;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: xor;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.input-wrapper:focus-within::before {
-  opacity: 1;
+  display: none;
 }
 
 .modern-passphrase-input {
   width: 100%;
-  padding: 18px 24px;
-  font-size: 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 16px;
-  background: #fafbfc;
+  padding: 12px 16px;
+  font-size: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
   color: #1f2937;
   font-family: inherit;
-  font-weight: 500;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  font-weight: 400;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   box-sizing: border-box;
-  position: relative;
-  z-index: 1;
 }
 
 .modern-passphrase-input:focus {
   outline: none;
-  border-color: transparent;
-  background: white;
-  box-shadow: 
-    0 8px 16px rgba(99, 102, 241, 0.15),
-    0 0 0 4px rgba(99, 102, 241, 0.1);
-  transform: translateY(-2px);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
 .modern-passphrase-input::placeholder {
   color: #9ca3af;
   font-weight: 400;
-  transition: color 0.3s ease;
-}
-
-.modern-passphrase-input:focus::placeholder {
-  color: #d1d5db;
 }
 
 .button-group {
-  margin-bottom: 28px;
+  margin-bottom: 16px;
 }
 
 .modern-decrypt-button {
   width: 100%;
-  padding: 20px 32px;
-  font-size: 16px;
-  font-weight: 600;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 500;
   color: white;
-  background: #6366f1;
-  /* background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); */
+  background: #333;
   border: none;
-  border-radius: 16px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background-color 0.2s ease;
   font-family: inherit;
-  letter-spacing: 0.3px;
-  position: relative;
-  overflow: hidden;
+  letter-spacing: 0.2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  box-shadow: 
-    0 8px 16px rgba(255, 255, 255, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
-}
-
-.modern-decrypt-button .button-icon {
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 8px;
 }
 
 .modern-decrypt-button:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 
-    0 16px 32px rgba(255, 255, 255, 0.2),
-    0 0 0 1px rgba(255, 255, 255, 0.2);
-}
-
-.modern-decrypt-button:hover:not(:disabled) .button-icon {
-  transform: scale(1.1) rotate(5deg);
+  background: #444;
 }
 
 .modern-decrypt-button:active:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 
-    0 8px 16px rgba(255, 255, 255, 0.15),
-    0 0 0 1px rgba(255, 255, 255, 0.15);
+  background: #222;
 }
 
 .modern-decrypt-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
-}
-
-.modern-decrypt-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-  transition: left 0.6s ease;
-}
-
-.modern-decrypt-button:hover::before:not(:disabled) {
-  left: 100%;
-}
-
-.modern-decrypt-button::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
-  border-radius: 16px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: -1;
-}
-
-.modern-decrypt-button:hover::after:not(:disabled) {
-  opacity: 0.9;
 }
 
 .status-message {
-  min-height: 28px;
-  font-size: 15px;
+  min-height: 24px;
+  font-size: 13px;
   font-weight: 500;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  padding: 12px 20px;
-  border-radius: 12px;
-  margin: 0 -8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 0;
+  text-align: center;
 }
 
 .status-message.status-loading {
@@ -1427,6 +1301,43 @@ body {
   .lock-icon {
     width: 56px;
     height: 56px;
+  }
+}
+
+/* Embedded login card (inside main-container) */
+.welcome-card-embedded {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  border-radius: 28px;
+  box-shadow:
+    0 32px 64px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  padding: 56px 48px;
+  width: 100%;
+  max-width: 440px;
+  text-align: center;
+  animation: welcomeSlideUp 1s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-card-embedded::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: cardShimmer 3s ease-in-out infinite;
+}
+
+@media (max-width: 480px) {
+  .welcome-card-embedded {
+    margin: 16px;
+    padding: 40px 28px;
+    max-width: none;
+    border-radius: 20px;
   }
 }
 

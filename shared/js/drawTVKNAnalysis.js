@@ -192,7 +192,7 @@
   // ── CSV loader ──────────────────────────────────────────────────────────
   async function loadCSV(path) {
     // Check if we're in file mode and have zip data available
-    if (typeof dataSource !== 'undefined' && dataSource === 'file' && typeof window.getTVKNZipData === 'function') {
+    if (typeof dataSource !== 'undefined' && dataSource === 'production' && typeof window.getTVKNZipData === 'function') {
       const zipData = window.getTVKNZipData()
       const filename = path.split('/').pop().replace('.csv', '')
       if (zipData && zipData[filename]) {
@@ -377,7 +377,7 @@
   function buildUI(container) {
     const wrap = document.createElement('div')
     wrap.id = 'tvkn-analysis-wrap'
-    wrap.style.cssText = 'background-color: #DCE6EF; padding: 0;'
+    wrap.style.cssText = 'background-color: #EEF5FA; padding: 0;'
     container.appendChild(wrap)
 
     // Place download buttons and unit toggle in the existing top controls div
@@ -485,7 +485,7 @@
 
     // Content area with selectors and charts
     const contentArea = document.createElement('div')
-    contentArea.style.cssText = 'display: flex; gap: 24px; padding: 0 40px 20px 40px; background-color: #DCE6EF;'
+    contentArea.style.cssText = 'display: flex; gap: 24px; padding: 0 40px 20px 40px; background-color: #EEF5FA;'
     wrap.appendChild(contentArea)
 
     // Selectors column (vertical)
@@ -936,6 +936,7 @@
       .attr('preserveAspectRatio', 'xMidYMid meet')
       .style('width', '100%')
       .style('height', 'auto')
+      .style('overflow', 'visible')
 
     const g = svg.append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`)
@@ -943,7 +944,7 @@
     svg.append('text')
       .attr('x', margin.left)
       .attr('y', 17)
-      .style('font-size', '11px')
+      .style('font-size', '9px')
       .style('font-weight', '600')
       .style('fill', '#222')
       .text(title)
@@ -1131,7 +1132,8 @@
 
   // ── compact line chart for option detail ──────────────────────────────
   function renderOptionLineChart(parentEl, opts) {
-    const { title, yLabel, data, skipUnit } = opts
+    const { title, yLabel, data, skipUnit, years: yearsParam } = opts
+    const chartYears = yearsParam || YEARS
 
     // Larger dimensions for full-width stacked layout
     const W = 460
@@ -1153,6 +1155,7 @@
       .attr('preserveAspectRatio', 'xMidYMid meet')
       .style('width', '100%')
       .style('height', 'auto')
+      .style('overflow', 'visible')
 
     const g = svg.append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`)
@@ -1166,11 +1169,11 @@
       .text(title)
 
     const x = d3.scalePoint()
-      .domain(YEARS)
+      .domain(chartYears)
       .range([0, innerW])
 
     let maxVal = 0
-    YEARS.forEach(y => {
+    chartYears.forEach(y => {
       const v = data[y] || 0
       if (v > maxVal) maxVal = v
     })
@@ -1223,7 +1226,7 @@
       .x(d => x(d.year))
       .y(d => y(d.value))
 
-    const pts = YEARS.map(yr => ({ year: yr, value: data[yr] || 0 }))
+    const pts = chartYears.map(yr => ({ year: yr, value: data[yr] || 0 }))
 
     g.append('path')
       .datum(pts)
@@ -1265,11 +1268,10 @@
           const pad = 4
           tooltip.select('rect')
             .attr('x', -bbox.width / 2 - pad)
-            .attr('y', -bbox.height - pad)
+            .attr('y', 0)
             .attr('width', bbox.width + pad * 2)
             .attr('height', bbox.height + pad * 2)
-
-          tooltipText.attr('y', -pad - 2)
+          tooltipText.attr('transform', `translate(0, ${pad - bbox.y})`)
 
           const tx = margin.left + x(d.year)
           const ty = margin.top + y(d.value) - bbox.height - pad * 2 - 8
@@ -1283,7 +1285,8 @@
 
   // ── compact stacked area chart for option energy intensity ───────────
   function renderOptionMultiCarrierChart(parentEl, opts) {
-    const { title, yLabel, carriers, demandData, carrierData, energyData } = opts
+    const { title, yLabel, carriers, demandData, carrierData, energyData, years: yearsParam } = opts
+    const chartYears = yearsParam || YEARS
 
     // Larger dimensions for full-width stacked layout
     const W = 460
@@ -1305,6 +1308,7 @@
       .attr('preserveAspectRatio', 'xMidYMid meet')
       .style('width', '100%')
       .style('height', 'auto')
+      .style('overflow', 'visible')
 
     const g = svg.append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`)
@@ -1318,12 +1322,12 @@
       .text(title)
 
     const x = d3.scalePoint()
-      .domain(YEARS)
+      .domain(chartYears)
       .range([0, innerW])
 
     // Calculate max intensity
     let maxIntensity = 0
-    YEARS.forEach(yr => {
+    chartYears.forEach(yr => {
       const demand = demandData[yr] || 0
       const energy = energyData[yr] || 0
       const intensity = demand > 0 ? energy / demand : 0
@@ -1374,7 +1378,7 @@
     bandGroup.lower()
 
     // Build stacked data
-    const stackData = YEARS.map(yr => {
+    const stackData = chartYears.map(yr => {
       const obj = { year: yr }
       const demand = demandData[yr] || 0
       const yearCarriers = carrierData[yr] || {}
@@ -1431,7 +1435,7 @@
       .attr('text-anchor', 'middle')
 
     // Draw dots on top of each stack with hover interaction
-    YEARS.forEach(yr => {
+    chartYears.forEach(yr => {
       const demand = demandData[yr] || 0
       const energy = energyData[yr] || 0
       const totalIntensity = demand > 0 ? energy / demand : 0
@@ -1474,11 +1478,10 @@
           const pad = 5
           tooltip.select('rect')
             .attr('x', -bbox.width / 2 - pad)
-            .attr('y', -bbox.height - pad)
+            .attr('y', 0)
             .attr('width', bbox.width + pad * 2)
             .attr('height', bbox.height + pad * 2)
-
-          tooltipText.attr('y', -pad)
+          tooltipText.attr('transform', `translate(0, ${pad - bbox.y})`)
 
           const tx = margin.left + x(yr)
           const ty = margin.top + y(totalIntensity) - bbox.height - pad * 2 - 8
@@ -1499,16 +1502,6 @@
     wrapper.style.cssText = 'margin-bottom:0; background:#fff; border:1px solid #ddd; border-radius:10px; padding:10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);'
     parentEl.appendChild(wrapper)
 
-    const mainTitle = document.createElement('div')
-    mainTitle.style.cssText = 'font-size: 12px; font-weight: 700; color: #222; margin-bottom: 4px;'
-    mainTitle.textContent = selectedServiceDemand
-    wrapper.appendChild(mainTitle)
-
-    const title = document.createElement('div')
-    title.style.cssText = 'font-size: 10px; font-weight: 500; color: #666; margin-bottom: 10px;'
-    // title.textContent = 'Flows'
-    wrapper.appendChild(title)
-
     // Get options for current service demand
     const sdMap = serviceDemandIndex[scenario]
     if (!sdMap || !sdMap[selectedServiceDemand]) {
@@ -1517,84 +1510,510 @@
     }
 
     const options = Object.keys(sdMap[selectedServiceDemand])
-
-    // Calculate total input and output energy for the selected year, broken down by carrier
-    // CO2 flows are tracked separately and not included in energy totals
-    const selectedYear = (typeof globalActiveYear !== 'undefined' && globalActiveYear?.id)
-      ? parseInt(globalActiveYear.id)
-      : years[years.length - 1]
     const flows = getEnergyFlows(options, scenario)
-    let totalInput = 0
-    let totalOutput = 0
-    const carrierInput = {}
-    const carrierOutput = {}
-    let co2Flow = 0 // Separate tracking for CO2 (in Mton)
 
-    flows.forEach(row => {
-      const yr = parseInt(row.Year)
-      if (yr !== selectedYear) return
-      const val = parseVal(row.Value)
-      const carrier = row.Carrier
+    // Calculate totals for ALL years, broken down by carrier
+    const yearData = {} // { year -> { carrierInput: {}, carrierOutput: {}, totalInput, totalOutput, co2Flow } }
+    const allInputCarriers = new Set()
+    const allOutputCarriers = new Set()
 
-      // Check if this is a CO2 flow
-      if (carrier === 'CO2Flow' || carrier === 'CO2flow') {
-        co2Flow += val // CO2 is already in Mton, negative means captured/removed
-        return // Don't include in energy totals
-      }
-
-      if (val > 0) {
-        totalInput += val
-        carrierInput[carrier] = (carrierInput[carrier] || 0) + val
-      } else {
-        totalOutput += Math.abs(val)
-        carrierOutput[carrier] = (carrierOutput[carrier] || 0) + Math.abs(val)
-      }
+    years.forEach(yr => {
+      const yd = { carrierInput: {}, carrierOutput: {}, totalInput: 0, totalOutput: 0, co2Flow: 0 }
+      flows.forEach(row => {
+        if (parseInt(row.Year) !== yr) return
+        const val = parseVal(row.Value)
+        const carrier = row.Carrier
+        if (carrier === 'CO2Flow' || carrier === 'CO2flow') {
+          yd.co2Flow += val
+          return
+        }
+        if (val > 0) {
+          yd.totalInput += val
+          yd.carrierInput[carrier] = (yd.carrierInput[carrier] || 0) + val
+          allInputCarriers.add(carrier)
+        } else {
+          yd.totalOutput += Math.abs(val)
+          yd.carrierOutput[carrier] = (yd.carrierOutput[carrier] || 0) + Math.abs(val)
+          allOutputCarriers.add(carrier)
+        }
+      })
+      yearData[yr] = yd
     })
 
-    // Energy summary
-    const energySummary = document.createElement('div')
-    energySummary.style.cssText = 'font-size: 10px; color: #333; margin-bottom: 12px; padding: 8px; background: #f9f9f9; border-radius: 4px;'
+    const fmt = d => d3.format('.1f')(convertUnit(d))
 
-    let summaryHTML = `<div style="margin-bottom: 6px; font-weight: 600;">Energy Flows (${selectedYear}):</div>`
+    const sortedInputCarriers = [...allInputCarriers].sort((a, b) => {
+      const lastYr = years[years.length - 1]
+      return (yearData[lastYr].carrierInput[b] || 0) - (yearData[lastYr].carrierInput[a] || 0)
+    })
+    const sortedOutputCarriers = [...allOutputCarriers].sort((a, b) => {
+      const lastYr = years[years.length - 1]
+      return (yearData[lastYr].carrierOutput[b] || 0) - (yearData[lastYr].carrierOutput[a] || 0)
+    })
+
+    // ── 1. STACKED AREA CHART (top) ──────────────────────────────────────
+    const inputCarriersList = sortedInputCarriers.filter(c => {
+      return years.some(yr => Math.abs(convertUnit(yearData[yr].carrierInput[c] || 0)) >= 0.05)
+    })
+
+    if (inputCarriersList.length > 0) {
+      const chartWrapper = document.createElement('div')
+      wrapper.appendChild(chartWrapper)
+
+      const W = 440
+      const H = 180
+      const chartH = 110
+      const margin = { top: 30, right: 10, bottom: 25, left: 45 }
+      const innerW = W - margin.left - margin.right
+      const innerH = chartH
+
+      const svg = d3.select(chartWrapper).append('svg')
+        .attr('viewBox', `0 0 ${W} ${H}`)
+        .attr('preserveAspectRatio', 'xMidYMid meet')
+        .style('width', '100%')
+        .style('height', 'auto')
+        .style('overflow', 'visible')
+
+      svg.append('text')
+        .attr('x', margin.left)
+        .attr('y', 16)
+        .style('font-size', '11px')
+        .style('font-weight', '600')
+        .style('fill', '#333')
+        .text(`Total energy input (${tvknUnit})`)
+
+      const g = svg.append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`)
+
+      const x = d3.scalePoint().domain(years).range([0, innerW])
+
+      const stackData = years.map(yr => {
+        const obj = { year: yr }
+        inputCarriersList.forEach(carrier => {
+          obj[carrier] = convertUnit(yearData[yr].carrierInput[carrier] || 0)
+        })
+        return obj
+      })
+
+      let maxTotal = 0
+      years.forEach(yr => {
+        const total = convertUnit(yearData[yr].totalInput)
+        if (total > maxTotal) maxTotal = total
+      })
+      if (maxTotal === 0) maxTotal = 1
+
+      const y = d3.scaleLinear().domain([0, maxTotal]).range([innerH, 0]).nice()
+
+      g.append('g')
+        .attr('transform', `translate(0,${innerH})`)
+        .call(d3.axisBottom(x).tickSize(4).tickPadding(4))
+        .call(g => g.select('.domain').attr('stroke', '#ccc'))
+        .call(g => g.selectAll('.tick line').attr('stroke', '#ccc'))
+        .call(g => g.selectAll('.tick text').style('font-size', '8px').style('fill', '#666'))
+
+      g.append('g')
+        .call(d3.axisLeft(y).ticks(5).tickSize(4).tickPadding(4).tickFormat(d3.format('.0f')))
+        .call(g => g.select('.domain').attr('stroke', '#ccc'))
+        .call(g => g.selectAll('.tick line').attr('stroke', '#ccc'))
+        .call(g => g.selectAll('.tick text').style('font-size', '8px').style('fill', '#666'))
+
+      g.append('text')
+        .attr('transform', `translate(-35,${innerH / 2}) rotate(-90)`)
+        .style('text-anchor', 'middle')
+        .style('font-size', '8px')
+        .style('fill', '#666')
+        .text(tvknUnit)
+
+      const yTicks = y.ticks(5)
+      const bandGroup = g.append('g').attr('class', 'grid-bands')
+      bandGroup.selectAll('rect')
+        .data(d3.range(0, yTicks.length - 1, 2))
+        .enter()
+        .append('rect')
+        .attr('x', 0)
+        .attr('y', i => y(yTicks[i + 1]))
+        .attr('width', innerW)
+        .attr('height', i => y(yTicks[i]) - y(yTicks[i + 1]))
+        .style('fill', '#f8f8f8')
+      bandGroup.lower()
+
+      const stack = d3.stack()
+        .keys(inputCarriersList)
+        .order(d3.stackOrderNone)
+        .offset(d3.stackOffsetNone)
+
+      const series = stack(stackData)
+
+      const area = d3.area()
+        .x(d => x(d.data.year))
+        .y0(d => y(d[0]))
+        .y1(d => y(d[1]))
+
+      series.forEach(s => {
+        const color = carrierColorMapping[s.key] || '#999'
+        g.append('path')
+          .datum(s)
+          .attr('fill', color)
+          .attr('opacity', 0.8)
+          .attr('d', area)
+      })
+
+      const tooltip = svg.append('g')
+        .style('display', 'none')
+        .style('pointer-events', 'none')
+
+      tooltip.append('rect')
+        .attr('rx', 3)
+        .attr('ry', 3)
+        .attr('fill', '#333')
+        .attr('opacity', 0.9)
+
+      const tooltipText = tooltip.append('text')
+        .attr('fill', '#fff')
+        .style('font-size', '9px')
+        .attr('text-anchor', 'middle')
+
+      years.forEach(yr => {
+        const totalVal = convertUnit(yearData[yr].totalInput)
+
+        g.append('circle')
+          .attr('cx', x(yr))
+          .attr('cy', y(totalVal))
+          .attr('r', 2)
+          .attr('fill', '#666')
+          .attr('stroke', '#fff')
+          .attr('stroke-width', 0.5)
+          .style('cursor', 'pointer')
+          .on('mouseover', function () {
+            d3.select(this).attr('r', 3)
+            tooltip.style('display', 'block')
+            tooltipText.selectAll('tspan').remove()
+
+            tooltipText.append('tspan')
+              .attr('x', 0)
+              .attr('dy', '1em')
+              .style('font-weight', 'bold')
+              .text(`${yr}: ${d3.format('.1f')(totalVal)} ${tvknUnit}`)
+
+            inputCarriersList.forEach(carrier => {
+              const cVal = convertUnit(yearData[yr].carrierInput[carrier] || 0)
+              if (Math.abs(cVal) >= 0.05) {
+                tooltipText.append('tspan')
+                  .attr('x', 0)
+                  .attr('dy', '1.2em')
+                  .style('font-weight', 'normal')
+                  .text(`${carrier}: ${d3.format('.1f')(cVal)}`)
+              }
+            })
+
+            const bbox = tooltipText.node().getBBox()
+            const pad = 5
+            tooltip.select('rect')
+              .attr('x', -bbox.width / 2 - pad)
+              .attr('y', 0)
+              .attr('width', bbox.width + pad * 2)
+              .attr('height', bbox.height + pad * 2)
+            tooltipText.attr('transform', `translate(0, ${pad - bbox.y})`)
+
+            const tx = margin.left + x(yr)
+            const ty = margin.top + y(totalVal) - bbox.height - pad * 2 - 8
+            tooltip.attr('transform', `translate(${tx},${Math.max(margin.top, ty)})`)
+          })
+          .on('mouseout', function () {
+            d3.select(this).attr('r', 2)
+            tooltip.style('display', 'none')
+          })
+      })
+    }
+
+    // ── 2. CARRIER TABLE: totals for all years ────────────────────────────
+    const carrierTableDiv = document.createElement('div')
+    carrierTableDiv.style.cssText = 'font-size: 10px; color: #333; margin-top: 10px; overflow-x: auto;'
+
+    const hasCO2 = years.some(yr => yearData[yr].co2Flow !== 0)
+
+    let tableHTML = `<table style="width:100%; border-collapse: collapse; font-size: 10px;">`
+    tableHTML += `<thead><tr style="border-bottom: 2px solid #ddd;">`
+    tableHTML += `<th style="text-align:left; padding: 3px 6px; font-weight: 600; color: #555;">Carrier</th>`
+    years.forEach(yr => {
+      tableHTML += `<th style="text-align:right; padding: 3px 6px; font-weight: 600; color: #555;">${yr}</th>`
+    })
+    tableHTML += `</tr></thead><tbody>`
 
     // Input carriers
-    const inputCarriers = Object.keys(carrierInput).sort((a, b) => carrierInput[b] - carrierInput[a])
-    if (inputCarriers.length > 0) {
-      summaryHTML += `<div style="margin-bottom: 4px; font-weight: 600; color: #000;">Inputs (${d3.format('.2f')(convertUnit(totalInput))} ${tvknUnit}):</div>`
-      inputCarriers.forEach(carrier => {
-        const value = convertUnit(carrierInput[carrier])
-        // Skip if value rounds to 0.00
-        if (Math.abs(value) < 0.005) return
-        const percentage = (carrierInput[carrier] / totalInput * 100).toFixed(1)
+    if (sortedInputCarriers.length > 0) {
+      tableHTML += `<tr><td colspan="${years.length + 1}" style="padding: 4px 6px 2px; font-weight: 700; color: #222; font-size: 10px;">Inputs (${tvknUnit})</td></tr>`
+      sortedInputCarriers.forEach(carrier => {
         const color = carrierColorMapping[carrier] || '#999'
-        summaryHTML += `<div style="margin-left: 12px; margin-bottom: 2px; display: flex; align-items: center; gap: 6px;"><span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${color}; display: inline-block; flex-shrink: 0;"></span><span>${carrier}: <strong>${d3.format('.2f')(value)} ${tvknUnit}</strong> <span style="color: #888;">(${percentage}%)</span></span></div>`
+        tableHTML += `<tr style="border-bottom: 1px solid #f0f0f0;">`
+        tableHTML += `<td style="padding: 2px 6px; display: flex; align-items: center; gap: 4px;"><span style="width: 7px; height: 7px; border-radius: 50%; background:${color}; display:inline-block; flex-shrink:0;"></span>${carrier}</td>`
+        years.forEach(yr => {
+          const val = yearData[yr].carrierInput[carrier] || 0
+          const display = Math.abs(convertUnit(val)) < 0.05 ? '-' : fmt(val)
+          tableHTML += `<td style="text-align:right; padding: 2px 6px; color: #444;">${display}</td>`
+        })
+        tableHTML += `</tr>`
       })
+      tableHTML += `<tr style="border-top: 1px solid #ccc; border-bottom: 1px solid #ddd;">`
+      tableHTML += `<td style="padding: 3px 6px; font-weight: 700; color: #000;">Total input</td>`
+      years.forEach(yr => {
+        tableHTML += `<td style="text-align:right; padding: 3px 6px; font-weight: 700; color: #000;">${fmt(yearData[yr].totalInput)}</td>`
+      })
+      tableHTML += `</tr>`
     }
 
     // Output carriers
-    const outputCarriers = Object.keys(carrierOutput).sort((a, b) => carrierOutput[b] - carrierOutput[a])
-    if (outputCarriers.length > 0) {
-      summaryHTML += `<div style="margin-top: 6px; margin-bottom: 4px; font-weight: 600; color: #000;">Outputs (${d3.format('.2f')(convertUnit(totalOutput))} ${tvknUnit}):</div>`
-      outputCarriers.forEach(carrier => {
-        const value = convertUnit(carrierOutput[carrier])
-        // Skip if value rounds to 0.00
-        if (Math.abs(value) < 0.005) return
-        const percentage = (carrierOutput[carrier] / totalOutput * 100).toFixed(1)
+    if (sortedOutputCarriers.length > 0) {
+      tableHTML += `<tr><td colspan="${years.length + 1}" style="padding: 6px 6px 2px; font-weight: 700; color: #222; font-size: 10px;">Outputs (${tvknUnit})</td></tr>`
+      sortedOutputCarriers.forEach(carrier => {
         const color = carrierColorMapping[carrier] || '#999'
-        summaryHTML += `<div style="margin-left: 12px; margin-bottom: 2px; display: flex; align-items: center; gap: 6px;"><span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${color}; display: inline-block; flex-shrink: 0;"></span><span>${carrier}: <strong>${d3.format('.2f')(value)} ${tvknUnit}</strong> <span style="color: #888;">(${percentage}%)</span></span></div>`
+        tableHTML += `<tr style="border-bottom: 1px solid #f0f0f0;">`
+        tableHTML += `<td style="padding: 2px 6px; display: flex; align-items: center; gap: 4px;"><span style="width: 7px; height: 7px; border-radius: 50%; background:${color}; display:inline-block; flex-shrink:0;"></span>${carrier}</td>`
+        years.forEach(yr => {
+          const val = yearData[yr].carrierOutput[carrier] || 0
+          const display = Math.abs(convertUnit(val)) < 0.05 ? '-' : fmt(val)
+          tableHTML += `<td style="text-align:right; padding: 2px 6px; color: #444;">${display}</td>`
+        })
+        tableHTML += `</tr>`
       })
+      tableHTML += `<tr style="border-top: 1px solid #ccc; border-bottom: 1px solid #ddd;">`
+      tableHTML += `<td style="padding: 3px 6px; font-weight: 700; color: #000;">Total output</td>`
+      years.forEach(yr => {
+        tableHTML += `<td style="text-align:right; padding: 3px 6px; font-weight: 700; color: #000;">${fmt(yearData[yr].totalOutput)}</td>`
+      })
+      tableHTML += `</tr>`
     }
 
-    // CO2 Flow (if present)
-    if (co2Flow !== 0) {
-      const co2Label = co2Flow < 0 ? 'CO₂ Captured/Removed' : 'CO₂ Emitted'
-      const co2Color = co2Flow < 0 ? '#000' : '#c44'
-      summaryHTML += `<div style="margin-top: 8px; margin-bottom: 4px; font-weight: 600; color: ${co2Color};">${co2Label}:</div>`
-      summaryHTML += `<div style="margin-left: 12px; margin-bottom: 2px;">CO₂: <strong>${d3.format('.2f')(Math.abs(co2Flow))} Mton</strong></div>`
+    // CO2 row
+    if (hasCO2) {
+      tableHTML += `<tr style="border-bottom: 1px solid #f0f0f0;">`
+      tableHTML += `<td style="padding: 3px 6px; font-weight: 600; color: #666;">CO₂ (Mton)</td>`
+      years.forEach(yr => {
+        const co2 = yearData[yr].co2Flow
+        const display = Math.abs(co2) < 0.05 ? '-' : d3.format('.1f')(co2)
+        tableHTML += `<td style="text-align:right; padding: 3px 6px; color: ${co2 < 0 ? '#000' : '#c44'}; font-weight: 500;">${display}</td>`
+      })
+      tableHTML += `</tr>`
     }
 
-    energySummary.innerHTML = summaryHTML
-    wrapper.appendChild(energySummary)
+    tableHTML += `</tbody></table>`
+    carrierTableDiv.innerHTML = tableHTML
+    wrapper.appendChild(carrierTableDiv)
+
+    // ── 3. OPTIONS TABLE: total energy input per option ────────────────────
+    const scMap = energyFlowIndex[scenario]
+    if (scMap && options.length > 0) {
+      // Calculate total input per option per year
+      const optionYearData = {} // { option -> { year -> totalInput } }
+      options.forEach(opt => {
+        optionYearData[opt] = {}
+        years.forEach(yr => { optionYearData[opt][yr] = 0 })
+        const optRows = scMap[opt] || []
+        optRows.forEach(row => {
+          const yr = parseInt(row.Year)
+          if (!years.includes(yr)) return
+          const val = parseVal(row.Value)
+          const carrier = row.Carrier
+          if (carrier === 'CO2Flow' || carrier === 'CO2flow') return
+          if (val > 0) {
+            optionYearData[opt][yr] += val
+          }
+        })
+      })
+
+      // Sort options by last year total (descending)
+      const sortedOptions = [...options].sort((a, b) => {
+        const lastYr = years[years.length - 1]
+        return (optionYearData[b][lastYr] || 0) - (optionYearData[a][lastYr] || 0)
+      })
+
+      // Filter out options with no data
+      const optionsWithData = sortedOptions.filter(opt => {
+        return years.some(yr => Math.abs(convertUnit(optionYearData[opt][yr])) >= 0.05)
+      })
+
+      if (optionsWithData.length > 0) {
+        const optTableDiv = document.createElement('div')
+        optTableDiv.style.cssText = 'font-size: 10px; color: #333; margin-top: 14px; overflow-x: auto;'
+
+        let optHTML = `<div style="font-size: 11px; font-weight: 700; color: #222; margin-bottom: 6px;">Energy input per option (${tvknUnit})</div>`
+
+        // ── LINE CHART: energy input per option over years ──────────────
+        optTableDiv.innerHTML = optHTML
+        wrapper.appendChild(optTableDiv)
+
+        const cW = 440
+        const cH = 180
+        const cChartH = 100
+        const cMargin = { top: 20, right: 10, bottom: 25, left: 45 }
+        const cInnerW = cW - cMargin.left - cMargin.right
+        const cInnerH = cChartH
+
+        const cSvg = d3.select(optTableDiv).append('svg')
+          .attr('viewBox', `0 0 ${cW} ${cH}`)
+          .attr('preserveAspectRatio', 'xMidYMid meet')
+          .style('width', '100%')
+          .style('height', 'auto')
+          .style('overflow', 'visible')
+
+        const cG = cSvg.append('g')
+          .attr('transform', `translate(${cMargin.left},${cMargin.top})`)
+
+        const cX = d3.scalePoint().domain(years).range([0, cInnerW])
+
+        let cMaxVal = 0
+        optionsWithData.forEach(opt => {
+          years.forEach(yr => {
+            const v = convertUnit(optionYearData[opt][yr] || 0)
+            if (v > cMaxVal) cMaxVal = v
+          })
+        })
+        if (cMaxVal === 0) cMaxVal = 1
+
+        const cY = d3.scaleLinear().domain([0, cMaxVal]).range([cInnerH, 0]).nice()
+
+        cG.append('g')
+          .attr('transform', `translate(0,${cInnerH})`)
+          .call(d3.axisBottom(cX).tickSize(4).tickPadding(4))
+          .call(g => g.select('.domain').attr('stroke', '#ccc'))
+          .call(g => g.selectAll('.tick line').attr('stroke', '#ccc'))
+          .call(g => g.selectAll('.tick text').style('font-size', '8px').style('fill', '#666'))
+
+        cG.append('g')
+          .call(d3.axisLeft(cY).ticks(5).tickSize(4).tickPadding(4).tickFormat(d3.format('.1f')))
+          .call(g => g.select('.domain').attr('stroke', '#ccc'))
+          .call(g => g.selectAll('.tick line').attr('stroke', '#ccc'))
+          .call(g => g.selectAll('.tick text').style('font-size', '8px').style('fill', '#666'))
+
+        cG.append('text')
+          .attr('transform', `translate(-35,${cInnerH / 2}) rotate(-90)`)
+          .style('text-anchor', 'middle')
+          .style('font-size', '8px')
+          .style('fill', '#666')
+          .text(tvknUnit)
+
+        const cYTicks = cY.ticks(5)
+        const cBandGroup = cG.append('g').attr('class', 'grid-bands')
+        cBandGroup.selectAll('rect')
+          .data(d3.range(0, cYTicks.length - 1, 2))
+          .enter()
+          .append('rect')
+          .attr('x', 0)
+          .attr('y', i => cY(cYTicks[i + 1]))
+          .attr('width', cInnerW)
+          .attr('height', i => cY(cYTicks[i]) - cY(cYTicks[i + 1]))
+          .style('fill', '#f8f8f8')
+        cBandGroup.lower()
+
+        // Color palette for options
+        const optColors = d3.scaleOrdinal(d3.schemeTableau10)
+
+        const cLineGen = d3.line()
+          .x(d => cX(d.year))
+          .y(d => cY(d.value))
+
+        // Tooltip
+        const cTooltip = cSvg.append('g')
+          .style('display', 'none')
+          .style('pointer-events', 'none')
+
+        cTooltip.append('rect')
+          .attr('rx', 3)
+          .attr('ry', 3)
+          .attr('fill', '#333')
+          .attr('opacity', 0.9)
+
+        const cTooltipText = cTooltip.append('text')
+          .attr('fill', '#fff')
+          .style('font-size', '9px')
+          .attr('text-anchor', 'middle')
+
+        optionsWithData.forEach((opt, idx) => {
+          const color = optColors(idx)
+          const pts = years.map(yr => ({ year: yr, value: convertUnit(optionYearData[opt][yr] || 0) }))
+
+          cG.append('path')
+            .datum(pts)
+            .attr('fill', 'none')
+            .attr('stroke', color)
+            .attr('stroke-width', 1.5)
+            .attr('d', cLineGen)
+
+          const symGen = d3.symbol().type(d3.symbolCircle).size(14)
+          pts.forEach(d => {
+            cG.append('path')
+              .attr('d', symGen())
+              .attr('transform', `translate(${cX(d.year)},${cY(d.value)})`)
+              .attr('fill', color)
+              .style('cursor', 'pointer')
+              .on('mouseover', function() {
+                cTooltip.style('display', 'block')
+                cTooltipText.selectAll('tspan').remove()
+                cTooltipText.append('tspan')
+                  .attr('x', 0)
+                  .attr('dy', '1em')
+                  .style('font-weight', 'bold')
+                  .text(`${d.year}: ${d3.format('.1f')(d.value)} ${tvknUnit}`)
+                cTooltipText.append('tspan')
+                  .attr('x', 0)
+                  .attr('dy', '1.2em')
+                  .style('font-weight', 'normal')
+                  .text(opt.length > 30 ? opt.slice(0, 28) + '…' : opt)
+
+                const bbox = cTooltipText.node().getBBox()
+                const pad = 5
+                cTooltip.select('rect')
+                  .attr('x', -bbox.width / 2 - pad)
+                  .attr('y', 0)
+                  .attr('width', bbox.width + pad * 2)
+                  .attr('height', bbox.height + pad * 2)
+                cTooltipText.attr('transform', `translate(0, ${pad - bbox.y})`)
+
+                const tx = cMargin.left + cX(d.year)
+                const ty = cMargin.top + cY(d.value) - bbox.height - pad * 2 - 8
+                cTooltip.attr('transform', `translate(${tx},${Math.max(cMargin.top, ty)})`)
+              })
+              .on('mouseout', () => {
+                cTooltip.style('display', 'none')
+              })
+          })
+        })
+
+        // Continue with table HTML
+        optHTML = `<table style="width:100%; border-collapse: collapse; font-size: 10px;">`
+        optHTML += `<thead><tr style="border-bottom: 2px solid #ddd;">`
+        optHTML += `<th style="text-align:left; padding: 3px 6px; font-weight: 600; color: #555;">Option</th>`
+        years.forEach(yr => {
+          optHTML += `<th style="text-align:right; padding: 3px 6px; font-weight: 600; color: #555;">${yr}</th>`
+        })
+        optHTML += `</tr></thead><tbody>`
+
+        optionsWithData.forEach((opt, idx) => {
+          const optLineColor = optColors(idx)
+          optHTML += `<tr style="border-bottom: 1px solid #f0f0f0;">`
+          optHTML += `<td style="padding: 2px 6px; color: #333; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 4px;" title="${opt}"><span style="width: 7px; height: 7px; border-radius: 50%; background:${optLineColor}; display:inline-block; flex-shrink:0;"></span>${opt}</td>`
+          years.forEach(yr => {
+            const val = optionYearData[opt][yr]
+            const display = Math.abs(convertUnit(val)) < 0.05 ? '-' : fmt(val)
+            optHTML += `<td style="text-align:right; padding: 2px 6px; color: #444;">${display}</td>`
+          })
+          optHTML += `</tr>`
+        })
+
+        // Total row
+        optHTML += `<tr style="border-top: 1px solid #ccc;">`
+        optHTML += `<td style="padding: 3px 6px; font-weight: 700; color: #000;">Total</td>`
+        years.forEach(yr => {
+          optHTML += `<td style="text-align:right; padding: 3px 6px; font-weight: 700; color: #000;">${fmt(yearData[yr].totalInput)}</td>`
+        })
+        optHTML += `</tr>`
+
+        optHTML += `</tbody></table>`
+        const optTableEl = document.createElement('div')
+        optTableEl.innerHTML = optHTML
+        optTableDiv.appendChild(optTableEl)
+      }
+    }
   }
 
   // ── options breakdown tile renderer ────────────────────────────────────
@@ -1637,7 +2056,7 @@
       options.forEach((opt) => {
         const metadata = optiesMetadataIndex[opt]
         const optionDiv = document.createElement('div')
-        optionDiv.style.cssText = 'margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;'
+        optionDiv.style.cssText = 'margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;'
 
         // Calculate energy flows for this option for the header
         const optFlows = flows.filter(row =>
@@ -1733,76 +2152,13 @@
         const contentDiv = document.createElement('div')
         contentDiv.style.cssText = 'display: none; padding: 8px; background: #fafafa;'
 
-        // Energy flows for this option (shown first) - reuse optFlows from header calculation
-        if (optFlows.length > 0) {
-          const optInputs = {}
-          const optOutputs = {}
-          let optCO2 = 0
-
-          optFlows.forEach(row => {
-            const carrier = row.Carrier
-            const val = parseVal(row.Value)
-
-            // Separate CO2 tracking
-            if (carrier === 'CO2Flow' || carrier === 'CO2flow') {
-              optCO2 += val
-              return
-            }
-
-            if (val > 0) {
-              optInputs[carrier] = (optInputs[carrier] || 0) + val
-            } else {
-              optOutputs[carrier] = (optOutputs[carrier] || 0) + Math.abs(val)
-            }
-          })
-
-          const flowsDiv = document.createElement('div')
-          flowsDiv.style.cssText = 'margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #e0e0e0; font-size: 9px;'
-
-          let flowsHTML = '<div style="font-weight: 600; margin-bottom: 3px;">Energy Flows:</div>'
-
-          // Input carriers for this option
-          const optInputCarriers = Object.keys(optInputs).sort((a, b) => optInputs[b] - optInputs[a])
-          const significantInputs = optInputCarriers.filter(c => Math.abs(convertUnit(optInputs[c])) >= 0.005)
-          if (significantInputs.length > 0) {
-            flowsHTML += '<div style="margin-top: 3px; margin-bottom: 2px; font-weight: 500; color: #000;">Inputs:</div>'
-            significantInputs.forEach(carrier => {
-              const value = convertUnit(optInputs[carrier])
-              const color = carrierColorMapping[carrier] || '#999'
-              flowsHTML += `<div style="margin-left: 8px; margin-bottom: 1px; display: flex; align-items: center; gap: 4px;"><span style="width: 6px; height: 6px; border-radius: 50%; background-color: ${color}; display: inline-block; flex-shrink: 0;"></span><span>${carrier}: ${d3.format('.2f')(value)} ${tvknUnit}</span></div>`
-            })
-          }
-
-          // Output carriers for this option
-          const optOutputCarriers = Object.keys(optOutputs).sort((a, b) => optOutputs[b] - optOutputs[a])
-          const significantOutputs = optOutputCarriers.filter(c => Math.abs(convertUnit(optOutputs[c])) >= 0.005)
-          if (significantOutputs.length > 0) {
-            flowsHTML += '<div style="margin-top: 3px; margin-bottom: 2px; font-weight: 500; color: #000;">Outputs:</div>'
-            significantOutputs.forEach(carrier => {
-              const value = convertUnit(optOutputs[carrier])
-              const color = carrierColorMapping[carrier] || '#999'
-              flowsHTML += `<div style="margin-left: 8px; margin-bottom: 1px; display: flex; align-items: center; gap: 4px;"><span style="width: 6px; height: 6px; border-radius: 50%; background-color: ${color}; display: inline-block; flex-shrink: 0;"></span><span>${carrier}: ${d3.format('.2f')(value)} ${tvknUnit}</span></div>`
-            })
-          }
-
-          // CO2 flow for this option
-          if (optCO2 !== 0) {
-            const co2Label = optCO2 < 0 ? 'CO₂ Captured' : 'CO₂ Emitted'
-            const co2Color = optCO2 < 0 ? '#000' : '#c44'
-            flowsHTML += `<div style="margin-top: 3px; margin-bottom: 2px; font-weight: 500; color: ${co2Color};">${co2Label}: ${d3.format('.2f')(Math.abs(optCO2))} Mton</div>`
-          }
-
-          flowsDiv.innerHTML = flowsHTML
-          contentDiv.appendChild(flowsDiv)
-        }
-
         // Add service demand and energy intensity graphs for this option
         const graphsDiv = document.createElement('div')
         graphsDiv.style.cssText = 'margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;'
 
         // Get service demand data for this specific option across all years
         const optionDemandData = {}
-        YEARS.forEach(yr => {
+        years.forEach(yr => {
           optionDemandData[yr] = 0
         })
 
@@ -1810,7 +2166,7 @@
         const sdIndex = serviceDemandIndex[selectedScenario]
         if (sdIndex && sdIndex[selectedServiceDemand] && sdIndex[selectedServiceDemand][opt]) {
           const optData = sdIndex[selectedServiceDemand][opt]
-          YEARS.forEach(yr => {
+          years.forEach(yr => {
             optionDemandData[yr] = optData[yr] || 0
           })
         }
@@ -1818,7 +2174,7 @@
         // Get energy data for this option across all years
         const optionEnergyData = {}
         const optionCarrierData = {}
-        YEARS.forEach(yr => {
+        years.forEach(yr => {
           optionEnergyData[yr] = 0
           optionCarrierData[yr] = {}
         })
@@ -1856,14 +2212,15 @@
           title: `Service demand | ${optionName}`,
           yLabel: demandUnit,
           data: optionDemandData,
-          skipUnit: true
+          skipUnit: true,
+          years: years
         })
         graphsRow.appendChild(demandGraphDiv)
 
         // Bottom: Energy intensity graph (only if there's demand data)
         const intensityGraphDiv = document.createElement('div')
         const intensityData = {}
-        YEARS.forEach(yr => {
+        years.forEach(yr => {
           const demand = optionDemandData[yr]
           const energy = optionEnergyData[yr]
           intensityData[yr] = demand > 0 ? energy / demand : 0
@@ -1871,7 +2228,7 @@
 
         // Get unique carriers across all years for this option
         const allCarriersSet = new Set()
-        YEARS.forEach(yr => {
+        years.forEach(yr => {
           Object.keys(optionCarrierData[yr] || {}).forEach(carrier => {
             allCarriersSet.add(carrier)
           })
@@ -1882,7 +2239,7 @@
         const carrierTotals = {}
         carriersList.forEach(carrier => {
           carrierTotals[carrier] = 0
-          YEARS.forEach(yr => {
+          years.forEach(yr => {
             carrierTotals[carrier] += optionCarrierData[yr][carrier] || 0
           })
         })
@@ -1894,12 +2251,319 @@
           carriers: sortedCarriers,
           demandData: optionDemandData,
           carrierData: optionCarrierData,
-          energyData: optionEnergyData
+          energyData: optionEnergyData,
+          years: years
         })
         graphsRow.appendChild(intensityGraphDiv)
 
         graphsDiv.appendChild(graphsRow)
         contentDiv.appendChild(graphsDiv)
+
+        // ── Stacked area chart: energy input by carrier over time ──────
+        const inputCarriers = sortedCarriers.filter(c => {
+          return years.some(yr => (optionCarrierData[yr][c] || 0) > 0)
+        })
+
+        if (inputCarriers.length > 0) {
+          const eaChartDiv = document.createElement('div')
+          eaChartDiv.style.cssText = 'margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;'
+
+          const eaW = 460
+          const eaH = 210
+          const eaChartH = 110
+          const eaMargin = { top: 50, right: 10, bottom: 25, left: 45 }
+          const eaInnerW = eaW - eaMargin.left - eaMargin.right
+          const eaInnerH = eaChartH
+
+          const eaSvg = d3.select(eaChartDiv).append('svg')
+            .attr('viewBox', `0 0 ${eaW} ${eaH}`)
+            .attr('preserveAspectRatio', 'xMidYMid meet')
+            .style('width', '100%')
+            .style('height', 'auto')
+            .style('overflow', 'visible')
+
+          const eaG = eaSvg.append('g')
+            .attr('transform', `translate(${eaMargin.left},${eaMargin.top})`)
+
+          eaSvg.append('text')
+            .attr('x', eaMargin.left)
+            .attr('y', 18)
+            .style('font-size', '13px')
+            .style('font-weight', '600')
+            .style('fill', '#333')
+            .text(`Energy input | ${optionName}`)
+
+          const eaX = d3.scalePoint().domain(years).range([0, eaInnerW])
+
+          let eaMaxVal = 0
+          years.forEach(yr => {
+            const total = convertUnit(optionEnergyData[yr] || 0)
+            if (total > eaMaxVal) eaMaxVal = total
+          })
+          if (eaMaxVal === 0) eaMaxVal = 1
+
+          const eaY = d3.scaleLinear().domain([0, eaMaxVal]).range([eaInnerH, 0]).nice()
+
+          eaG.append('g')
+            .attr('transform', `translate(0,${eaInnerH})`)
+            .call(d3.axisBottom(eaX).tickSize(4).tickPadding(4))
+            .call(g => g.select('.domain').attr('stroke', '#ccc'))
+            .call(g => g.selectAll('.tick line').attr('stroke', '#ccc'))
+            .call(g => g.selectAll('.tick text').style('font-size', '8px').style('fill', '#666'))
+
+          eaG.append('g')
+            .call(d3.axisLeft(eaY).ticks(5).tickSize(4).tickPadding(4).tickFormat(d3.format('.1f')))
+            .call(g => g.select('.domain').attr('stroke', '#ccc'))
+            .call(g => g.selectAll('.tick line').attr('stroke', '#ccc'))
+            .call(g => g.selectAll('.tick text').style('font-size', '8px').style('fill', '#666'))
+
+          eaG.append('text')
+            .attr('transform', `translate(-35,${eaInnerH / 2}) rotate(-90)`)
+            .style('text-anchor', 'middle')
+            .style('font-size', '8px')
+            .style('fill', '#666')
+            .text(tvknUnit)
+
+          const eaYTicks = eaY.ticks(5)
+          const eaBandGroup = eaG.append('g').attr('class', 'grid-bands')
+          eaBandGroup.selectAll('rect')
+            .data(d3.range(0, eaYTicks.length - 1, 2))
+            .enter()
+            .append('rect')
+            .attr('x', 0)
+            .attr('y', i => eaY(eaYTicks[i + 1]))
+            .attr('width', eaInnerW)
+            .attr('height', i => eaY(eaYTicks[i]) - eaY(eaYTicks[i + 1]))
+            .style('fill', '#f8f8f8')
+          eaBandGroup.lower()
+
+          const eaStackData = years.map(yr => {
+            const obj = { year: yr }
+            inputCarriers.forEach(carrier => {
+              const val = optionCarrierData[yr][carrier] || 0
+              obj[carrier] = val > 0 ? convertUnit(val) : 0
+            })
+            return obj
+          })
+
+          const eaStack = d3.stack()
+            .keys(inputCarriers)
+            .order(d3.stackOrderNone)
+            .offset(d3.stackOffsetNone)
+
+          const eaSeries = eaStack(eaStackData)
+
+          const eaArea = d3.area()
+            .x(d => eaX(d.data.year))
+            .y0(d => eaY(d[0]))
+            .y1(d => eaY(d[1]))
+
+          eaSeries.forEach(s => {
+            const color = carrierColorMapping[s.key] || '#999'
+            eaG.append('path')
+              .datum(s)
+              .attr('fill', color)
+              .attr('opacity', 0.8)
+              .attr('d', eaArea)
+          })
+
+          // Tooltip
+          const eaTooltip = eaSvg.append('g')
+            .style('display', 'none')
+            .style('pointer-events', 'none')
+
+          eaTooltip.append('rect')
+            .attr('rx', 3)
+            .attr('ry', 3)
+            .attr('fill', '#333')
+            .attr('opacity', 0.9)
+
+          const eaTooltipText = eaTooltip.append('text')
+            .attr('fill', '#fff')
+            .style('font-size', '9px')
+            .attr('text-anchor', 'middle')
+
+          years.forEach(yr => {
+            const totalVal = convertUnit(optionEnergyData[yr] || 0)
+
+            eaG.append('circle')
+              .attr('cx', eaX(yr))
+              .attr('cy', eaY(totalVal))
+              .attr('r', 2)
+              .attr('fill', '#666')
+              .attr('stroke', '#fff')
+              .attr('stroke-width', 0.5)
+              .style('cursor', 'pointer')
+              .on('mouseover', function() {
+                d3.select(this).attr('r', 3)
+                eaTooltip.style('display', 'block')
+                eaTooltipText.selectAll('tspan').remove()
+
+                eaTooltipText.append('tspan')
+                  .attr('x', 0)
+                  .attr('dy', '1em')
+                  .style('font-weight', 'bold')
+                  .text(`${yr}: ${d3.format('.1f')(totalVal)} ${tvknUnit}`)
+
+                inputCarriers.forEach(carrier => {
+                  const cVal = convertUnit(optionCarrierData[yr][carrier] || 0)
+                  if (cVal > 0.05) {
+                    eaTooltipText.append('tspan')
+                      .attr('x', 0)
+                      .attr('dy', '1.2em')
+                      .style('font-weight', 'normal')
+                      .text(`${carrier}: ${d3.format('.1f')(cVal)}`)
+                  }
+                })
+
+                const bbox = eaTooltipText.node().getBBox()
+                const pad = 5
+                eaTooltip.select('rect')
+                  .attr('x', -bbox.width / 2 - pad)
+                  .attr('y', 0)
+                  .attr('width', bbox.width + pad * 2)
+                  .attr('height', bbox.height + pad * 2)
+                eaTooltipText.attr('transform', `translate(0, ${pad - bbox.y})`)
+
+                const tx = eaMargin.left + eaX(yr)
+                const ty = eaMargin.top + eaY(totalVal) - bbox.height - pad * 2 - 8
+                eaTooltip.attr('transform', `translate(${tx},${Math.max(eaMargin.top, ty)})`)
+              })
+              .on('mouseout', function() {
+                d3.select(this).attr('r', 2)
+                eaTooltip.style('display', 'none')
+              })
+          })
+
+          contentDiv.appendChild(eaChartDiv)
+        }
+
+        // ── Multi-year energy flows table ──────────────────────────────
+        {
+          const allOptFlows = flows.filter(row => row.Option === opt)
+          if (allOptFlows.length > 0) {
+            // Build per-year carrier data for inputs, outputs, CO2
+            const yrInputs = {}   // { year -> { carrier -> value } }
+            const yrOutputs = {}
+            const yrCO2 = {}
+            const allInCarriers = new Set()
+            const allOutCarriers = new Set()
+
+            years.forEach(yr => {
+              yrInputs[yr] = {}
+              yrOutputs[yr] = {}
+              yrCO2[yr] = 0
+            })
+
+            allOptFlows.forEach(row => {
+              const yr = parseInt(row.Year)
+              if (!years.includes(yr)) return
+              const carrier = row.Carrier
+              const val = parseVal(row.Value)
+
+              if (carrier === 'CO2Flow' || carrier === 'CO2flow') {
+                yrCO2[yr] += val
+                return
+              }
+
+              if (val > 0) {
+                yrInputs[yr][carrier] = (yrInputs[yr][carrier] || 0) + val
+                allInCarriers.add(carrier)
+              } else {
+                yrOutputs[yr][carrier] = (yrOutputs[yr][carrier] || 0) + Math.abs(val)
+                allOutCarriers.add(carrier)
+              }
+            })
+
+            const fmt = d => d3.format('.1f')(convertUnit(d))
+
+            const sInCarriers = [...allInCarriers].sort((a, b) => {
+              const lastYr = years[years.length - 1]
+              return (yrInputs[lastYr][b] || 0) - (yrInputs[lastYr][a] || 0)
+            })
+            const sOutCarriers = [...allOutCarriers].sort((a, b) => {
+              const lastYr = years[years.length - 1]
+              return (yrOutputs[lastYr][b] || 0) - (yrOutputs[lastYr][a] || 0)
+            })
+
+            const hasCO2 = years.some(yr => yrCO2[yr] !== 0)
+
+            const flowsTableDiv = document.createElement('div')
+            flowsTableDiv.style.cssText = 'margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0; font-size: 9px; overflow-x: auto;'
+
+            let tHTML = `<div style="font-weight: 600; margin-bottom: 4px;">Energy Flows (${tvknUnit})</div>`
+            tHTML += `<table style="width:100%; border-collapse: collapse; font-size: 9px;">`
+            tHTML += `<thead><tr style="border-bottom: 2px solid #ddd;">`
+            tHTML += `<th style="text-align:left; padding: 2px 4px; font-weight: 600; color: #555;">Carrier</th>`
+            years.forEach(yr => {
+              tHTML += `<th style="text-align:right; padding: 2px 4px; font-weight: 600; color: #555;">${yr}</th>`
+            })
+            tHTML += `</tr></thead><tbody>`
+
+            if (sInCarriers.length > 0) {
+              tHTML += `<tr><td colspan="${years.length + 1}" style="padding: 3px 4px 1px; font-weight: 600; color: #222;">Inputs</td></tr>`
+              sInCarriers.forEach(carrier => {
+                const color = carrierColorMapping[carrier] || '#999'
+                tHTML += `<tr style="border-bottom: 1px solid #f0f0f0;">`
+                tHTML += `<td style="padding: 1px 4px; display: flex; align-items: center; gap: 3px;"><span style="width: 6px; height: 6px; border-radius: 50%; background:${color}; display:inline-block; flex-shrink:0;"></span>${carrier}</td>`
+                years.forEach(yr => {
+                  const val = yrInputs[yr][carrier] || 0
+                  const display = Math.abs(convertUnit(val)) < 0.05 ? '-' : fmt(val)
+                  tHTML += `<td style="text-align:right; padding: 1px 4px; color: #444;">${display}</td>`
+                })
+                tHTML += `</tr>`
+              })
+              // Total input row
+              tHTML += `<tr style="border-top: 1px solid #ccc;">`
+              tHTML += `<td style="padding: 2px 4px; font-weight: 600; color: #000;">Total input</td>`
+              years.forEach(yr => {
+                let total = 0
+                sInCarriers.forEach(c => { total += yrInputs[yr][c] || 0 })
+                tHTML += `<td style="text-align:right; padding: 2px 4px; font-weight: 600; color: #000;">${fmt(total)}</td>`
+              })
+              tHTML += `</tr>`
+            }
+
+            if (sOutCarriers.length > 0) {
+              tHTML += `<tr><td colspan="${years.length + 1}" style="padding: 4px 4px 1px; font-weight: 600; color: #222;">Outputs</td></tr>`
+              sOutCarriers.forEach(carrier => {
+                const color = carrierColorMapping[carrier] || '#999'
+                tHTML += `<tr style="border-bottom: 1px solid #f0f0f0;">`
+                tHTML += `<td style="padding: 1px 4px; display: flex; align-items: center; gap: 3px;"><span style="width: 6px; height: 6px; border-radius: 50%; background:${color}; display:inline-block; flex-shrink:0;"></span>${carrier}</td>`
+                years.forEach(yr => {
+                  const val = yrOutputs[yr][carrier] || 0
+                  const display = Math.abs(convertUnit(val)) < 0.05 ? '-' : fmt(val)
+                  tHTML += `<td style="text-align:right; padding: 1px 4px; color: #444;">${display}</td>`
+                })
+                tHTML += `</tr>`
+              })
+              // Total output row
+              tHTML += `<tr style="border-top: 1px solid #ccc;">`
+              tHTML += `<td style="padding: 2px 4px; font-weight: 600; color: #000;">Total output</td>`
+              years.forEach(yr => {
+                let total = 0
+                sOutCarriers.forEach(c => { total += yrOutputs[yr][c] || 0 })
+                tHTML += `<td style="text-align:right; padding: 2px 4px; font-weight: 600; color: #000;">${fmt(total)}</td>`
+              })
+              tHTML += `</tr>`
+            }
+
+            if (hasCO2) {
+              tHTML += `<tr style="border-bottom: 1px solid #f0f0f0;">`
+              tHTML += `<td style="padding: 2px 4px; font-weight: 600; color: #666;">CO₂ (Mton)</td>`
+              years.forEach(yr => {
+                const co2 = yrCO2[yr]
+                const display = Math.abs(co2) < 0.05 ? '-' : d3.format('.1f')(co2)
+                tHTML += `<td style="text-align:right; padding: 2px 4px; color: ${co2 < 0 ? '#000' : '#c44'}; font-weight: 500;">${display}</td>`
+              })
+              tHTML += `</tr>`
+            }
+
+            tHTML += `</tbody></table>`
+            flowsTableDiv.innerHTML = tHTML
+            contentDiv.appendChild(flowsTableDiv)
+          }
+        }
 
         if (metadata) {
           // Create a two-column grid for metadata
@@ -2059,11 +2723,10 @@
       itemDiv.appendChild(symbolSvg)
 
       const label = document.createElement('span')
-      label.style.cssText = 'font-size: 9px; color: #333;'
-      const displayName = item.type === 'output'
-        ? (item.name.length > 12 ? item.name.slice(0, 10) + '…' : item.name) + ' (out)'
-        : item.name.length > 18 ? item.name.slice(0, 16) + '…' : item.name
+      label.style.cssText = 'font-size: 11px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'
+      const displayName = item.type === 'output' ? item.name + ' (out)' : item.name
       label.textContent = displayName
+      label.title = displayName
       if (item.type === 'total') {
         label.style.fontWeight = '600'
       }
@@ -2143,6 +2806,7 @@
       .attr('preserveAspectRatio', 'xMidYMid meet')
       .style('width', '100%')
       .style('height', 'auto')
+      .style('overflow', 'visible')
 
     const g = svg.append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`)
@@ -2150,7 +2814,7 @@
     svg.append('text')
       .attr('x', margin.left)
       .attr('y', 17)
-      .style('font-size', '11px')
+      .style('font-size', '9px')
       .style('font-weight', '600')
       .style('fill', '#222')
       .text(title)

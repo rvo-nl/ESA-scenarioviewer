@@ -595,7 +595,7 @@ function initializeSankeyExportButton() {
       // Create the flux export button
       const fluxButton = document.createElement('button')
       fluxButton.id = 'sankeyFluxButton'
-      fluxButton.textContent = 'Export flux (xlsx)'
+      fluxButton.textContent = 'Export fluxfile (xlsx)'
       fluxButton.style.width = '110px'
       fluxButton.style.height = '26px'
       fluxButton.style.padding = '0'

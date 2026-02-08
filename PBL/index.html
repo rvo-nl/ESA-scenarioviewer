@@ -6,7 +6,7 @@
   <!-- Basic Page Needs
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <meta charset="utf-8">
-  <title>Scenarioviewer ESA PBL </title>
+  <title>Flux | PBL </title>
   <meta name="description" content="">
   <meta name="author" content="">
 
@@ -36,13 +36,8 @@
 </head>
 
 <script>
-  dataSource = 'file';
-  // let dataSource = 'url'
-
-  let projectID = 'ESA'
-  let productID = 'A'
-  let versionID = 'v5'
-
+  dataSource = 'production';
+  // let dataSource = 'development'
   // let sankeyData = { links: [], nodes: [], order: [] }
 </script>
 
@@ -50,28 +45,45 @@
   <div id="liner"></div>
   <div id="loadFileDialog"></div>
   <div id="showValueOnHover"></div>
-  <script>
-    // Conditionally show welcome screen based on data source
-    if (dataSource === 'file') {
-      // Show modern login screen for encrypted file access
-      // <div class="version-badge">v${versionID} • ${projectID}_${productID}</div>
-      document.getElementById('loadFileDialog').innerHTML = `
-        <div class="welcome-container">
-          <div class="welcome-card">
-            <div class="welcome-header">
-            
-              <h1 class="welcome-title" style="font-size: 40px!important;">Scenarioviewer</h1>
-               <h1 class="welcome-title" style="font-size: 20px!important;">PBL</h1>
-              <p class="welcome-subtitle"></p>
-              <div class="version-badge">AT • TVKN • WLO • NBNL • NPE • KEV</div>
-            </div>
-            <div class="welcome-content">
-              <div class="input-group">
-                <div class="input-wrapper" id="passphraseWrapper">
-                  <!-- Passphrase input will be inserted here -->
-                </div>
+  <div id="main-container">
+    <div class="content-fullwidth" style="padding:0px">
+      <div id="topRightLabel" class="Adconcept-label" style="float: right;">
+        CONCEPT
+      </div>
+      <div class="content-fullwidth" style="padding:0px;background-color: white;">
+        <div id="versionLabel" class="version-label" style="display: none;">
+        </div>
+      </div>
+
+      <div class="full-width-container">
+        <!-- Login section: shown when dataSource is 'production', hidden after successful login -->
+        <div id="loginSection" style="display: none; min-height: 100vh;">
+          <div class="content-constrained"
+            style="background-color: white; padding-top: 140px; padding-bottom: 100px; text-align: center; position: relative; min-height: 100vh; box-sizing: border-box;">
+            <p class="welcome-title"
+              style="font-size: 50px; font-weight: 200; margin-bottom: 2px; color: #1a202c; display: flex; align-items: center; justify-content: space-between; max-width: 320px; margin: 0 auto 2px;">
+              <span
+                style="display:inline-grid;grid-template-columns:repeat(3,8px);gap:7px;flex-shrink:0;vertical-align:middle;">
+                <span style="display:block;width:8px;height:8px;background:#F8D377;"></span>
+                <span style="display:block;width:8px;height:8px;background:#7555F6;"></span>
+                <span style="display:block;width:8px;height:8px;background:#DD5471;"></span>
+                <span style="display:block;width:8px;height:8px;background:#3F88AE;"></span>
+                <span style="display:block;width:8px;height:8px;background:#E99172;"></span>
+                <span style="display:block;width:8px;height:8px;background:#777;"></span>
+                <span style="display:block;width:8px;height:8px;background:#f8b8c1;"></span>
+                <span style="display:block;width:8px;height:8px;background:#37765C;"></span>
+                <span style="display:block;width:8px;height:8px;background:#62D3A4;"></span>
+              </span>
+              FLUX <span style="font-weight:100"></span> <span style="font-size:12px; font-weight: 500;">PBL</span>
+            </p>
+            <br>
+
+            <!-- <div class="version-badge" style="margin-bottom: 36px;">AT &bull; TVKN &bull; WLO &bull; NBNL &bull; NPE &bull; KEV &bull; CBS</div> -->
+            <div style="max-width: 320px; margin: 0 auto; text-align: left;">
+              <div class="input-wrapper" id="passphraseWrapper">
+                <!-- Passphrase input will be inserted here -->
               </div>
-              <div class="button-group" id="buttonGroup">
+              <div class="button-group" id="buttonGroup" style="margin-top: 12px;">
                 <!-- Decrypt button will be inserted here -->
               </div>
               <div class="status-message" id="statusMessage">
@@ -79,353 +91,337 @@
               </div>
             </div>
           </div>
-          <div class="welcome-footer">
-          </div>
         </div>
-      `;
-    } else {
-      // For URL mode, hide the dialog and show minimal loading state
-      document.getElementById('loadFileDialog').innerHTML = `
-        <div style="display: none;">
-          <span style="font-weight:300;font-size:28px">Loading data...</span>
-          <br><br>
-          <span style="font-weight:400;font-size:12px">script: 
-            ${projectID}_${productID}_${versionID}</span>
-        </div>
-      `;
-    }
-  </script>
-  <div id="main-container">
-    <div class="content-fullwidth" style="padding:0px">
-      <div id="topRightLabel" class="concept-label" style="float: right;">
-        ...
-      </div>
-      <div class="content-fullwidth" style="padding:0px;background-color: white;">
-        <div id="versionLabel" class="version-label">
-          ...
-        </div>
-      </div>
 
-      <div class="full-width-container">
-        <div class="content-constrained" style="background-color: white;">
-          <br><br><br>
-          <h3>Scenarioviewer</h3>
-          <br><br>
-          <p style="line-height:30px; width: 70%;">
-            Netbeheer Nederland, het Planbureau voor de Leefomgeving (PBL) en TNO doen scenario-studies met het
-            ETM en OPERA model
-            waarin zij het toekomstige energiesysteem verkennen en analyseren. Deze viewer bundelt de uitkomsten uit een
-            aantal studies in een
-            uniform dataformaat om ze integraal met elkaar te kunnen vergelijken.</p>
-        </div>
-        <!-- <div class="content-fullwidth" style="padding:0px;background-color:#DCE6EF;height:40px;"></div> -->
-        <div class="content-fullwidth sticky" style="background-color:#DCE6EF;padding-bottom:0px;padding-top:0px;">
-          <div class="menuContainer" id="menuContainer">
-            <div class="menuContainer-part" id="scenarioButtons">
-              <div class="menu-label">Scenario</div>
-            </div>
-            <div class="menuContainer-part" id="yearButtons">
-              <div class="menu-label">Jaar</div>
-            </div>
-            <div class="menuContainer-part" id="sankeyEnergiestromenSelectieMenu">
-              <div class="menu-label">Scope</div>
-            </div>
-            <div class="menuContainer-part" id="exportButtonsContainer">
-              <div class="menu-label">Export</div>
+        <!-- Viewer content: hidden initially when dataSource is 'production', shown after login -->
+        <div id="viewerContent">
+          <div class="content-constrained" style="background-color: white;">
+            <br><br><br>
+            <h3 style="display:flex;align-items:center;gap:20px;">
+              <div style="display:inline-grid;grid-template-columns:repeat(3,6px);gap:7px;flex-shrink:0;">
+                <div style="width:6px;height:6px;background:#F8D377;"></div>
+                <div style="width:6px;height:6px;background:#7555F6;"></div>
+                <div style="width:6px;height:6px;background:#DD5471;"></div>
+                <div style="width:6px;height:6px;background:#3F88AE;"></div>
+                <div style="width:6px;height:6px;background:#E99172;"></div>
+                <div style="width:6px;height:6px;background:#777;"></div>
+                <div style="width:6px;height:6px;background:#f8b8c1;"></div>
+                <div style="width:6px;height:6px;background:#37765C;"></div>
+                <div style="width:6px;height:6px;background:#62D3A4;"></div>
+              </div><span style="font-weight:300;font-size:44px;color:#888">FLUX</span>
+            </h3>
+            <br><br>
+            <p style="line-height:30px; width: 70%;">
+              FLUX bundelt energiesysteemdata uit modelprojecties en statistiek in een interactieve viewer. Dit is op
+              dit moment toegespitst op
+              het analyseren van energie- en materiaalstromen.
+              In toekomstige updates volgen nieuwe secties met verdieping in ruimtelijke, financiële,
+              temporele en beleidsmatige aspecten.</p>
+          </div>
+          <!-- <div class="content-fullwidth" style="padding:0px;background-color:#DCE6EF;height:40px;"></div> -->
+          <div class="content-fullwidth sticky" style="background-color:#DCE6EF;padding-bottom:0px;padding-top:0px;">
+            <div class="menuContainer" id="menuContainer">
+              <div class="menuContainer-part" id="scenarioButtons">
+                <div class="menu-label">Scenario</div>
+              </div>
+              <div class="menuContainer-part" id="yearButtons">
+                <div class="menu-label">Jaar</div>
+              </div>
+              <div class="menuContainer-part" id="sankeyEnergiestromenSelectieMenu">
+                <div class="menu-label">Scope</div>
+              </div>
+              <div class="menuContainer-part" id="exportButtonsContainer">
+                <div class="menu-label">Export</div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="content-fullwidth" style="padding:0px;background-color:#EEF5FA">
-          <div id="unitSelector"></div>
-          <div class="content-fullwidth" style="padding-bottom:0px;">
-            <br>
-            <h4 style="margin-bottom:0px;margin-left:15px;" id="sankeyTitle">Integraal</h4>
-          </div>
+          <div id="section-sankey">
+            <div class="content-fullwidth" style="padding:0px;background-color:#EEF5FA">
+              <div id="unitSelector"></div>
+              <div class="content-fullwidth" style="padding-bottom:0px;">
+                <br>
+                <h4 style="margin-bottom:0px;margin-left:15px;" id="sankeyTitle">Integraal</h4>
+              </div>
 
-          <div class="content-constrained" style="padding-bottom:0px;padding-top:30px;">
-          </div>
-        </div>
-
-        <div class="content-fullwidth" id="SVGContainer_energyflows">
-          <div id="popupContainer"> </div>
-        </div>
-        <div id="opmerkingen_bij_sankey_ii3050v3" class="note-box" style="display:none;">
-          <p style="font-weight: bold; margin-top: 0; margin-bottom: 2em;">
-            Aandachtspunten bij de visualisatie van data uit II3050 versie 3
-          </p>
-          <p style="margin-bottom: 2.5em;">
-            Op de visualisaties van de scenario's uit de II3050 versie 3 zijn de volgende
-            aandachtspunten van toepassing.
-          </p>
-          <ul style="list-style-type: disc; margin-left: 0; padding-left: 2.2em; max-width: 900px;">
-            <div style="display: flex; flex-direction: column; gap: 0.0em; margin-bottom: 2.5em;">
-              <span style="font-weight: bold;">Subsector kunstmest valt onder chemie</span>
-              <span style="margin-left: 0; text-indent: 0; margin-top: 0.2em;margin-bottom: 0.0em;">
-                Om anonimiteit te behouden zijn de gegevens over energie- en grondstofgebruik in de subsector kunstmest
-                samengevoegd met die van de bredere chemiesector.
-              </span>
+              <div class="content-constrained" style="padding-bottom:0px;padding-top:30px;">
+              </div>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 0em; margin-bottom: 2.5em;">
-              <span style="font-weight: bold;">Synthetische brand- en grondstoffen vallen onder
-                biobrandstoffen</span>
-              <span style="margin-left: 0; text-indent: 0; margin-top: 0.2em;">
-                Het Energie Transitie Model (ETM) kent momenteel geen aparte categorie om synthetische brand- of
-                grondstoffen
-                als energiedrager weer te geven. In de modelleringen van II3050 v3 is in het achterliggende Carbon
-                Transition Model (CTM) echter wél met vraag en aanbod van synthetische brandstoffen gerekend.
-                Als voorlopige workaround zijn deze volumes in de ETM-boekhouding ondergebracht onder de categorie
-                biobrandstoffen/-grondstoffen. Daardoor vallen synthetische brand- en grondstoffen ook in het
-                Sankey-diagram
-                vooralsnog onder de categorie ‘biomassa(derivaten)’.
-              </span>
+            <div class="content-fullwidth" id="SVGContainer_energyflows">
+              <div id="popupContainer"> </div>
             </div>
-          </ul>
-        </div>
 
-        <div class="content-fullwidth" style="background-color:#EEF5FA">
-          <div class="content-constrained">
-            <blockquote style="background-color:none;margin-left:30px;border-left:0.5rem solid #999">
-              <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#carriersCollapse"
-                aria-expanded="false" aria-controls="carriersCollapse">
+            <div class="content-fullwidth" style="background-color:#EEF5FA">
+              <div class="content-constrained">
+                <blockquote style="background-color:none;margin-left:30px;border-left:0.5rem solid #999">
+                  <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#carriersCollapse"
+                    aria-expanded="false" aria-controls="carriersCollapse">
+                    <span class="toggle-icon">+</span>
+                    <span style="margin-left:30px;">Mapping dragers - flows
+                    </span>
+                  </div>
+
+                  <div class="collapse mt-2" id="carriersCollapse">
+                    <div class="card card-body" style="border:none;background-color: #EEF5FA;">
+                      <div style="width:100%;margin-left:0px;">
+                        <p>De energiedragers uit de OPERA, ETM en CBS-data zijn, conform de indeling in onderstaande
+                          tabel,
+                          samengevoegd tot 21 hoofdcategorieën en geaggregeerd in het diagram weergegeven.</p>
+                        <table style="font-size:12px;">
+                          <thead>
+                            <tr>
+                              <th>Diagram</th>
+                              <th>OPERA</th>
+                              <th>ETM</th>
+                              <th>CBS Energiebalans</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>Ammoniak</td>
+                              <td>Ammonia, Ammonia export, Ammonia import</td>
+                              <td>ammonia, imported_ammonia</td>
+                              <td></td>
+
+                            </tr>
+                            <tr>
+                              <td>Afval</td>
+                              <td>Afval (niet-biogeen)</td>
+                              <td>non_biogenic_waste</td>
+                              <td>Niet biogeen Indu afval + overige gassen, Niet hernieuwbaar huishuidelijk afval</td>
+                            </tr>
+                            <tr>
+                              <td>Biomassa ruw</td>
+                              <td>
+                                Biomassa (afval biogeen), Biomassa (AWZ, RWZ en STRT), Biomassa (GFT & VGI), Biomassa
+                                (hout
+                                binnenland),
+                                Biomassa (hout buitenland), Biomassa (hout buitenland), expensive part, Biomassa (hout),
+                                Biomassa
+                                (suikers), Biomassa (UCO buitenland), Biomassa (zetmeel) E-inhoud
+                                mest</td>
+                              <td>wet_biomass, dry_biomass, oily_biomass, biogenic_waste
+                              </td>
+                              <td>Vaste biomassa, exclusief houtskool, Hernieuwbaar huishoudelijk afval</td>
+                            </tr>
+                            <tr>
+                              <td>Biomassa product</td>
+                              <td>Bio-DME, Bio-ethanol, Bio-LNG for shipping, Bio-LPG, Bio-Methanol for shipping,
+                                Bio-restgassen, Biobenzine, Biodiesel, BioHFO, Biokerosine, Biomass
+                                Pyrolysis Oil, Biomethanol, Bionaphta, Overige bio-olieproducten, Bio-aromatics</td>
+                              <td>wood_pellets, biogas, bio_kerosene, biodiesel, bio_oil, greengas,
+                                torrefied_biomass_pellets, bio_ethanol, bio_lng
+                              </td>
+                              <td>Houtskool, Biobenzine puur, Biobenzine bijgemengd, Biodiesel puur, Biodiesel gemengd
+                                in
+                                gas- en dieselolie, Biokerosine puur, Biokerosine bijgemengd, Overige vloeibare
+                                biomassa,
+                                Biogas, </td>
+                            </tr>
+                            <tr>
+                              <td>Elektriciteit</td>
+                              <td>Electricity</td>
+                              <td>electricity</td>
+                              <td>Elektriciteit</td>
+                            </tr>
+                            <tr>
+                              <td>Overige</td>
+                              <td>Ethylene</td>
+                              <td>gas_power_fuelmix, waste_mix</td>
+                              <td>Gasexpansie-energie</td>
+                            </tr>
+                            <tr>
+                              <td>Geothermie</td>
+                              <td>Aardwarmte</td>
+                              <td>geothermal</td>
+                              <td>Aardwarmte</td>
+                            </tr>
+                            <tr>
+                              <td>Kolen(derivaten)</td>
+                              <td>Cokes, Cokesovengas, Hoogovengas, Kolen</td>
+                              <td>coal, cokes, coal_gas, lignite</td>
+                              <td>Steenkool en bruinkool, Antraciet, Cokeskool, Ketelkolen, Bruinkool, Cokesovencokes,
+                                Fabriekscokes, Bruinkoolbriketten, Steenkoolbriketten, Steenkoolteer, Fabrieksgas,
+                                Cokesovengas, Hoogovengas</td>
+                            </tr>
+                            <tr>
+                              <td>Methaan</td>
+                              <td>Aardgas, Aardgas feedstock, Gas winning, Biogas</td>
+                              <td>network_gas, lng, natural_gas, compressed_network_gas</td>
+                              <td>Aardgas</td>
+                            </tr>
+                            <tr>
+                              <td>Methanol (fossiel)</td>
+                              <td>Methanol, Methanol for shipping</td>
+                              <td>methanol</td>
+                              <td>-</td>
+                            </tr>
+                            <tr>
+                              <td>Ruwe aardoliegrondstoffen</td>
+                              <td>Olie, Oliegrondstoffen</td>
+                              <td>crude_oil</td>
+                              <td>Ruwe aardolie, Aardgascondensaat, Additieven, Overige aardoliegrondstoffen</td>
+                            </tr>
+                            <tr>
+                              <td>Olieproducten</td>
+                              <td>Benzine, Diesel, HFO, Kerosine, LNG for shipping, LPG, Naphta,
+                                Overige
+                                olieproducten, Restgassen, Aromatics</td>
+                              <td>diesel, kerosene, lpg, heavy_fuel_oil, gasoline, propane, refinery_gas</td>
+                              <td>Restgassen uit olie, Lpg, Nafta, Motorbenzine fossiele deel, Jetfuel op benzinebasis,
+                                Vliegtuigbenzine, Vliegtuigkerosine fossiel, Overige kerosine (petroleum), Gas- en
+                                dieselolie fossiele deel, Zware stookolie, Terpentine en speciale benzine,
+                                Smeermiddelen,
+                                Bitumen, Minerale wassen, Petroleumcokes, Overige aardolieproducten</td>
+                            </tr>
+                            <tr>
+                              <td>Omgevingswarmte</td>
+                              <td>Omgevingswarmte</td>
+                              <td>ambient_heat</td>
+                              <td>Omgevingsenergie</td>
+                            </tr>
+                            <tr>
+                              <td>Plastic afval</td>
+                              <td>Plastic waste, Rejected plastic waste</td>
+                              <td>-</td>
+                              <td>-</td>
+                            </tr>
+                            <tr>
+                              <td>Restwarmte</td>
+                              <td>Industrial Waste Heat</td>
+                              <td>-</td>
+                            </tr>
+                            <tr>
+                              <td>Synthetisch</td>
+                              <td>Synthetic benzine, Synthetic diesel, Synthetic HFO, Synthetic kerosine, Synthetic LNG
+                                for
+                                shipping,
+                                Synthetic LPG, Synthetic naphtha, Synthetic waste gasses, Synthetische brandstoffen uit
+                                FT,
+                                Synthetic methanol, Synthetic methanol for shipping,
+                                Other
+                                synthetic oil products, Synthetic aromatics</td>
+                              <td>-</td>
+                            </tr>
+                            <tr>
+                              <td>Uranium</td>
+                              <td>Uranium</td>
+                              <td>uranium_oxide</td>
+                              <td>Kernenergie</td>
+                            </tr>
+                            <tr>
+                              <td>Warmte</td>
+                              <td>Heat100to200, Heat200to400, HeatDir200to400, HeatHT400, Warmte</td>
+                              <td>steam_hot_water, imported_heat</td>
+                              <td>Warmte, Warmte uit chemische reacties</td>
+                            </tr>
+                            <tr>
+                              <td>Waterstof</td>
+                              <td>Hydrogen import, Hydrogen export, Waterstof</td>
+                              <td>hydrogen, liquid_hydrogen, lohc, imported_hydrogen, imported_liquid_hydrogen,
+                                imported_lohc</td>
+                              <td>Waterstof</td>
+                            </tr>
+                            <tr>
+                              <td>Wind</td>
+                              <td>Wind</td>
+                              <td>wind</td>
+                              <td>Windenergie op land, Windenergie op zee</td>
+                            </tr>
+                            <tr>
+                              <td>Zon</td>
+                              <td>Zon</td>
+                              <td>solar_radiation</td>
+                              <td>Zonnestroom</td>
+                            </tr>
+                            <tr>
+                              <td>Zon thermisch</td>
+                              <td>Zon thermisch</td>
+                              <td>solar_thermal</td>
+                              <td>Zonnewarmte</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </blockquote>
+
+                <br>
+                <script>
+                  document.addEventListener('DOMContentLoaded', () => {
+                    const toggleButtons = document.querySelectorAll('.collapse-toggle');
+
+                    toggleButtons.forEach(button => {
+                      button.addEventListener('click', function () {
+                        const icon = this.querySelector('.toggle-icon');
+                        const isExpanded = this.getAttribute('aria-expanded') === 'true';
+
+                        icon.textContent = isExpanded ? '-' : '+';
+                        icon.setAttribute('data-toggle-state', isExpanded ? '+' : '-');
+                      });
+                    });
+                  });
+                </script>
+
+              </div>
+            </div>
+          </div>
+
+
+          <div id="section-capacity" class="content-constrained"
+            style="padding-bottom:20px;padding-top:40px;background-color: #DCE6EF; margin-bottom:30px; position: relative;">
+            <h4>Opgesteld vermogen elektriciteitsproductie</h4>
+
+            <div id="capacityVisualizationContainer"></div>
+
+            <blockquote style="background-color:none;margin-left:30px;border-left:0.5rem solid #999;margin-top:30px;">
+              <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#capacityMappingsCollapse"
+                aria-expanded="false" aria-controls="capacityMappingsCollapse">
                 <span class="toggle-icon">+</span>
-                <span style="margin-left:30px;">Mapping dragers - flows
+                <span style="margin-left:30px;">Mapping production parameters - categories
                 </span>
               </div>
 
-              <div class="collapse mt-2" id="carriersCollapse">
-                <div class="card card-body" style="border:none;background-color: #EEF5FA;">
-                  <div style="width:100%;margin-left:35px;">
-                    <p>De energiedragers uit de OPERA- en ETM-data zijn, conform de indeling in onderstaande tabel,
-                      samengevoegd tot 20 hoofdcategorieën en geaggregeerd weergegeven in het diagram.</p>
-                    <table style="font-size:12px;">
-                      <thead>
-                        <tr>
-                          <th>Flows diagram</th>
-                          <th>Flows model (OPERA)</th>
-                          <th>Flows model (ETM)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>Ammoniak</td>
-                          <td>Ammonia, Ammonia export, Ammonia import</td>
-                          <td>ammonia, imported_ammonia</td>
+              <div class="collapse mt-2" id="capacityMappingsCollapse">
+                <div class="card card-body" style="border:none;background-color: #DCE6EF;">
+                  <div style="width:100%;margin-left:0px;">
+                    <p>De elektriciteitsproductietechnologieën uit de OPERA- en ETM-data zijn, conform de indeling
+                      hieronder,
+                      samengevoegd tot categorieën en weergegeven in de grafieken.</p>
 
-                        </tr>
-                        <tr>
-                          <td>Afval</td>
-                          <td>Afval (niet-biogeen)</td>
-                          <td>non_biogenic_waste</td>
-                        </tr>
-                        <tr>
-                          <td>Biomassa ruw</td>
-                          <td>
-                            Biomassa (afval biogeen), Biomassa (AWZ, RWZ en STRT), Biomassa (GFT & VGI), Biomassa (hout
-                            binnenland),
-                            Biomassa (hout buitenland), Biomassa (hout buitenland), expensive part, Biomassa (hout),
-                            Biomassa
-                            (suikers), Biomassa (UCO buitenland), Biomassa (zetmeel) E-inhoud
-                            mest</td>
-                          <td>wet_biomass, dry_biomass, oily_biomass, biogenic_waste
-                          </td>
-                        </tr>
-                        <tr>
-                          <td>Biomassa product</td>
-                          <td>Bio-DME, Bio-ethanol, Bio-LNG for shipping, Bio-LPG, Bio-Methanol for shipping,
-                            Bio-restgassen, Biobenzine, Biodiesel, BioHFO, Biokerosine, Biomass
-                            Pyrolysis Oil, Biomethanol, Bionaphta, Overige bio-olieproducten, Bio-aromatics</td>
-                          <td>wood_pellets, biogas, bio_kerosene, biodiesel, bio_oil, greengas,
-                            torrefied_biomass_pellets, bio_ethanol, bio_lng
-                          </td>
-                        </tr>
-                        <tr>
-                          <td>Elektriciteit</td>
-                          <td>Electricity</td>
-                          <td>electricity</td>
-                        </tr>
-                        <tr>
-                          <td>Overige</td>
-                          <td>Ethylene</td>
-                          <td>gas_power_fuelmix, waste_mix</td>
-                        </tr>
-                        <tr>
-                          <td>Geothermie</td>
-                          <td>Aardwarmte</td>
-                          <td>geothermal</td>
-                        </tr>
-                        <tr>
-                          <td>Kolen(derivaten)</td>
-                          <td>Cokes, Cokesovengas, Hoogovengas, Kolen</td>
-                          <td>coal, cokes, coal_gas, lignite</td>
-                        </tr>
-                        <tr>
-                          <td>Methaan</td>
-                          <td>Aardgas, Aardgas feedstock, Gas winning, Biogas</td>
-                          <td>network_gas, lng, natural_gas, compressed_network_gas</td>
-                        </tr>
-                        <tr>
-                          <td>Methanol (fossiel)</td>
-                          <td>Methanol, Methanol for shipping</td>
-                          <td>methanol</td>
-                        </tr>
-                        <tr>
-                          <td>Olie(derivaten)</td>
-                          <td>Benzine, Diesel, HFO, Kerosine, LNG for shipping, LPG, Naphta, Olie, Oliegrondstoffen,
-                            Overige
-                            olieproducten, Restgassen, Aromatics</td>
-                          <td>crude_oil, diesel, kerosene, lpg, heavy_fuel_oil, gasoline, propane, refinery_gas</td>
-                        </tr>
-                        <tr>
-                          <td>Omgevingswarmte</td>
-                          <td>Omgevingswarmte</td>
-                          <td>ambient_heat</td>
-                        </tr>
-                        <tr>
-                          <td>Plastic afval</td>
-                          <td>Plastic waste, Rejected plastic waste</td>
-                          <td>-</td>
-                        </tr>
-                        <tr>
-                          <td>Restwarmte</td>
-                          <td>Industrial Waste Heat</td>
-                          <td>-</td>
-                        </tr>
-                        <tr>
-                          <td>Synthetisch</td>
-                          <td>Synthetic benzine, Synthetic diesel, Synthetic HFO, Synthetic kerosine, Synthetic LNG for
-                            shipping,
-                            Synthetic LPG, Synthetic naphtha, Synthetic waste gasses, Synthetische brandstoffen uit FT,
-                            Synthetic methanol, Synthetic methanol for shipping,
-                            Other
-                            synthetic oil products, Synthetic aromatics</td>
-                          <td>-</td>
-                        </tr>
-                        <tr>
-                          <td>Uranium</td>
-                          <td>Uranium</td>
-                          <td>uranium_oxide</td>
-                        </tr>
-                        <tr>
-                          <td>Warmte</td>
-                          <td>Heat100to200, Heat200to400, HeatDir200to400, HeatHT400, Warmte</td>
-                          <td>steam_hot_water, imported_heat</td>
-                        </tr>
-                        <tr>
-                          <td>Waterstof</td>
-                          <td>Hydrogen import, Hydrogen export, Waterstof</td>
-                          <td>hydrogen, liquid_hydrogen, lohc, imported_hydrogen, imported_liquid_hydrogen,
-                            imported_lohc</td>
-                        </tr>
-                        <tr>
-                          <td>Wind</td>
-                          <td>Wind</td>
-                          <td>wind</td>
-                        </tr>
-                        <tr>
-                          <td>Zon</td>
-                          <td>Zon</td>
-                          <td>solar_radiation</td>
-                        </tr>
-                        <tr>
-                          <td>Zon thermisch</td>
-                          <td>Zon thermisch</td>
-                          <td>solar_thermal</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    <h5 style="margin-top: 20px;">OPERA Mapping</h5>
+                    <div id="operaMappingContainer" style="font-size:12px; margin-bottom: 30px; line-height: 1.6;">
+                      <!-- Loaded dynamically from config/categoryConfig.json -->
+                    </div>
+
+                    <h5 style="margin-top: 20px;">ETM Mapping (Electricity Production Only)</h5>
+                    <div id="etmMappingContainer" style="font-size:12px; line-height: 1.6;">
+                      <!-- Loaded dynamically from config/categoryConfig.json -->
+                      <p style="font-style: italic; color: #666; margin-top: 20px;">Note: Many ETM technologies are
+                        mapped
+                        to "ignore" and are not shown here</p>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </blockquote>
-
-            <br>
-            <script>
-              document.addEventListener('DOMContentLoaded', () => {
-                const toggleButtons = document.querySelectorAll('.collapse-toggle');
-
-                toggleButtons.forEach(button => {
-                  button.addEventListener('click', function () {
-                    const icon = this.querySelector('.toggle-icon');
-                    const isExpanded = this.getAttribute('aria-expanded') === 'true';
-
-                    icon.textContent = isExpanded ? '-' : '+';
-                    icon.setAttribute('data-toggle-state', isExpanded ? '+' : '-');
-                  });
-                });
-              });
-            </script>
-            <blockquote style=" background-color:none;margin-left:30px;border-left:0.5rem solid #999">
-              <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#remarksCollapse"
-                aria-expanded="false" aria-controls="remarksCollapse">
-                <span class="toggle-icon">+</span>
-                <span style="margin-left:30px;">Mapping opties - nodes</span>
-              </div>
-
-              <div class="collapse mt-2" id="remarksCollapse">
-                <div class="card card-body" style="border:none;background-color: #EEF5FA;">
-                  <!-- <p style="margin-left:30px;">De OPERA-opties en energiestromen uit de ETM-energieboekhouding zijn
-                    conform onderstaande indeling onderverdeeld in
-                    categorieën energie- en grondstofconversie en finaal verbruik.
-                  </p> -->
-                  <p>Dit onderdeel is momenteel in ontwikkeling, de specificatie van indeling van conversies naar nodes
-                    wordt op korte termijn opnieuw toegevoegd.</p>
-                  <div id="remarksContainer"></div>
                 </div>
               </div>
             </blockquote>
           </div>
-        </div>
 
-
-        <div class="content-constrained"
-          style="padding-bottom:20px;padding-top:40px;background-color: #EEF5FA; margin-bottom:30px; position: relative;">
-          <h4>Opgesteld vermogen elektriciteitsproductie</h4>
-          <p
-            style="font-size: 14px; color: #333; margin-bottom: 20px; background-color: #FFF9C4; padding: 15px; border-radius: 5px; border-left: 4px solid #FBC02D;">
-            <strong>Let op: </strong>deze grafiek bevat nog enkele inconsistenties en problemen in de uitlezing van de
-            data over
-            opgestelde capaciteiten. Getoonde gegevens moeten nog worden geverifieerd door PBL, TNO en NBNL. Zie de
-            voetnoten
-            bij de categorieën voor meer informatie.
-          </p>
-
-          <div id="capacityVisualizationContainer"></div>
-
-          <blockquote style="background-color:none;margin-left:30px;border-left:0.5rem solid #999;margin-top:30px;">
-            <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#capacityMappingsCollapse"
-              aria-expanded="false" aria-controls="capacityMappingsCollapse">
-              <span class="toggle-icon">+</span>
-              <span style="margin-left:30px;">Mapping production parameters - categories
-              </span>
+          <div id="section-tvkn" class="content-fullwidth"
+            style="padding:0;background-color: #EEF5FA; margin-bottom:30px; position: relative;">
+            <div class="content-constrained"
+              style="padding-bottom:24px;padding-top:40px;background-color: #EEF5FA; display: flex; align-items: center; justify-content: space-between;">
+              <h4 style="margin:0;">Service Demand</h4>
+              <div id="tvknTopControls" style="display: flex; align-items: center; gap: 12px;"></div>
             </div>
+            <div id="tvknAnalysisContainer"></div>
+            <br>
+            <br>
+          </div>
 
-            <div class="collapse mt-2" id="capacityMappingsCollapse">
-              <div class="card card-body" style="border:none;background-color: #EEF5FA;">
-                <div style="width:100%;margin-left:35px;">
-                  <p>De elektriciteitsproductietechnologieën uit de OPERA- en ETM-data zijn, conform de indeling
-                    hieronder,
-                    samengevoegd tot categorieën en weergegeven in de grafieken.</p>
-
-                  <h5 style="margin-top: 20px;">OPERA Mapping</h5>
-                  <div id="operaMappingContainer" style="font-size:12px; margin-bottom: 30px; line-height: 1.6;">
-                    <!-- Loaded dynamically from config/categoryConfig.json -->
-                  </div>
-
-                  <h5 style="margin-top: 20px;">ETM Mapping (Electricity Production Only)</h5>
-                  <div id="etmMappingContainer" style="font-size:12px; line-height: 1.6;">
-                    <!-- Loaded dynamically from config/categoryConfig.json -->
-                    <p style="font-style: italic; color: #666; margin-top: 20px;">Note: Many ETM technologies are mapped
-                      to "ignore" and are not shown here</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </blockquote>
-        </div>
-
-        <!-- <div class="content-constrained"
+          <!-- <div class="content-constrained"
           style="padding-bottom:20px;padding-top:40px;background-color: rgb(220, 230, 239); margin-bottom:30px;">
           <h4>NPE Cijferbasis</h4>
           <div id="cijferbasis_container"></div>
@@ -434,50 +430,65 @@
 
 
 
-        <div class="content-fullwidth sticky" style="background-color:#DCE6EF;padding-bottom:0px;padding-top:0px;"
-          id="menuContainer2">
-          <script>
-            d3.select('#menuContainer2').style('top', document.getElementById('menuContainer').offsetHeight + 'px')
-          </script>
-          <div class="menuContainer">
-            <div class="menuContainer-part" id="toepassingenButtons">
-              <div class="menu-label">Toepassing</div>
+          <div id="section-waterfall">
+            <div class="content-fullwidth sticky" style="background-color:#DCE6EF;padding-bottom:0px;padding-top:0px;"
+              id="menuContainer2">
+              <script>
+                d3.select('#menuContainer2').style('top', document.getElementById('menuContainer').offsetHeight + 'px')
+              </script>
+              <div class="menuContainer">
+                <div class="menuContainer-part" id="toepassingenButtons">
+                  <div class="menu-label">Toepassing</div>
+                </div>
+                <div class="menuContainer-part" id="mainSectorButtons">
+                  <div class="menu-label">Sector</div>
+                </div>
+                <div class="menuContainer-part" id="subSectorButtons">
+                  <div class="menu-label"></div>
+                </div>
+              </div>
             </div>
-            <div class="menuContainer-part" id="mainSectorButtons">
-              <div class="menu-label">Sector</div>
+
+            <div class="content-constrained" style="padding-bottom:0px;padding-top:20px;">
+              <h4>Finaal verbruik</h4>
+              <span id="waterval-selection-display" style="font-size: 14px; color: #666; margin-left: 5px;"></span>
             </div>
-            <div class="menuContainer-part" id="subSectorButtons">
-              <div class="menu-label"></div>
+            <div class="scaled-wrapper-waterfall">
+              <div class="content-fullwidth" id="SVGContainer_waterfalldiagram">
+                <div id="mainContainerBackdrop"></div>
+                <div id="chartArea">
+                  <div id="afbouw">
+                    <svg class="chart_opbouw"></svg>
+                  </div>
+                  <div id="ccs">
+                    <svg class="chart_ccs"></svg>
+                  </div>
+                  <div id="opbouw">
+                    <svg class="chart_afbouw"></svg>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div class="content-constrained" style="padding-bottom:0px;padding-top:20px;">
-          <h4>Finaal verbruik</h4>
-          <span id="waterval-selection-display" style="font-size: 14px; color: #666; margin-left: 5px;"></span>
-        </div>
-        <div class="scaled-wrapper-waterfall">
-          <div class="content-fullwidth" id="SVGContainer_waterfalldiagram">
-            <div id="mainContainerBackdrop"></div>
-            <div id="chartArea">
-              <div id="afbouw">
-                <svg class="chart_opbouw"></svg>
-              </div>
-              <div id="ccs">
-                <svg class="chart_ccs"></svg>
-              </div>
-              <div id="opbouw">
-                <svg class="chart_afbouw"></svg>
-              </div>
-            </div>
-          </div>
-        </div>
 
 
-        <!-- <div class=" content-fullwidth" style="height:600px;"></div> -->
+          <!-- <div class=" content-fullwidth" style="height:600px;"></div> -->
+        </div><!-- /viewerContent -->
       </div>
     </div>
   </div>
+  <script>
+    // Show login section or viewer content based on data source
+    if (typeof dataSource !== 'undefined' && dataSource === 'production') {
+      document.getElementById('loginSection').style.display = 'block';
+      document.getElementById('viewerContent').style.display = 'none';
+      // Hide the old loadFileDialog overlay since login is now embedded
+      document.getElementById('loadFileDialog').style.display = 'none';
+      // Hide the top liner bar and concept label during login
+      document.getElementById('liner').style.display = 'none';
+      document.getElementById('topRightLabel').style.display = 'none';
+    }
+  </script>
   <!-- Shared libraries from central location -->
   <script src="../shared/js/scrollBehavior.js"></script>
 </body>
@@ -493,14 +504,26 @@
 <script src="../shared/js/d3-sankey-diagram.js"></script>
 <script src="../shared/js/drawSankey.js"></script>
 <script src="js/loadData.js"></script>
-<script src="../shared/js/drawRemarks.js"></script>
 <script src="../shared/js/fileLoadButton.js"></script>
 <!-- Generic JS files that load from config/viewer-config.json -->
 <script src="../shared/js/drawSelectionButtons.js"></script>
 <script src="../shared/js/drawLineGraphFlowClick.js"></script>
 <script src="../shared/js/drawNodeFlowPopup.js"></script>
+<script src="js/drawMainContainer.js" charset="utf-8"></script>
 <script src="../shared/js/drawWaterfall.js" charset="utf-8"></script>
 <script src="../shared/js/drawCijferBasis.js" charset="utf-8"></script>
 <script src="../shared/js/drawCapacityVisualization.js" charset="utf-8"></script>
+<script src="../shared/js/drawTVKNAnalysis.js" charset="utf-8"></script>
+<script src="../shared/js/scenarioSettings.js" charset="utf-8"></script>
+<script>
+  // Initialize TVKN Analysis section
+  // In development mode: initialize immediately
+  // In production mode: initialization happens in loadData.js after zip is loaded
+  if (typeof dataSource !== 'undefined' && dataSource === 'development') {
+    if (typeof window.initTVKNAnalysis === 'function') {
+      window.initTVKNAnalysis()
+    }
+  }
+</script>
 
 </html>

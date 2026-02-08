@@ -1,3 +1,8 @@
+// Global function to retrieve TVKN CSV data from zip
+window.getTVKNZipData = function() {
+  return window.tvknZipData || null;
+};
+
 // Decryption utility functions
 async function base64ToArrayBuffer(base64) {
   // Convert URL-safe base64 to standard base64
@@ -75,7 +80,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds26012026tno.enc.json');
+    const response = await fetch('public/ds09022026tno.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -138,6 +143,7 @@ function switchDiagram(diagramId) {
   }
 
   activeDiagramId = diagramId
+  window.activeDiagramId = diagramId
   const rawSankeyData = sankeyDataLibraries[diagramId]
 
   // Clear existing sankey
@@ -153,7 +159,6 @@ function switchDiagram(diagramId) {
     var nodes = rawSankeyData.nodes[config.sankeyDataID]
     var legend = rawSankeyData.legend[config.sankeyDataID]
     var settings = rawSankeyData.settings[config.sankeyDataID]
-    var remarks = rawSankeyData.remarks[config.sankeyDataID]
     var rectangles = rawSankeyData.rectangles ? rawSankeyData.rectangles[config.sankeyDataID] : null
 
     nodesGlobal = nodes
@@ -171,7 +176,7 @@ function switchDiagram(diagramId) {
       window.backgroundRectangles = []
     }
 
-    processData(links, nodes, legend, settings, remarks, config)
+    processData(links, nodes, legend, settings, config)
   })
 
   // Update diagram button highlighting
@@ -220,7 +225,7 @@ function initTool () {
 
   // console.log(sankeyConfigs)
 
-  if (dataSource == 'url') {
+  if (dataSource == 'development') {
     // Check if viewerConfig has multiple sankey diagrams configured
     if (viewerConfig && viewerConfig.sankeyDiagrams && viewerConfig.sankeyDiagrams.length > 0) {
       diagramConfigs = viewerConfig.sankeyDiagrams
@@ -265,7 +270,7 @@ function initTool () {
         loadSankeyDiagram(rawSankeyData)
       })
     }
-  } else if (dataSource == 'file') {
+  } else if (dataSource == 'production') {
     console.log('FILE')
 
     d3.select('#loadFileDialog').style('visibility', 'visible').style('pointer-events', 'auto')
@@ -282,7 +287,6 @@ function loadSankeyDiagram(rawSankeyData) {
     var nodes = rawSankeyData.nodes[config.sankeyDataID]
     var legend = rawSankeyData.legend[config.sankeyDataID]
     var settings = rawSankeyData.settings[config.sankeyDataID]
-    var remarks = rawSankeyData.remarks[config.sankeyDataID]
     var rectangles = rawSankeyData.rectangles ? rawSankeyData.rectangles[config.sankeyDataID] : null
 
     nodesGlobal = nodes
@@ -292,11 +296,6 @@ function loadSankeyDiagram(rawSankeyData) {
     // Update sankeyConfigs with dynamic width and height from Excel settings
     element.width = settings[0].diagramWidth || 1600
     element.height = settings[0].diagramHeight || 1200
-
-    if (settings[0].projectID != projectID || settings[0].versionID != versionID) {
-      return
-      console.log('ERROR')
-    }
 
     // Import rectangles if available, otherwise clear existing rectangles
     if (rectangles && rectangles.length > 0 && typeof importRectanglesFromExcel === 'function') {
@@ -317,7 +316,7 @@ function loadSankeyDiagram(rawSankeyData) {
       return [output]
     }
 
-    processData(links, nodes, legend, settings, remarks, config)
+    processData(links, nodes, legend, settings, config)
   })
 
   // After all data is loaded, check scenario availability
@@ -364,7 +363,7 @@ function generateSankeyLibrary (workbook) {
     // Skip sheets with 'sparse' in the name to use full data sheets instead
     if (worksheet && sheetName.startsWith('snky_') && !sheetName.includes('sparse')) {
       const [before, after] = sheetName.slice(5).split('_', 2)
-      if (after && ['links', 'nodes', 'remarks', 'legend', 'settings', 'rectangles'].includes(after)) {
+      if (after && ['links', 'nodes', 'legend', 'settings', 'rectangles'].includes(after)) {
         // Ensure the top-level object exists
         if (!sankeyDataLibrary[after]) {
           sankeyDataLibrary[after] = {}
@@ -379,8 +378,8 @@ function generateSankeyLibrary (workbook) {
 }
 
 
- // Only create modern UI interface when dataSource is 'file'
- if (typeof dataSource !== 'undefined' && dataSource === 'file') {
+ // Only create modern UI interface when dataSource is 'production'
+ if (typeof dataSource !== 'undefined' && dataSource === 'production') {
    // Create modern passphrase input interface
    const passphraseWrapper = document.getElementById('passphraseWrapper');
    const buttonGroup = document.getElementById('buttonGroup');
@@ -415,47 +414,6 @@ function generateSankeyLibrary (workbook) {
  passphraseWrapper.appendChild(usernameInput);
 passphraseWrapper.appendChild(passphraseInput);
  buttonGroup.appendChild(decryptButton);
-
- // Create small hard reload button in bottom-right corner
- const reloadButton = document.createElement('button');
- reloadButton.innerHTML = `Cache Vernieuwen`;
- reloadButton.type = 'button';
- reloadButton.style.position = 'absolute';
- reloadButton.style.bottom = '20px';
- reloadButton.style.right = '20px';
- reloadButton.style.padding = '8px 12px';
- reloadButton.style.fontSize = '11px';
- reloadButton.style.fontWeight = '400';
- reloadButton.style.backgroundColor = '#999';
- reloadButton.style.color = 'white';
- reloadButton.style.border = 'none';
- reloadButton.style.borderRadius = '6px';
- reloadButton.style.cursor = 'pointer';
- reloadButton.style.transition = 'background-color 0.2s';
- reloadButton.style.textTransform = 'none';
- reloadButton.style.fontFamily = 'inherit';
- reloadButton.style.textAlign = 'center';
- reloadButton.style.display = 'flex';
- reloadButton.style.justifyContent = 'center';
- reloadButton.style.alignItems = 'center';
-
- reloadButton.addEventListener('mouseover', () => {
-   reloadButton.style.backgroundColor = '#777';
- });
- reloadButton.addEventListener('mouseout', () => {
-   reloadButton.style.backgroundColor = '#999';
- });
-
- reloadButton.addEventListener('click', () => {
-   // Hard reload: clear cache and reload
-   location.reload(true);
- });
-
- // Append to the welcome-card container (parent of welcome-content)
- const welcomeCard = document.querySelector('.welcome-card');
- if (welcomeCard) {
-   welcomeCard.appendChild(reloadButton);
- }
 
  // Enable Enter key to trigger decryption
  passphraseInput.addEventListener('keypress', (event) => {
@@ -493,7 +451,7 @@ passphraseWrapper.appendChild(passphraseInput);
      for (const fileName of Object.keys(zipContent.files)) {
        const zipFile = zipContent.files[fileName];
 
-       if (!zipFile.dir) {
+       if (!zipFile.dir && !/ copy[.\s]/i.test(fileName) && !/~\$/.test(fileName)) {
          if (excelExtensions.test(fileName)) {
            // Handle Excel files
            const fileData = await zipFile.async('arraybuffer');
@@ -535,8 +493,26 @@ passphraseWrapper.appendChild(passphraseInput);
      console.log('Extracted Excel Data:', excelData);
      console.log('Extracted CSV Data:', csvData);
      console.log('Extracted JSON Data:', jsonData);
-     // Hide the welcome overlay immediately before heavy rendering starts
-     (function hideWelcomeOverlay() {
+     // Hide the login section and show the viewer content
+     (function hideLoginShowViewer() {
+       const loginSection = document.getElementById('loginSection');
+       if (loginSection) {
+         loginSection.style.display = 'none';
+       }
+       const viewerContent = document.getElementById('viewerContent');
+       if (viewerContent) {
+         viewerContent.style.display = 'block';
+       }
+       // Restore the liner bar and top-right label after login
+       const liner = document.getElementById('liner');
+       if (liner) {
+         liner.style.display = '';
+       }
+       const topRightLabel = document.getElementById('topRightLabel');
+       if (topRightLabel) {
+         topRightLabel.style.display = '';
+       }
+       // Also hide the old overlay elements if present
        const welcomeContainer = document.querySelector('.welcome-container');
        if (welcomeContainer) {
          welcomeContainer.style.display = 'none';
@@ -565,6 +541,13 @@ passphraseWrapper.appendChild(passphraseInput);
       if (typeof loadViewerConfig === 'function') {
         loadViewerConfig();
       }
+
+      // Initialize scenario settings with viewer config BEFORE drawing scenario buttons
+      // This ensures that allScenarios is populated when isScenarioVisible() is called
+      if (typeof window.ScenarioSettings !== 'undefined' && typeof window.ScenarioSettings.initialize === 'function') {
+        window.ScenarioSettings.initialize(viewerConfig);
+      }
+
       // Set version labels after config is loaded (with small delay to ensure DOM is ready)
       setTimeout(() => {
         if (typeof setVersionLabels === 'function') {
@@ -582,6 +565,22 @@ passphraseWrapper.appendChild(passphraseInput);
        if (typeof drawCapacityVisualization === 'function') {
          drawCapacityVisualization();
        }
+     }
+
+     // Store TVKN CSV data for TVKN Analysis module
+     if (csvData['tvkn_energy_flows'] || csvData['tvkn_service_demand'] || csvData['tvkn_carrier_color_mapping'] || csvData['tvkn_opties_metadata']) {
+       window.tvknZipData = {
+         tvkn_energy_flows: csvData['tvkn_energy_flows'],
+         tvkn_service_demand: csvData['tvkn_service_demand'],
+         tvkn_carrier_color_mapping: csvData['tvkn_carrier_color_mapping'],
+         tvkn_opties_metadata: csvData['tvkn_opties_metadata']
+       };
+       console.log('TVKN CSV data stored from zip file');
+
+      // Initialize TVKN Analysis now that data is available
+      if (typeof window.initTVKNAnalysis === 'function') {
+        window.initTVKNAnalysis();
+      }
      }
 
      dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']
@@ -642,7 +641,6 @@ passphraseWrapper.appendChild(passphraseInput);
          var nodes = rawSankeyData.nodes[config.sankeyDataID]
          var legend = rawSankeyData.legend[config.sankeyDataID]
          var settings = rawSankeyData.settings[config.sankeyDataID]
-         var remarks = rawSankeyData.remarks[config.sankeyDataID]
          var rectangles = rawSankeyData.rectangles ? rawSankeyData.rectangles[config.sankeyDataID] : null
 
          settings = transformData(settings)
@@ -658,21 +656,6 @@ passphraseWrapper.appendChild(passphraseInput);
            window.backgroundRectangles = []
          }
 
-         if (settings[0].projectID != projectID || settings[0].versionID != versionID || settings[0].productID != productID) {
-           console.log('ERROR - ID MISMATCH')
-           const loadFileDialog = document.getElementById('loadFileDialog')
-           document.getElementById('loadFileDialog').innerHTML = `
-             <div style="max-width: 500px; word-wrap: break-word;line-height: 35px;font-size:15px; ">
-                 <strong style="line-height: 40px; font-size:28px;font-weight:300;">Error</strong> <br><br>De identificatienummers van het opgegeven databestand (<strong>${settings[0].projectID}_${settings[0].productID}_${settings[0].versionID}</strong>) en het ingeladen visualisatiescript (<strong>${projectID}_${productID}_${versionID}</strong>) komen niet overeen.<br><br>Gebruik de onderstaande link om naar het script te gaan dat bij het opgegeven bestand hoort en probeer het opnieuw.&nbsp
-                 <br><br>
-                 <a href="https://rvo-nl.github.io/visualisaties/${settings[0].projectID}/${settings[0].productID}/${settings[0].versionID}" style="color: blue; text-decoration: underline;">
-                     https://rvo-nl.github.io/visualisaties/${settings[0].projectID}/${settings[0].productID}/${settings[0].versionID}
-                 </a>
-             </div>
-           `
-           return
-         }
-
          d3.select('#loadFileDialog').style('visibility', 'hidden').style('pointer-events', 'none')
          d3.selectAll('.buttonTitles').style('visibility', 'visible')
 
@@ -685,7 +668,7 @@ passphraseWrapper.appendChild(passphraseInput);
            })
            return [output]
          }
-         processData(links, nodes, legend, settings, remarks, config)
+         processData(links, nodes, legend, settings, config)
        })
      } else {
        // Fallback: single diagram mode (original behavior)
@@ -699,8 +682,6 @@ passphraseWrapper.appendChild(passphraseInput);
         var nodes = rawSankeyData.nodes[config.sankeyDataID]
         var legend = rawSankeyData.legend[config.sankeyDataID]
         var settings = rawSankeyData.settings[config.sankeyDataID]
-        var remarks = rawSankeyData.remarks[config.sankeyDataID]
-
         settings = transformData(settings)
 
         // Update sankeyConfigs with dynamic width and height from Excel settings
@@ -740,7 +721,7 @@ passphraseWrapper.appendChild(passphraseInput);
         // Wrap the resulting object in an array to match the desired structure
         return [output]
         }
-        processData(links, nodes, legend, settings, remarks, config)
+        processData(links, nodes, legend, settings, config)
       })
      }
 

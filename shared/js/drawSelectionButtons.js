@@ -15,7 +15,7 @@ let lookup_ymaxvalues = {}
 
 // Load viewer configuration
 async function loadViewerConfig() {
-  // Check if viewerConfig is already loaded from jsonData (dataSource='file')
+  // Check if viewerConfig is already loaded from jsonData (dataSource='production')
   if (viewerConfig && viewerConfig.viewer) {
     console.log('Viewer configuration already loaded from zip file:', viewerConfig.viewer.name)
     scenarioIdLookup = viewerConfig.scenarioIdLookup || {}
@@ -23,7 +23,7 @@ async function loadViewerConfig() {
     return viewerConfig
   }
 
-  // Otherwise, fetch from URL (dataSource='url')
+  // Otherwise, fetch from URL (dataSource='development')
   try {
     const response = await fetch('private/viewer-config.json')
     viewerConfig = await response.json()
@@ -53,6 +53,7 @@ async function initSelectionButtons(config) {
 
   // Set version labels based on config
   setVersionLabels()
+  applySectionVisibilityFromConfig()
 
   drawSelectionButtons(config)
 }
@@ -75,9 +76,9 @@ function setVersionLabels() {
     }
   }
 
-  // Handle top-right label
+  // Handle top-right label — skip if ScenarioSettings has already replaced it with the settings button
   const topRightLabel = document.getElementById('topRightLabel')
-  if (topRightLabel) {
+  if (topRightLabel && !topRightLabel.querySelector('button')) {
     if (viewer.showTopRightLabel === false) {
       topRightLabel.style.display = 'none'
     } else if (viewer.topRightLabel) {
@@ -85,6 +86,23 @@ function setVersionLabels() {
       topRightLabel.style.display = 'block'
     }
   }
+}
+
+// Hide/show sections based on viewer config flags
+function applySectionVisibilityFromConfig() {
+  if (!viewerConfig || !viewerConfig.viewer) return
+  const viewer = viewerConfig.viewer
+
+  const sectionMap = {
+    hasServiceDemandSection: 'section-tvkn'
+  }
+
+  Object.entries(sectionMap).forEach(([flag, sectionId]) => {
+    if (viewer[flag] === false) {
+      const el = document.getElementById(sectionId)
+      if (el) el.style.display = 'none'
+    }
+  })
 }
 
 // Make setVersionLabels globally available (and keep old function name for compatibility)
@@ -187,29 +205,17 @@ function drawSelectionButtons(config) {
     currentScenarioID = activeScenario
     currentScenario = globalActiveScenario.id
 
-    // Show/hide the II3050 v3 remarks based on the selected scenario
-    const ii3050v3Remarks = document.getElementById('opmerkingen_bij_sankey_ii3050v3')
-    if (ii3050v3Remarks) {
-      if (globalActiveScenario.id.includes('NBNL') && globalActiveScenario.id.includes('V3')) {
-        ii3050v3Remarks.style.display = 'block'
-      } else {
-        ii3050v3Remarks.style.display = 'none'
-      }
+    // update all sankeys (skip if section is hidden)
+    console.log(sankeyInstances)
+    if (!window.ScenarioSettings || window.ScenarioSettings.isSectionVisible('section-sankey')) {
+      sankeyConfigs.forEach(element => {
+        config.sankeyDataID = element.sankeyDataID
+        tick(config)
+      })
     }
 
-    setTimeout(() => {
-      drawRemarks()
-    }, 500)
-
-    // update all sankeys
-    console.log(sankeyInstances)
-    sankeyConfigs.forEach(element => {
-      config.sankeyDataID = element.sankeyDataID
-      tick(config)
-    })
-
-    // Update capacity visualization if available
-    if (typeof updateCapacityVisualization === 'function') {
+    // Update capacity visualization if available (skip if section is hidden)
+    if ((!window.ScenarioSettings || window.ScenarioSettings.isSectionVisible('section-capacity')) && typeof updateCapacityVisualization === 'function') {
       updateCapacityVisualization()
     }
 
@@ -223,8 +229,8 @@ function drawSelectionButtons(config) {
       updateScenarioAvailability(config)
     }
 
-    // Update TVKN Analysis scenario when global scenario changes
-    if (typeof updateTVKNScenario === 'function') {
+    // Update TVKN Analysis scenario when global scenario changes (skip if section is hidden or disabled)
+    if (viewerConfig?.viewer?.hasServiceDemandSection !== false && (!window.ScenarioSettings || window.ScenarioSettings.isSectionVisible('section-tvkn')) && typeof updateTVKNScenario === 'function') {
       updateTVKNScenario()
     }
   }
@@ -247,9 +253,20 @@ function drawSelectionButtons(config) {
   }
 
   drawScenarioButtons()
+
+  // Expose drawScenarioButtons globally so it can be called by event listeners
+  window.drawScenarioButtons = drawScenarioButtons;
+
   function drawScenarioButtons() {
-    // Build scenarios from config
-    const scenarios = (viewerConfig.scenarios || []).map(s => ({
+    // Build scenarios from config, filtering by visibility settings
+    let scenariosFromConfig = viewerConfig.scenarios || [];
+
+    // Filter by visibility if ScenarioSettings is available
+    if (typeof window.ScenarioSettings !== 'undefined' && typeof window.ScenarioSettings.isScenarioVisible === 'function') {
+      scenariosFromConfig = scenariosFromConfig.filter(s => window.ScenarioSettings.isScenarioVisible(s.id));
+    }
+
+    const scenarios = scenariosFromConfig.map(s => ({
       id: s.id,
       title: s.title,
       color: getScenarioColor(s.colorGroup)
@@ -275,7 +292,10 @@ function drawSelectionButtons(config) {
 
       button.style.backgroundColor = scenario.color
 
-      if (index === 0) {
+      // Highlight the currently active scenario, or the first one if none is active
+      const isCurrentScenario = globalActiveScenario && globalActiveScenario.id === scenario.id
+      const shouldHighlight = isCurrentScenario || (index === 0 && !globalActiveScenario)
+      if (shouldHighlight) {
         setButtonHighlighted(button, true)
       }
 
@@ -326,8 +346,8 @@ function drawSelectionButtons(config) {
           hideWloOverlay()
         }
 
-        // Set waterfall view to same selection
-        if (typeof switchRoutekaart === 'function') {
+        // Set waterfall view to same selection (skip if section is hidden)
+        if ((!window.ScenarioSettings || window.ScenarioSettings.isSectionVisible('section-waterfall')) && typeof switchRoutekaart === 'function') {
           try {
             switchRoutekaart({
               scenario: globalActiveScenario.id,
@@ -904,11 +924,23 @@ function createButton(button, index) {
   }
 }
 
-// Auto-load config when script loads (only for URL mode, not for file mode)
-// When dataSource='file', the config will be loaded from the zip file by loadData.js
-if (typeof dataSource === 'undefined' || dataSource === 'url') {
+// Auto-load config when script loads (only for development mode, not for production mode)
+// When dataSource='production', the config will be loaded from the zip file by loadData.js
+if (typeof dataSource === 'undefined' || dataSource === 'development') {
   loadViewerConfig().then(() => {
     // Apply version labels immediately after config loads
     setVersionLabels()
+    applySectionVisibilityFromConfig()
+
+    // Initialize scenario settings in URL mode
+    if (typeof window.ScenarioSettings !== 'undefined' && typeof window.ScenarioSettings.initialize === 'function') {
+      window.ScenarioSettings.initialize(viewerConfig);
+    }
   })
 }
+
+// Listen for scenario visibility changes and redraw buttons
+window.addEventListener('scenarioVisibilityChanged', function() {
+  console.log('Scenario visibility changed, redrawing buttons');
+  drawScenarioButtons();
+});

@@ -31,8 +31,6 @@ const resizeObserver = new ResizeObserver((entries) => {
 
     // Calculate scaling value and dynamic styles
     const windowScaleValue = width / factor
-    const remarksContainerPosition = width / 3 + 'px'
-
     // Scale the SVG
     // console.log(sankeyConfigs)
 

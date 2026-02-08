@@ -870,11 +870,11 @@ async function xlsxToJSON(url) {
 }
 
 
-//  dataSource = 'file';
+//  dataSource = 'production';
 
 
 // Load waterfalldiagram datasets
-if (dataSource == 'url') {
+if (dataSource == 'development') {
 // xlsxToJSON('/private/data_watervaldiagram_ADAPT.xlsx')
 //   .then(data => {  console.log(data); datasetSR20 = data; })
 //   .catch(error => { console.error('Error loading data_c:', error); });

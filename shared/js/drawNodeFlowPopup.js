@@ -723,9 +723,19 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
 
   // Get lineGraphFlow config from viewerConfig
   const lineGraphConfig = typeof viewerConfig !== 'undefined' ? viewerConfig.lineGraphFlow || {} : {}
-  const varianten = lineGraphConfig.varianten || []
-  const variantTitles = lineGraphConfig.variantTitles || {}
-  const categoryInfo = lineGraphConfig.categoryInfo || {}
+  // Derive varianten, variantTitles, and categoryInfo from the central scenarios array
+  const allScenarios = viewerConfig?.scenarios || []
+  const varianten = allScenarios.map(s => s.id)
+  const variantTitles = Object.fromEntries(allScenarios.map(s => [s.id, s.title]))
+  const categoryColors = lineGraphConfig.categoryColors || {}
+  const categoryInfo = {}
+  allScenarios.forEach(s => {
+    const cat = s.lineGraphCategory
+    if (cat) {
+      if (!categoryInfo[cat]) categoryInfo[cat] = { baseColor: categoryColors[cat] || '#999', scenarios: [] }
+      categoryInfo[cat].scenarios.push(s.id)
+    }
+  })
 
   // State for incoming/outgoing toggle
   let showIncomingFlows = true
@@ -781,11 +791,11 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
   }
 
   // Get available years from sankey links - check all links to find all scenario keys
-  // Keys are like "scenario_x2030x_TNOAT2024_ADAPT" or similar patterns with year embedded
+  // New format: "2030_TNOAT2024_ADAPT", Old format: "scenario0_x2030x_TNOAT2024_ADAPT"
   const allScenarioKeys = new Set()
   sankeyData.links.forEach(link => {
     Object.keys(link).forEach(key => {
-      if (key.includes('scenario') && key.match(/x\d{4}x/)) {
+      if (/^\d{4}_/.test(key) || (key.includes('scenario') && key.match(/x\d{4}x/))) {
         allScenarioKeys.add(key)
       }
     })
@@ -794,18 +804,31 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
   const availableYears = [...new Set(
     [...allScenarioKeys]
       .map(k => {
-        const match = k.match(/x(\d{4})x/)
-        return match ? parseInt(match[1]) : null
+        // New format: "2030_SCENARIONAME"
+        const newMatch = k.match(/^(\d{4})_/)
+        if (newMatch) return parseInt(newMatch[1])
+        // Old format: "scenario0_x2030x_SCENARIONAME"
+        const oldMatch = k.match(/x(\d{4})x/)
+        return oldMatch ? parseInt(oldMatch[1]) : null
       })
       .filter(year => year !== null)
   )].sort((a, b) => a - b)
+    .filter(year => {
+      if (typeof viewerConfig !== 'undefined' && viewerConfig && viewerConfig.years) {
+        const configYears = viewerConfig.years.map(y => parseInt(y.id))
+        return configYears.includes(year)
+      }
+      return true
+    })
 
   // Function to calculate total flows for a node across scenarios/years
   const calculateNodeFlowData = (isIncoming) => {
     const flowDataMap = {}
 
-    // Get scenarioIdLookup from viewerConfig to map scenario+year to index
-    const scenarioIdLookup = typeof viewerConfig !== 'undefined' ? viewerConfig.scenarioIdLookup || {} : {}
+    // Use global scenarioIdLookup (auto-built from data columns, or from viewerConfig)
+    const lookupRef = typeof scenarioIdLookup !== 'undefined' && Object.keys(scenarioIdLookup).length > 0
+      ? scenarioIdLookup
+      : (typeof viewerConfig !== 'undefined' ? viewerConfig.scenarioIdLookup || {} : {})
 
     varianten.forEach(scenarioId => {
       flowDataMap[scenarioId] = {}
@@ -813,14 +836,14 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
       availableYears.forEach(year => {
         let total = 0
 
-        // Get the scenario index for this scenario+year combination
-        const scenarioIndex = scenarioIdLookup[scenarioId]?.[year.toString()]
-        if (scenarioIndex === undefined) {
-          return // Skip if no index found for this scenario+year combination
+        // Check if this scenario+year combination exists in the lookup
+        const scenarioExists = lookupRef[scenarioId]?.[year.toString()]
+        if (scenarioExists === undefined) {
+          return // Skip if not found for this scenario+year combination
         }
 
-        // Construct the key in the format: scenario{INDEX}_x{YEAR}x_{SCENARIO_ID}
-        const scenarioKey = `scenario${scenarioIndex}_x${year}x_${scenarioId}`
+        // Construct the key in the format: "{YEAR}_{SCENARIO_ID}"
+        const scenarioKey = `${year}_${scenarioId}`
 
         // Sum all flows for this node
         sankeyData.links.forEach(link => {

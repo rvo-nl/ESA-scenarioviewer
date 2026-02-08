@@ -26,9 +26,19 @@ function drawBarGraph(data, config) {
   const lineGraphConfig = viewerConfig?.lineGraphFlow || {}
   const popupWidth = lineGraphConfig.popupWidth || 1100
   const popupHeight = lineGraphConfig.popupHeight || 800
-  const varianten = lineGraphConfig.varianten || []
-  const variantTitles = lineGraphConfig.variantTitles || {}
-  const categoryInfo = lineGraphConfig.categoryInfo || {}
+  // Derive varianten, variantTitles, and categoryInfo from the central scenarios array
+  const allScenarios = viewerConfig?.scenarios || []
+  const varianten = allScenarios.map(s => s.id)
+  const variantTitles = Object.fromEntries(allScenarios.map(s => [s.id, s.title]))
+  const categoryColors = lineGraphConfig.categoryColors || {}
+  const categoryInfo = {}
+  allScenarios.forEach(s => {
+    const cat = s.lineGraphCategory
+    if (cat) {
+      if (!categoryInfo[cat]) categoryInfo[cat] = { baseColor: categoryColors[cat] || '#999', scenarios: [] }
+      categoryInfo[cat].scenarios.push(s.id)
+    }
+  })
 
   /* ----------  POP-UP SHELL  ---------- */
   // Remove any existing popup first
@@ -175,10 +185,16 @@ function drawBarGraph(data, config) {
       const exportData = []
 
       // Find all available years from data keys
+      // Support both new format "2030_SCENARIONAME" and old format "scenario0_x2030x_SCENARIONAME"
+      const exportIsNewFormat = Object.keys(data).some(k => /^\d{4}_/.test(k))
       const availableYears = [...new Set(
         Object.keys(data)
-          .filter(k => k.includes('scenario') && k.includes('x') && k.includes('x'))
+          .filter(k => exportIsNewFormat ? /^\d{4}_/.test(k) : (k.includes('scenario') && k.includes('x') && k.includes('x')))
           .map(k => {
+            if (exportIsNewFormat) {
+              const match = k.match(/^(\d{4})_/)
+              return match ? match[1] : null
+            }
             const match = k.match(/x(\d{4})x/)
             return match ? match[1] : null
           })
@@ -188,16 +204,27 @@ function drawBarGraph(data, config) {
       // Extract data for each year and scenario
       availableYears.forEach(year => {
         Object.keys(data).forEach(key => {
-          if (key.includes(`x${year}x`) && key.includes('scenario')) {
-            // Extract scenario name from key (e.g., "scenario_x2030x_TNOAT2024_ADAPT" -> "TNOAT2024_ADAPT")
-            const parts = key.split('_')
-            const scenarioName = parts.slice(2).join('_')
-
-            exportData.push({
-              year: year,
-              value: getExportValue(data[key]),
-              scenario: scenarioName
-            })
+          if (exportIsNewFormat) {
+            // New format: "2030_TNOAT2024_ADAPT"
+            if (key.startsWith(year + '_')) {
+              const scenarioName = key.slice(year.length + 1)
+              exportData.push({
+                year: year,
+                value: getExportValue(data[key]),
+                scenario: scenarioName
+              })
+            }
+          } else {
+            // Old format: "scenario0_x2030x_TNOAT2024_ADAPT"
+            if (key.includes(`x${year}x`) && key.includes('scenario')) {
+              const parts = key.split('_')
+              const scenarioName = parts.slice(2).join('_')
+              exportData.push({
+                year: year,
+                value: getExportValue(data[key]),
+                scenario: scenarioName
+              })
+            }
           }
         })
       })
@@ -269,10 +296,16 @@ function drawBarGraph(data, config) {
       const exportData = []
 
       // Find all available years from data keys
+      // Support both new format "2030_SCENARIONAME" and old format "scenario0_x2030x_SCENARIONAME"
+      const copyIsNewFormat = Object.keys(data).some(k => /^\d{4}_/.test(k))
       const availableYears = [...new Set(
         Object.keys(data)
-          .filter(k => k.includes('scenario') && k.includes('x') && k.includes('x'))
+          .filter(k => copyIsNewFormat ? /^\d{4}_/.test(k) : (k.includes('scenario') && k.includes('x') && k.includes('x')))
           .map(k => {
+            if (copyIsNewFormat) {
+              const match = k.match(/^(\d{4})_/)
+              return match ? match[1] : null
+            }
             const match = k.match(/x(\d{4})x/)
             return match ? match[1] : null
           })
@@ -282,16 +315,25 @@ function drawBarGraph(data, config) {
       // Extract data for each year and scenario
       availableYears.forEach(year => {
         Object.keys(data).forEach(key => {
-          if (key.includes(`x${year}x`) && key.includes('scenario')) {
-            // Extract scenario name from key
-            const parts = key.split('_')
-            const scenarioName = parts.slice(2).join('_')
-
-            exportData.push({
-              year: year,
-              value: getExportValue(data[key]),
-              scenario: scenarioName
-            })
+          if (copyIsNewFormat) {
+            if (key.startsWith(year + '_')) {
+              const scenarioName = key.slice(year.length + 1)
+              exportData.push({
+                year: year,
+                value: getExportValue(data[key]),
+                scenario: scenarioName
+              })
+            }
+          } else {
+            if (key.includes(`x${year}x`) && key.includes('scenario')) {
+              const parts = key.split('_')
+              const scenarioName = parts.slice(2).join('_')
+              exportData.push({
+                year: year,
+                value: getExportValue(data[key]),
+                scenario: scenarioName
+              })
+            }
           }
         })
       })
@@ -353,20 +395,36 @@ function drawBarGraph(data, config) {
 
   const co2Scale = v => data.legend !== 'co2flow' ? v : v * globalCO2flowScale
 
+  // Support both new format "2030_SCENARIONAME" and old format "scenario0_x2030x_SCENARIONAME"
+  const isNewFormat = Object.keys(data).some(k => /^\d{4}_/.test(k))
+
   const yearData = y => Object.entries(data)
-    .filter(([k]) => k.includes('scenario') && k.includes('x' + y + 'x'))
+    .filter(([k]) => isNewFormat
+      ? k.startsWith(y + '_')
+      : (k.includes('scenario') && k.includes('x' + y + 'x')))
     .map(([k, v]) => [k, getValue(v)])
 
   // Dynamically determine available years from the data
   const availableYears = [...new Set(
     Object.keys(data)
-      .filter(k => k.includes('scenario') && k.includes('x') && k.includes('x'))
+      .filter(k => isNewFormat ? /^\d{4}_/.test(k) : (k.includes('scenario') && k.includes('x') && k.includes('x')))
       .map(k => {
+        if (isNewFormat) {
+          const match = k.match(/^(\d{4})_/)
+          return match ? parseInt(match[1]) : null
+        }
         const match = k.match(/x(\d{4})x/)
         return match ? parseInt(match[1]) : null
       })
       .filter(year => year !== null)
   )].sort((a, b) => a - b)
+    .filter(year => {
+      if (typeof viewerConfig !== 'undefined' && viewerConfig && viewerConfig.years) {
+        const configYears = viewerConfig.years.map(y => parseInt(y.id))
+        return configYears.includes(year)
+      }
+      return true
+    })
 
   // Create a mapping from scenario titles to their data across all years
   const scenarioDataMap = {}
@@ -412,10 +470,16 @@ function drawBarGraph(data, config) {
       // For each year, find the matching data in scenarioDataMap
       availableYears.forEach(year => {
         // Look for data keys that match this scenario and year
-        // Data keys are like "scenario_x2030x_TNOAT2024_TRANSFORM_CI"
+        // New format: "2030_TNOAT2024_TRANSFORM_CI", Old format: "scenario0_x2030x_TNOAT2024_TRANSFORM_CI"
         const yearScenarios = yearData(year)
         const matchingScenario = yearScenarios.find(([key, value]) => {
-          // Extract scenario name from key: "scenario_x2030x_TNOAT2024_TRANSFORM_CI" -> "TNOAT2024_TRANSFORM_CI"
+          if (isNewFormat) {
+            // New format: "2030_TNOAT2024_TRANSFORM_CI" -> extract after first underscore
+            const firstUnderscore = key.indexOf('_')
+            const scenarioName = firstUnderscore !== -1 ? key.slice(firstUnderscore + 1) : key
+            return scenarioName === scenarioId
+          }
+          // Old format: "scenario0_x2030x_TNOAT2024_TRANSFORM_CI" -> parts from index 2 onward
           const parts = key.split('_')
           const scenarioName = parts.slice(2).join('_')
           return scenarioName === scenarioId
@@ -456,8 +520,8 @@ function drawBarGraph(data, config) {
   // Year range filter state
   const allYears = availableYears
 
-  // Check if CBS diagram (variant4) is selected - if so, show all years
-  const isCBSDiagram = window.activeDiagramId === 'variant4'
+  // Check if CBS diagram (studies_vs_cbs) is selected - if so, show all years
+  const isCBSDiagram = window.activeDiagramId === 'studies_vs_cbs'
 
   // Default: show all years for CBS diagram, only 2025+ for other diagrams
   let showAllYears = isCBSDiagram

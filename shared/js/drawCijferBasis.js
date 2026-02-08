@@ -1,7 +1,7 @@
 // Global variables for cijferbasis data
 let cijferBasisData = null;
 let ketenStates = {}; // Store expanded/collapsed state of keten sections
-let zipFileData = null; // Store ZIP file data when dataSource = 'file'
+let zipFileData = null; // Store ZIP file data when dataSource = 'production'
 
 // Configuration object for unit label colors
 // You can customize these colors by changing the values below
@@ -91,7 +91,7 @@ async function loadCijferBasisData() {
     let csvText;
     
     // Check data source and load accordingly
-    if (typeof dataSource !== 'undefined' && dataSource === 'file') {
+    if (typeof dataSource !== 'undefined' && dataSource === 'production') {
       // Load from ZIP file data if available
       if (zipFileData && zipFileData['cijferbasis_data']) {
         // If CSV data is already extracted from ZIP, use it

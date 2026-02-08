@@ -98,8 +98,6 @@ function fileLoadButton () {
       nodes = {}
       legend = {}
       settings = {}
-      remarks = {}
-
       workbook.SheetNames.forEach((sheetName) => {
         const worksheet = workbook.Sheets[sheetName]
         switch (sheetName) {
@@ -114,9 +112,6 @@ function fileLoadButton () {
             break
           case 'settings':
             settings = XLSX.utils.sheet_to_json(worksheet)
-            break
-          case 'remarks':
-            remarks = XLSX.utils.sheet_to_json(worksheet)
             break
           default:
             console.log(`Sheet '${sheetName}' ignored.`)
@@ -162,19 +157,18 @@ function fileLoadButton () {
         return [output]
       }
 
-      processData(links, nodes, legend, settings, remarks)
+      processData(links, nodes, legend, settings)
     }
 
     reader.readAsArrayBuffer(file) // Read the file as a binary array
   })
 
   // Callback logic for processing the data
-  function processData (links, nodes, legend, settings, remarks) {
+  function processData (links, nodes, legend, settings) {
     console.log('Links:', links)
     console.log('Nodes:', nodes)
     console.log('Legend:', legend)
     console.log('Settings:', settings)
-    console.log('Remarks:', remarks)
 
     nodesGlobal = nodes
 
@@ -247,7 +241,6 @@ function fileLoadButton () {
     // Generate nodes object
     for (let i = 0; i < nodes.length; i++) {
       newData.nodes.push({
-        remark: remarks[i],
         title: nodes[i].title,
         id: nodes[i].id,
         direction: nodes[i].direction,
@@ -259,21 +252,18 @@ function fileLoadButton () {
     }
 
     // Generate scenario object
+    // Support both new format "2030_SCENARIONAME" and old format "scenario0_x2030x_SCENARIONAME"
     const scenarios = []
     let counter = 0
     for (let s = 0; s < Object.keys(links[0]).length; s++) {
-      if (Object.keys(links[0])[s].includes('scenario')) {
-        if (counter < 10) {
-          scenarios.push({
-            title: Object.keys(links[0])[s].slice(10),
-            id: Object.keys(links[0])[s]
-          })
-        } else {
-          scenarios.push({
-            title: Object.keys(links[0])[s].slice(11),
-            id: Object.keys(links[0])[s]
-          })
-        }
+      const key = Object.keys(links[0])[s]
+      if (/^\d{4}_/.test(key) || key.includes('scenario')) {
+        const firstUnderscoreIndex = key.indexOf('_')
+        const title = firstUnderscoreIndex !== -1 ? key.slice(firstUnderscoreIndex + 1) : key
+        scenarios.push({
+          title: title,
+          id: key
+        })
         counter++
       }
     }
@@ -283,7 +273,6 @@ function fileLoadButton () {
     // Generate links object
     for (let i = 0; i < links.length; i++) {
       newData.links.push({
-        remark: remarks[i],
         index: i,
         source: links[i]['source.id'],
         target: links[i]['target.id'],

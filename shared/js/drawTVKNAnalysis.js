@@ -908,8 +908,173 @@
     rightCol.appendChild(optionsWrapper)
     renderOptionsBreakdownTile(optionsWrapper, sc, demandUnit, selectedServiceDemand, yearsToUse)
 
+    // ── DECOMPOSITION ANALYSIS TILE (under options breakdown in right column) ──
+    const decompWrapper = document.createElement('div')
+    rightCol.appendChild(decompWrapper)
+    renderDecompositionTile(decompWrapper, sc, demandData[sc], energyData[sc], demandUnit, yearsToUse)
+
     // ── TOTAL DEMAND TILE (across all service demand categories) ──
     renderTotalDemandTile(chartDiv, sc, yearsToUse)
+  }
+
+  // ── decomposition analysis tile ──────────────────────────────────────
+  function renderDecompositionTile (parentEl, scenario, demandByYear, energyByYear, demandUnit, yearsToUse) {
+    const years = yearsToUse || YEARS
+    if (years.length < 2) return
+
+    // Compute intensity per year and check we have valid data
+    const intensity = {}
+    let hasData = false
+    years.forEach(y => {
+      const d = demandByYear[y] || 0
+      const e = energyByYear[y] || 0
+      intensity[y] = d !== 0 ? e / d : null
+      if (d !== 0 && e !== 0) hasData = true
+    })
+    if (!hasData) return
+
+    const energyUnit = tvknUnit || 'PJ'
+
+    // Build period rows
+    const periods = []
+    for (let i = 1; i < years.length; i++) {
+      const y0 = years[i - 1]
+      const y1 = years[i]
+      const d0 = demandByYear[y0] || 0
+      const d1 = demandByYear[y1] || 0
+      const e0 = energyByYear[y0] || 0
+      const e1 = energyByYear[y1] || 0
+      const i0 = intensity[y0]
+      const i1 = intensity[y1]
+
+      const deltaE = convertUnit(e1) - convertUnit(e0)
+      let demandEffect = null
+      let intensityEffect = null
+      let interactionEffect = null
+
+      if (i0 !== null && i1 !== null) {
+        const dD = d1 - d0
+        const dI = convertUnit(i1) - convertUnit(i0)
+        demandEffect = dD * convertUnit(i0)
+        intensityEffect = dI * d0
+        interactionEffect = dD * dI
+      }
+
+      periods.push({ y0, y1, deltaE, demandEffect, intensityEffect, interactionEffect, d0: d1, e0: convertUnit(e0), e1: convertUnit(e1) })
+    }
+
+    // Also add a total row from first to last year
+    const yFirst = years[0]
+    const yLast = years[years.length - 1]
+    const totalDeltaE = convertUnit(energyByYear[yLast] || 0) - convertUnit(energyByYear[yFirst] || 0)
+    const i_first = intensity[yFirst]
+    const i_last = intensity[yLast]
+    let totalDemandEffect = null
+    let totalIntensityEffect = null
+    let totalInteractionEffect = null
+    if (i_first !== null && i_last !== null) {
+      const dD = (demandByYear[yLast] || 0) - (demandByYear[yFirst] || 0)
+      const dI = convertUnit(i_last) - convertUnit(i_first)
+      totalDemandEffect = dD * convertUnit(i_first)
+      totalIntensityEffect = dI * (demandByYear[yFirst] || 0)
+      totalInteractionEffect = dD * dI
+    }
+
+    // Wrapper
+    const wrapper = document.createElement('div')
+    wrapper.style.cssText = 'margin-top: 18px; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);'
+    parentEl.appendChild(wrapper)
+
+    const title = document.createElement('div')
+    title.style.cssText = 'font-size: 13px; font-weight: 700; color: #222; margin-bottom: 4px;'
+    title.textContent = 'Decompositieanalyse'
+    wrapper.appendChild(title)
+
+    const subtitle = document.createElement('div')
+    subtitle.style.cssText = 'font-size: 11px; color: #888; margin-bottom: 12px;'
+    subtitle.textContent = `Hoe veranderingen in energieverbruik (${energyUnit}) uiteenvallen in vraag- en intensiteitseffecten`
+    wrapper.appendChild(subtitle)
+
+    // Helper to format numbers
+    const fmt = (v) => {
+      if (v === null || v === undefined || isNaN(v)) return '–'
+      const prefix = v > 0 ? '+' : ''
+      return prefix + v.toFixed(2)
+    }
+
+    // Table
+    const table = document.createElement('table')
+    table.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 11px;'
+
+    // Header
+    const thead = document.createElement('thead')
+    const hr = document.createElement('tr')
+    ;['Periode', `Δ Energie (${energyUnit})`, `Vraageffect (${energyUnit})`, `Intensiteitseffect (${energyUnit})`, `Interactie (${energyUnit})`].forEach((txt, idx) => {
+      const th = document.createElement('th')
+      th.textContent = txt
+      th.style.cssText = 'padding: 6px 8px; text-align: ' + (idx === 0 ? 'left' : 'right') + '; border-bottom: 2px solid #ddd; font-weight: 600; color: #444; white-space: nowrap;'
+      hr.appendChild(th)
+    })
+    thead.appendChild(hr)
+    table.appendChild(thead)
+
+    const tbody = document.createElement('tbody')
+
+    // Color helper for values
+    const valColor = (v) => {
+      if (v === null || isNaN(v)) return '#888'
+      if (v > 0.005) return '#c0392b'
+      if (v < -0.005) return '#27ae60'
+      return '#555'
+    }
+
+    // Period rows
+    periods.forEach(p => {
+      const tr = document.createElement('tr')
+      tr.style.cssText = 'border-bottom: 1px solid #eee;'
+
+      const tdPeriod = document.createElement('td')
+      tdPeriod.textContent = `${p.y0} → ${p.y1}`
+      tdPeriod.style.cssText = 'padding: 5px 8px; color: #333; font-weight: 500; white-space: nowrap;'
+      tr.appendChild(tdPeriod)
+
+      ;[p.deltaE, p.demandEffect, p.intensityEffect, p.interactionEffect].forEach(val => {
+        const td = document.createElement('td')
+        td.textContent = fmt(val)
+        td.style.cssText = 'padding: 5px 8px; text-align: right; color: ' + valColor(val) + '; font-variant-numeric: tabular-nums;'
+        tr.appendChild(td)
+      })
+
+      tbody.appendChild(tr)
+    })
+
+    // Total row
+    const totalTr = document.createElement('tr')
+    totalTr.style.cssText = 'border-top: 2px solid #999; font-weight: 700;'
+
+    const tdTotal = document.createElement('td')
+    tdTotal.textContent = `${yFirst} → ${yLast}`
+    tdTotal.style.cssText = 'padding: 6px 8px; color: #222; font-weight: 700; white-space: nowrap;'
+    totalTr.appendChild(tdTotal)
+
+    ;[totalDeltaE, totalDemandEffect, totalIntensityEffect, totalInteractionEffect].forEach(val => {
+      const td = document.createElement('td')
+      td.textContent = fmt(val)
+      td.style.cssText = 'padding: 6px 8px; text-align: right; font-weight: 700; color: ' + valColor(val) + '; font-variant-numeric: tabular-nums;'
+      totalTr.appendChild(td)
+    })
+    tbody.appendChild(totalTr)
+
+    table.appendChild(tbody)
+    wrapper.appendChild(table)
+
+    // Explanation
+    const note = document.createElement('div')
+    note.style.cssText = 'font-size: 10px; color: #999; margin-top: 10px; line-height: 1.5;'
+    note.innerHTML = '<b>Vraageffect</b>: verandering in energieverbruik door verandering in vraagvolume (bij constante intensiteit). ' +
+      '<b>Intensiteitseffect</b>: verandering door efficiëntiewinst of -verlies (bij constant vraagvolume). ' +
+      '<b>Interactie</b>: gecombineerd effect van gelijktijdige verandering in vraag én intensiteit.'
+    wrapper.appendChild(note)
   }
 
   // ── total demand overview table ───────────────────────────────────────
@@ -978,14 +1143,31 @@
     parentEl.appendChild(wrapper)
 
     const titleEl = document.createElement('div')
-    titleEl.style.cssText = 'font-size: 11px; font-weight: 600; color: #222; margin-bottom: 10px;'
-    titleEl.textContent = `Totaaloverzicht service demand | ${selectedDemandType} ${selectedDataSource}`
+    titleEl.style.cssText = 'font-size: 11px; font-weight: 600; color: #222; cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none;'
+    const arrow = document.createElement('span')
+    arrow.style.cssText = 'display: inline-block; transition: transform 0.2s; font-size: 9px; color: #888;'
+    arrow.textContent = '\u25B6'
+    titleEl.appendChild(arrow)
+    const titleText = document.createElement('span')
+    titleText.textContent = `Totaaloverzicht service demand | ${selectedDemandType} ${selectedDataSource}`
+    titleEl.appendChild(titleText)
     wrapper.appendChild(titleEl)
+
+    // Collapsible content container (collapsed by default)
+    const contentDiv = document.createElement('div')
+    contentDiv.style.cssText = 'display: none; margin-top: 10px;'
+    wrapper.appendChild(contentDiv)
+
+    titleEl.addEventListener('click', () => {
+      const isOpen = contentDiv.style.display !== 'none'
+      contentDiv.style.display = isOpen ? 'none' : 'block'
+      arrow.style.transform = isOpen ? '' : 'rotate(90deg)'
+    })
 
     // Table
     const table = document.createElement('table')
     table.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 10px;'
-    wrapper.appendChild(table)
+    contentDiv.appendChild(table)
 
     // Header
     const thead = document.createElement('thead')

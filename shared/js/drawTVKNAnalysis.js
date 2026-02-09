@@ -491,7 +491,11 @@
     // Selectors column (vertical)
     const selectorsCol = document.createElement('div')
     selectorsCol.id = 'tvkn-selectors'
-    selectorsCol.style.cssText = 'display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; padding-top: 4px;'
+    // Calculate sticky top offset based on main menu bar height (use parent sticky element)
+    let stickyTop = 60
+    const menu1 = document.getElementById('menuContainer')
+    if (menu1 && menu1.parentElement) stickyTop += menu1.parentElement.offsetHeight
+    selectorsCol.style.cssText = 'display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; padding-top: 4px; position: sticky; top: ' + stickyTop + 'px; align-self: flex-start;'
     contentArea.appendChild(selectorsCol)
 
     // Helper to create a labelled select
@@ -507,7 +511,7 @@
       const sel = document.createElement('select')
       sel.id = id
       const borderWidth = options.emphasize ? '2px' : '1px'
-      sel.style.cssText = `font-size: 11px; padding: 5px 10px; border: ${borderWidth} solid #bbb; border-radius: 6px; background: white; cursor: pointer; width: 220px;`
+      sel.style.cssText = `font-size: 11px; padding: 4px 8px; border: ${borderWidth} solid #bbb; border-radius: 6px; background: white; cursor: pointer; width: 180px;`
       items.forEach(item => {
         const opt = document.createElement('option')
         opt.value = typeof item === 'object' ? (item.value || item.id) : item
@@ -846,13 +850,13 @@
 
     // Create two-column layout for charts
     const chartsRow = document.createElement('div')
-    chartsRow.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 0px; align-items: start;'
+    chartsRow.style.cssText = 'display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-bottom: 0px; align-items: start;'
     chartDiv.appendChild(chartsRow)
 
     const leftCol = document.createElement('div')
-    leftCol.style.cssText = 'display: flex; flex-direction: column; gap: 18px;'
+    leftCol.style.cssText = 'display: flex; flex-direction: column; gap: 18px; min-width: 0;'
     const rightCol = document.createElement('div')
-    rightCol.style.cssText = 'display: flex; flex-direction: column; gap: 18px;'
+    rightCol.style.cssText = 'display: flex; flex-direction: column; gap: 18px; min-width: 0;'
     chartsRow.appendChild(leftCol)
     chartsRow.appendChild(rightCol)
 
@@ -982,7 +986,7 @@
 
     // Wrapper
     const wrapper = document.createElement('div')
-    wrapper.style.cssText = 'margin-top: 18px; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);'
+    wrapper.style.cssText = 'background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow-x: auto;'
     parentEl.appendChild(wrapper)
 
     const title = document.createElement('div')
@@ -992,7 +996,7 @@
 
     const subtitle = document.createElement('div')
     subtitle.style.cssText = 'font-size: 11px; color: #888; margin-bottom: 12px;'
-    subtitle.textContent = `Hoe veranderingen in energieverbruik (${energyUnit}) uiteenvallen in vraag- en intensiteitseffecten`
+    subtitle.textContent = `Veranderingen in energieverbruik uitgedrukt in ${energyUnit}`
     wrapper.appendChild(subtitle)
 
     // Helper to format numbers
@@ -1004,15 +1008,15 @@
 
     // Table
     const table = document.createElement('table')
-    table.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 11px;'
+    table.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 10px; table-layout: fixed;'
 
     // Header
     const thead = document.createElement('thead')
     const hr = document.createElement('tr')
-    ;['Periode', `Δ Energie (${energyUnit})`, `Vraageffect (${energyUnit})`, `Intensiteitseffect (${energyUnit})`, `Interactie (${energyUnit})`].forEach((txt, idx) => {
+    ;['Periode', `Δ Energie`, `Vraag`, `Intensiteit`, `Interactie`].forEach((txt, idx) => {
       const th = document.createElement('th')
       th.textContent = txt
-      th.style.cssText = 'padding: 6px 8px; text-align: ' + (idx === 0 ? 'left' : 'right') + '; border-bottom: 2px solid #ddd; font-weight: 600; color: #444; white-space: nowrap;'
+      th.style.cssText = 'padding: 4px 4px; text-align: ' + (idx === 0 ? 'left' : 'right') + '; border-bottom: 2px solid #ddd; font-weight: 600; color: #444; overflow: hidden; text-overflow: ellipsis;'
       hr.appendChild(th)
     })
     thead.appendChild(hr)
@@ -1035,13 +1039,13 @@
 
       const tdPeriod = document.createElement('td')
       tdPeriod.textContent = `${p.y0} → ${p.y1}`
-      tdPeriod.style.cssText = 'padding: 5px 8px; color: #333; font-weight: 500; white-space: nowrap;'
+      tdPeriod.style.cssText = 'padding: 4px 4px; color: #333; font-weight: 500; white-space: nowrap;'
       tr.appendChild(tdPeriod)
 
       ;[p.deltaE, p.demandEffect, p.intensityEffect, p.interactionEffect].forEach(val => {
         const td = document.createElement('td')
         td.textContent = fmt(val)
-        td.style.cssText = 'padding: 5px 8px; text-align: right; color: ' + valColor(val) + '; font-variant-numeric: tabular-nums;'
+        td.style.cssText = 'padding: 4px 4px; text-align: right; color: ' + valColor(val) + '; font-variant-numeric: tabular-nums;'
         tr.appendChild(td)
       })
 
@@ -1054,13 +1058,13 @@
 
     const tdTotal = document.createElement('td')
     tdTotal.textContent = `${yFirst} → ${yLast}`
-    tdTotal.style.cssText = 'padding: 6px 8px; color: #222; font-weight: 700; white-space: nowrap;'
+    tdTotal.style.cssText = 'padding: 4px 4px; color: #222; font-weight: 700; white-space: nowrap;'
     totalTr.appendChild(tdTotal)
 
     ;[totalDeltaE, totalDemandEffect, totalIntensityEffect, totalInteractionEffect].forEach(val => {
       const td = document.createElement('td')
       td.textContent = fmt(val)
-      td.style.cssText = 'padding: 6px 8px; text-align: right; font-weight: 700; color: ' + valColor(val) + '; font-variant-numeric: tabular-nums;'
+      td.style.cssText = 'padding: 4px 4px; text-align: right; font-weight: 700; color: ' + valColor(val) + '; font-variant-numeric: tabular-nums;'
       totalTr.appendChild(td)
     })
     tbody.appendChild(totalTr)
@@ -1269,7 +1273,7 @@
     const innerH = chartH
 
     const wrapper = document.createElement('div')
-    wrapper.style.cssText = 'margin-bottom:0; background:#fff; border:1px solid #e0e0e0; border-radius:12px; padding:16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);'
+    wrapper.style.cssText = 'margin-bottom:0; background:#fff; border:1px solid #e0e0e0; border-radius:12px; padding:16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden;'
     parentEl.appendChild(wrapper)
 
     const svg = d3.select(wrapper).append('svg')
@@ -1840,7 +1844,7 @@
     const years = yearsToUse || YEARS
 
     const wrapper = document.createElement('div')
-    wrapper.style.cssText = 'margin-bottom:0; background:#fff; border:1px solid #ddd; border-radius:10px; padding:10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);'
+    wrapper.style.cssText = 'margin-bottom:0; background:#fff; border:1px solid #ddd; border-radius:10px; padding:10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;'
     parentEl.appendChild(wrapper)
 
     // Get options for current service demand
@@ -2362,7 +2366,7 @@
     const years = yearsToUse || YEARS
 
     const wrapper = document.createElement('div')
-    wrapper.style.cssText = 'margin-bottom:0; background:#fff; border:1px solid #ddd; border-radius:10px; padding:10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);'
+    wrapper.style.cssText = 'margin-bottom:0; background:#fff; border:1px solid #ddd; border-radius:10px; padding:10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;'
     parentEl.appendChild(wrapper)
 
     const mainTitle = document.createElement('div')
@@ -2976,7 +2980,7 @@
     const { legendItems, inputCarriersCount } = legendData
 
     const wrapper = document.createElement('div')
-    wrapper.style.cssText = 'margin-bottom:0; background:#fff; border:1px solid #ddd; border-radius:10px; padding:10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);'
+    wrapper.style.cssText = 'margin-bottom:0; background:#fff; border:1px solid #ddd; border-radius:10px; padding:10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;'
     parentEl.appendChild(wrapper)
 
     const title = document.createElement('div')
@@ -3139,7 +3143,7 @@
     colorMap['Totaal'] = '#000000' // Black for total
 
     const wrapper = document.createElement('div')
-    wrapper.style.cssText = 'margin-bottom:0; background:#fff; border:1px solid #e0e0e0; border-radius:12px; padding:16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);'
+    wrapper.style.cssText = 'margin-bottom:0; background:#fff; border:1px solid #e0e0e0; border-radius:12px; padding:16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden;'
     parentEl.appendChild(wrapper)
 
     const svg = d3.select(wrapper).append('svg')

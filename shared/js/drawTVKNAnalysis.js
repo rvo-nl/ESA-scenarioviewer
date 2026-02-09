@@ -917,6 +917,11 @@
     rightCol.appendChild(decompWrapper)
     renderDecompositionTile(decompWrapper, sc, demandData[sc], energyData[sc], demandUnit, yearsToUse)
 
+    // ── SCENARIO-WIDE DECOMPOSITION TILE (all service demands) ──
+    const scenarioDecompWrapper = document.createElement('div')
+    rightCol.appendChild(scenarioDecompWrapper)
+    renderScenarioDecompositionTile(scenarioDecompWrapper, sc, yearsToUse)
+
     // ── TOTAL DEMAND TILE (across all service demand categories) ──
     renderTotalDemandTile(chartDiv, sc, yearsToUse)
   }
@@ -991,7 +996,7 @@
 
     const title = document.createElement('div')
     title.style.cssText = 'font-size: 13px; font-weight: 700; color: #222; margin-bottom: 4px;'
-    title.textContent = 'Decompositieanalyse'
+    title.textContent = 'Decompositieanalyse | ' + (selectedServiceDemand || '')
     wrapper.appendChild(title)
 
     const subtitle = document.createElement('div')
@@ -1079,6 +1084,242 @@
       '<b>Intensiteitseffect</b>: verandering door efficiëntiewinst of -verlies (bij constant vraagvolume). ' +
       '<b>Interactie</b>: gecombineerd effect van gelijktijdige verandering in vraag én intensiteit.'
     wrapper.appendChild(note)
+  }
+
+  // ── scenario-wide decomposition (all service demands) ──────────────
+  function renderScenarioDecompositionTile (parentEl, scenario, yearsToUse) {
+    const years = yearsToUse || YEARS
+    if (years.length < 2) return
+
+    const sdMap = serviceDemandIndex[scenario]
+    if (!sdMap) return
+
+    // Get available service demands (respects sector filter)
+    const availableSDs = getAvailableServiceDemands()
+    if (availableSDs.length === 0) return
+
+    const energyUnit = tvknUnit || 'PJ'
+    const yFirst = years[0]
+    const yLast = years[years.length - 1]
+
+    // For each service demand, aggregate demand and energy across all its options
+    const sdRows = []
+    let grandTotalEFirst = 0
+    let grandTotalELast = 0
+
+    availableSDs.forEach(sd => {
+      const optionsMap = sdMap[sd]
+      if (!optionsMap) return
+      const options = Object.keys(optionsMap)
+
+      // Filter options by sector if needed
+      const filteredOptions = selectedSector === 'All' ? options : options.filter(opt => {
+        const meta = optiesMetadataIndex[opt]
+        const optSector = meta && meta.Sector && meta.Sector.trim() !== '' && meta.Sector !== '0'
+          ? meta.Sector.trim() : 'Uncategorized'
+        return optSector === selectedSector
+      })
+      if (filteredOptions.length === 0) return
+
+      // Determine sector from first option's metadata
+      let sector = 'Overig'
+      for (const opt of filteredOptions) {
+        const meta = optiesMetadataIndex[opt]
+        if (meta && meta.Sector && meta.Sector.trim() !== '' && meta.Sector !== '0') {
+          sector = meta.Sector.trim()
+          break
+        }
+      }
+
+      // Aggregate demand per year
+      const demandByYear = {}
+      years.forEach(y => {
+        demandByYear[y] = 0
+        filteredOptions.forEach(opt => {
+          demandByYear[y] += getServiceDemandValue(scenario, sd, opt, y)
+        })
+      })
+
+      // Aggregate energy per year (positive values only = inputs)
+      const energyByYear = {}
+      years.forEach(y => { energyByYear[y] = 0 })
+      const flows = getEnergyFlows(filteredOptions, scenario)
+      flows.forEach(row => {
+        const yr = parseInt(row.Year)
+        const val = parseVal(row.Value)
+        if (!years.includes(yr)) return
+        if (row.Carrier === 'CO2Flow' || row.Carrier === 'CO2flow') return
+        if (val > 0) energyByYear[yr] += val
+      })
+
+      // Compute intensity
+      const dFirst = demandByYear[yFirst] || 0
+      const dLast = demandByYear[yLast] || 0
+      const eFirst = energyByYear[yFirst] || 0
+      const eLast = energyByYear[yLast] || 0
+      const iFirst = dFirst !== 0 ? eFirst / dFirst : null
+      const iLast = dLast !== 0 ? eLast / dLast : null
+
+      const deltaE = convertUnit(eLast) - convertUnit(eFirst)
+      let demandEffect = null
+      let intensityEffect = null
+      let interactionEffect = null
+
+      if (iFirst !== null && iLast !== null) {
+        const dD = dLast - dFirst
+        const dI = convertUnit(iLast) - convertUnit(iFirst)
+        demandEffect = dD * convertUnit(iFirst)
+        intensityEffect = dI * dFirst
+        interactionEffect = dD * dI
+      }
+
+      grandTotalEFirst += eFirst
+      grandTotalELast += eLast
+
+      sdRows.push({ sd, sector, deltaE, demandEffect, intensityEffect, interactionEffect })
+    })
+
+    if (sdRows.length === 0) return
+
+    // Group by sector and compute sector totals
+    const sectorMap = {}
+    sdRows.forEach(r => {
+      if (!sectorMap[r.sector]) sectorMap[r.sector] = { rows: [], deltaE: 0, demandEffect: 0, intensityEffect: 0, interactionEffect: 0, hasDecomp: false }
+      const s = sectorMap[r.sector]
+      s.rows.push(r)
+      s.deltaE += r.deltaE
+      if (r.demandEffect !== null) {
+        s.demandEffect += r.demandEffect
+        s.intensityEffect += r.intensityEffect
+        s.interactionEffect += r.interactionEffect
+        s.hasDecomp = true
+      }
+    })
+    const sortedSectors = Object.keys(sectorMap).sort((a, b) => Math.abs(sectorMap[b].deltaE) - Math.abs(sectorMap[a].deltaE))
+
+    // Grand totals
+    const grandDeltaE = convertUnit(grandTotalELast) - convertUnit(grandTotalEFirst)
+    let grandDemandEffect = 0
+    let grandIntensityEffect = 0
+    let grandInteractionEffect = 0
+    let hasDecomp = false
+    sdRows.forEach(r => {
+      if (r.demandEffect !== null) {
+        grandDemandEffect += r.demandEffect
+        grandIntensityEffect += r.intensityEffect
+        grandInteractionEffect += r.interactionEffect
+        hasDecomp = true
+      }
+    })
+
+    // Wrapper
+    const wrapper = document.createElement('div')
+    wrapper.style.cssText = 'background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow-x: auto;'
+    parentEl.appendChild(wrapper)
+
+    // Collapsible title
+    const titleEl = document.createElement('div')
+    titleEl.style.cssText = 'font-size: 11px; font-weight: 600; color: #222; cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none;'
+    const arrow = document.createElement('span')
+    arrow.style.cssText = 'display: inline-block; transition: transform 0.2s; font-size: 9px; color: #888;'
+    arrow.textContent = '\u25B6'
+    titleEl.appendChild(arrow)
+    const titleText = document.createElement('span')
+    titleText.textContent = `Decompositie per sector | ${yFirst} → ${yLast} | ${selectedDemandType} ${selectedDataSource} | ${energyUnit}`
+    titleEl.appendChild(titleText)
+    wrapper.appendChild(titleEl)
+
+    // Collapsible content (expanded by default)
+    const contentDiv = document.createElement('div')
+    contentDiv.style.cssText = 'display: block; margin-top: 10px;'
+    wrapper.appendChild(contentDiv)
+    arrow.style.transform = 'rotate(90deg)'
+
+    titleEl.addEventListener('click', () => {
+      const isOpen = contentDiv.style.display !== 'none'
+      contentDiv.style.display = isOpen ? 'none' : 'block'
+      arrow.style.transform = isOpen ? '' : 'rotate(90deg)'
+    })
+
+    const fmt = (v) => {
+      if (v === null || v === undefined || isNaN(v)) return '–'
+      const prefix = v > 0 ? '+' : ''
+      return prefix + v.toFixed(2)
+    }
+
+    const valColor = (v) => {
+      if (v === null || isNaN(v)) return '#888'
+      if (v > 0.005) return '#c0392b'
+      if (v < -0.005) return '#27ae60'
+      return '#555'
+    }
+
+    // Table
+    const table = document.createElement('table')
+    table.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 10px; table-layout: fixed;'
+
+    const thead = document.createElement('thead')
+    const hr = document.createElement('tr')
+    ;['Sector', 'Δ Energie', 'Vraag', 'Intensiteit', 'Interactie'].forEach((txt, idx) => {
+      const th = document.createElement('th')
+      th.textContent = txt
+      th.style.cssText = 'padding: 4px 4px; text-align: ' + (idx === 0 ? 'left' : 'right') + '; border-bottom: 2px solid #ddd; font-weight: 600; color: #444; overflow: hidden; text-overflow: ellipsis;'
+      hr.appendChild(th)
+    })
+    thead.appendChild(hr)
+    table.appendChild(thead)
+
+    const tbody = document.createElement('tbody')
+
+    // Sector rows
+    sortedSectors.forEach(sectorName => {
+      const s = sectorMap[sectorName]
+      const tr = document.createElement('tr')
+      tr.style.cssText = 'border-bottom: 1px solid #ddd;'
+
+      const tdName = document.createElement('td')
+      tdName.textContent = sectorName
+      tdName.title = sectorName
+      tdName.style.cssText = 'padding: 4px 4px; color: #222; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'
+      tr.appendChild(tdName)
+
+      ;[s.deltaE,
+        s.hasDecomp ? s.demandEffect : null,
+        s.hasDecomp ? s.intensityEffect : null,
+        s.hasDecomp ? s.interactionEffect : null
+      ].forEach(val => {
+        const td = document.createElement('td')
+        td.textContent = fmt(val)
+        td.style.cssText = 'padding: 4px 4px; text-align: right; color: ' + valColor(val) + '; font-variant-numeric: tabular-nums; font-weight: 600;'
+        tr.appendChild(td)
+      })
+
+      tbody.appendChild(tr)
+    })
+
+    // Grand total row
+    const totalTr = document.createElement('tr')
+    totalTr.style.cssText = 'border-top: 2px solid #999; font-weight: 700;'
+
+    const tdTotal = document.createElement('td')
+    tdTotal.textContent = 'Totaal'
+    tdTotal.style.cssText = 'padding: 4px 4px; color: #222; font-weight: 700;'
+    totalTr.appendChild(tdTotal)
+
+    ;[grandDeltaE,
+      hasDecomp ? grandDemandEffect : null,
+      hasDecomp ? grandIntensityEffect : null,
+      hasDecomp ? grandInteractionEffect : null
+    ].forEach(val => {
+      const td = document.createElement('td')
+      td.textContent = fmt(val)
+      td.style.cssText = 'padding: 4px 4px; text-align: right; font-weight: 700; color: ' + valColor(val) + '; font-variant-numeric: tabular-nums;'
+      totalTr.appendChild(td)
+    })
+    tbody.appendChild(totalTr)
+
+    table.appendChild(tbody)
+    contentDiv.appendChild(table)
   }
 
   // ── total demand overview table ───────────────────────────────────────

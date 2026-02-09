@@ -907,6 +907,165 @@
     const optionsWrapper = document.createElement('div')
     rightCol.appendChild(optionsWrapper)
     renderOptionsBreakdownTile(optionsWrapper, sc, demandUnit, selectedServiceDemand, yearsToUse)
+
+    // ── TOTAL DEMAND TILE (across all service demand categories) ──
+    renderTotalDemandTile(chartDiv, sc, yearsToUse)
+  }
+
+  // ── total demand overview table ───────────────────────────────────────
+  function renderTotalDemandTile(parentEl, scenario, yearsToUse) {
+    const years = yearsToUse || YEARS
+    const sdMap = serviceDemandIndex[scenario]
+    if (!sdMap) return
+
+    // Get all service demands that have data for this scenario
+    const availableSDs = allServiceDemands.filter(sd => {
+      if (!sdMap[sd]) return false
+      const options = sdMap[sd]
+      for (const opt of Object.keys(options)) {
+        for (const yr of years) {
+          if (options[opt][yr] && options[opt][yr] !== 0) return true
+        }
+      }
+      return false
+    })
+    if (availableSDs.length === 0) return
+
+    const unitCol = selectedDemandType === 'Activity' ? 'unit_activity' : 'unit_capacity'
+
+    // Build row data with sector: { sd, unit, sector, values: { year -> total } }
+    const rows = availableSDs.map(sd => {
+      const options = sdMap[sd]
+      let unit = ''
+      const matchRow = serviceDemandRaw.find(r =>
+        r['Short.Name'] === scenario &&
+        r['Service demand'] === sd
+      )
+      if (matchRow) unit = matchRow[unitCol] || ''
+
+      // Determine sector from metadata of the first option
+      let sector = 'Overig'
+      for (const opt of Object.keys(options)) {
+        const meta = optiesMetadataIndex[opt]
+        if (meta && meta.Sector && meta.Sector.trim() !== '' && meta.Sector !== '0') {
+          sector = meta.Sector.trim()
+          break
+        }
+      }
+
+      const values = {}
+      years.forEach(yr => {
+        let total = 0
+        Object.keys(options).forEach(opt => {
+          total += getServiceDemandValue(scenario, sd, opt, yr)
+        })
+        values[yr] = total
+      })
+      return { sd, unit, sector, values }
+    })
+
+    // Group by sector
+    const sectorMap = {}
+    rows.forEach(row => {
+      if (!sectorMap[row.sector]) sectorMap[row.sector] = []
+      sectorMap[row.sector].push(row)
+    })
+    const sortedSectors = Object.keys(sectorMap).sort()
+
+    // Wrapper
+    const wrapper = document.createElement('div')
+    wrapper.style.cssText = 'margin-top: 18px; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);'
+    parentEl.appendChild(wrapper)
+
+    const titleEl = document.createElement('div')
+    titleEl.style.cssText = 'font-size: 11px; font-weight: 600; color: #222; margin-bottom: 10px;'
+    titleEl.textContent = `Totaaloverzicht service demand | ${selectedDemandType} ${selectedDataSource}`
+    wrapper.appendChild(titleEl)
+
+    // Table
+    const table = document.createElement('table')
+    table.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 10px;'
+    wrapper.appendChild(table)
+
+    // Header
+    const thead = document.createElement('thead')
+    table.appendChild(thead)
+    const headerRow = document.createElement('tr')
+    thead.appendChild(headerRow)
+
+    const thStyle = 'padding: 4px 8px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #ddd; white-space: nowrap;'
+    const thRight = 'padding: 4px 8px; text-align: right; font-weight: 600; color: #555; border-bottom: 2px solid #ddd; white-space: nowrap;'
+    const colCount = 2 + years.length
+
+    const thSD = document.createElement('th')
+    thSD.style.cssText = thStyle
+    thSD.textContent = 'Service demand'
+    headerRow.appendChild(thSD)
+
+    const thUnit = document.createElement('th')
+    thUnit.style.cssText = thStyle
+    thUnit.textContent = 'Eenheid'
+    headerRow.appendChild(thUnit)
+
+    years.forEach(yr => {
+      const th = document.createElement('th')
+      th.style.cssText = thRight
+      th.textContent = yr
+      headerRow.appendChild(th)
+    })
+
+    // Body
+    const tbody = document.createElement('tbody')
+    table.appendChild(tbody)
+
+    const tdStyle = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; white-space: nowrap;'
+    const tdRight = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;'
+    const tdSelected = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; white-space: nowrap; background: #EEF5FA; font-weight: 600;'
+    const tdSelectedRight = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; background: #EEF5FA; font-weight: 600;'
+
+    sortedSectors.forEach(sector => {
+      // Sector header row
+      const sectorTr = document.createElement('tr')
+      const sectorTd = document.createElement('td')
+      sectorTd.colSpan = colCount
+      sectorTd.style.cssText = 'padding: 8px 8px 4px; font-size: 10px; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #ccc;'
+      sectorTd.textContent = sector
+      sectorTr.appendChild(sectorTd)
+      tbody.appendChild(sectorTr)
+
+      // Data rows for this sector
+      sectorMap[sector].forEach(row => {
+        const tr = document.createElement('tr')
+        tr.style.cursor = 'pointer'
+        const isSelected = row.sd === selectedServiceDemand
+        tr.addEventListener('click', () => {
+          selectedServiceDemand = row.sd
+          const sdSel = document.getElementById('tvkn-sd-select')
+          if (sdSel) sdSel.value = row.sd
+          renderCharts()
+        })
+
+        const tdName = document.createElement('td')
+        tdName.style.cssText = isSelected ? tdSelected : tdStyle
+        tdName.textContent = row.sd
+        tr.appendChild(tdName)
+
+        const tdU = document.createElement('td')
+        tdU.style.cssText = isSelected ? tdSelected : tdStyle
+        tdU.textContent = row.unit
+        tr.appendChild(tdU)
+
+        years.forEach(yr => {
+          const td = document.createElement('td')
+          td.style.cssText = isSelected ? tdSelectedRight : tdRight
+          const val = row.values[yr]
+          td.textContent = val === 0 ? '-' : d3.format(',.2f')(val)
+          tr.appendChild(td)
+        })
+
+        tbody.appendChild(tr)
+      })
+    })
   }
 
   // ── reusable D3 line chart renderer ────────────────────────────────────

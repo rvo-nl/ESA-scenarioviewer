@@ -738,6 +738,14 @@
     return tvknUnit === 'TWh' ? valPJ / 3.6 : valPJ
   }
 
+  // LMDI logarithmic mean weight: L(a,b) = (a - b) / (ln(a) - ln(b))
+  // Returns 0 when either value is zero or both are equal
+  function logMeanWeight (a, b) {
+    if (a <= 0 || b <= 0) return 0
+    if (Math.abs(a - b) < 1e-12) return a
+    return (a - b) / (Math.log(a) - Math.log(b))
+  }
+
   // ── render ─────────────────────────────────────────────────────────────
   function renderCharts() {
     const chartDiv = document.getElementById('tvkn-charts')
@@ -915,7 +923,7 @@
     // ── DECOMPOSITION ANALYSIS TILE (under options breakdown in right column) ──
     const decompWrapper = document.createElement('div')
     rightCol.appendChild(decompWrapper)
-    renderDecompositionTile(decompWrapper, sc, demandData[sc], energyData[sc], demandUnit, yearsToUse)
+    renderDecompositionTile(decompWrapper, sc, yearsToUse)
 
     // ── SCENARIO-WIDE DECOMPOSITION TILE (all service demands) ──
     const scenarioDecompWrapper = document.createElement('div')
@@ -926,68 +934,101 @@
     renderTotalDemandTile(chartDiv, sc, yearsToUse)
   }
 
-  // ── decomposition analysis tile ──────────────────────────────────────
-  function renderDecompositionTile (parentEl, scenario, demandByYear, energyByYear, demandUnit, yearsToUse) {
+  // ── decomposition analysis tile (3-factor LMDI: activity, structure, intensity) ──
+  function renderDecompositionTile (parentEl, scenario, yearsToUse) {
     const years = yearsToUse || YEARS
     if (years.length < 2) return
 
-    // Compute intensity per year and check we have valid data
-    const intensity = {}
+    const sdMap = serviceDemandIndex[scenario]
+    if (!sdMap || !sdMap[selectedServiceDemand]) return
+
+    const optionsMap = sdMap[selectedServiceDemand]
+    const options = Object.keys(optionsMap)
+    if (options.length === 0) return
+
+    const energyUnit = tvknUnit || 'PJ'
+
+    // Build per-option demand and energy data per year
+    // optData[opt] = { demand: {year -> val}, energy: {year -> val (PJ)} }
+    const optData = {}
+    options.forEach(opt => {
+      const demand = {}
+      years.forEach(y => { demand[y] = getServiceDemandValue(scenario, selectedServiceDemand, opt, y) })
+      const energy = {}
+      years.forEach(y => { energy[y] = 0 })
+      const scMap = energyFlowIndex[scenario]
+      if (scMap && scMap[opt]) {
+        scMap[opt].forEach(row => {
+          const yr = parseInt(row.Year)
+          const val = parseVal(row.Value)
+          if (!years.includes(yr)) return
+          if (row.Carrier === 'CO2Flow' || row.Carrier === 'CO2flow') return
+          if (val > 0) energy[yr] += val
+        })
+      }
+      optData[opt] = { demand, energy }
+    })
+
+    // Check we have valid data
     let hasData = false
     years.forEach(y => {
-      const d = demandByYear[y] || 0
-      const e = energyByYear[y] || 0
-      intensity[y] = d !== 0 ? e / d : null
-      if (d !== 0 && e !== 0) hasData = true
+      const totalD = options.reduce((s, o) => s + (optData[o].demand[y] || 0), 0)
+      const totalE = options.reduce((s, o) => s + (optData[o].energy[y] || 0), 0)
+      if (totalD > 0 && totalE > 0) hasData = true
     })
     if (!hasData) return
 
-    const energyUnit = tvknUnit || 'PJ'
+    // 3-factor LMDI decomposition for a period (y0 -> y1)
+    // E = Σᵢ D × Sᵢ × Iᵢ  where D=total demand, Sᵢ=Dᵢ/D (share), Iᵢ=Eᵢ/Dᵢ (intensity)
+    // Uses small epsilon substitution for zeros (Ang & Liu 2007)
+    const EPS = 1e-10
+    function computeLMDI3 (y0, y1) {
+      const D0 = Math.max(EPS, options.reduce((s, o) => s + (optData[o].demand[y0] || 0), 0))
+      const D1 = Math.max(EPS, options.reduce((s, o) => s + (optData[o].demand[y1] || 0), 0))
+      const totalE0 = options.reduce((s, o) => s + convertUnit(optData[o].energy[y0] || 0), 0)
+      const totalE1 = options.reduce((s, o) => s + convertUnit(optData[o].energy[y1] || 0), 0)
+
+      const deltaE = totalE1 - totalE0
+      let actEffect = 0, strEffect = 0, intEffect = 0
+      let valid = totalE0 > 0 || totalE1 > 0
+
+      if (valid) {
+        options.forEach(opt => {
+          const d0 = Math.max(EPS, optData[opt].demand[y0] || 0)
+          const d1 = Math.max(EPS, optData[opt].demand[y1] || 0)
+          const e0 = Math.max(EPS, convertUnit(optData[opt].energy[y0] || 0))
+          const e1 = Math.max(EPS, convertUnit(optData[opt].energy[y1] || 0))
+
+          const w = logMeanWeight(e1, e0)
+          const s0 = d0 / D0
+          const s1 = d1 / D1
+          const i0 = e0 / d0
+          const i1 = e1 / d1
+
+          actEffect += w * Math.log(D1 / D0)
+          strEffect += w * Math.log(s1 / s0)
+          intEffect += w * Math.log(i1 / i0)
+        })
+      } else {
+        actEffect = null; strEffect = null; intEffect = null
+      }
+
+      return { deltaE, actEffect, strEffect, intEffect, totalE0, totalE1 }
+    }
 
     // Build period rows
     const periods = []
     for (let i = 1; i < years.length; i++) {
       const y0 = years[i - 1]
       const y1 = years[i]
-      const d0 = demandByYear[y0] || 0
-      const d1 = demandByYear[y1] || 0
-      const e0 = energyByYear[y0] || 0
-      const e1 = energyByYear[y1] || 0
-      const i0 = intensity[y0]
-      const i1 = intensity[y1]
-
-      const deltaE = convertUnit(e1) - convertUnit(e0)
-      let demandEffect = null
-      let intensityEffect = null
-      let interactionEffect = null
-
-      if (i0 !== null && i1 !== null) {
-        const dD = d1 - d0
-        const dI = convertUnit(i1) - convertUnit(i0)
-        demandEffect = dD * convertUnit(i0)
-        intensityEffect = dI * d0
-        interactionEffect = dD * dI
-      }
-
-      periods.push({ y0, y1, deltaE, demandEffect, intensityEffect, interactionEffect, d0: d1, e0: convertUnit(e0), e1: convertUnit(e1) })
+      const result = computeLMDI3(y0, y1)
+      periods.push({ y0, y1, ...result })
     }
 
-    // Also add a total row from first to last year
+    // Total row
     const yFirst = years[0]
     const yLast = years[years.length - 1]
-    const totalDeltaE = convertUnit(energyByYear[yLast] || 0) - convertUnit(energyByYear[yFirst] || 0)
-    const i_first = intensity[yFirst]
-    const i_last = intensity[yLast]
-    let totalDemandEffect = null
-    let totalIntensityEffect = null
-    let totalInteractionEffect = null
-    if (i_first !== null && i_last !== null) {
-      const dD = (demandByYear[yLast] || 0) - (demandByYear[yFirst] || 0)
-      const dI = convertUnit(i_last) - convertUnit(i_first)
-      totalDemandEffect = dD * convertUnit(i_first)
-      totalIntensityEffect = dI * (demandByYear[yFirst] || 0)
-      totalInteractionEffect = dD * dI
-    }
+    const totalResult = computeLMDI3(yFirst, yLast)
 
     // Wrapper
     const wrapper = document.createElement('div')
@@ -1004,21 +1045,26 @@
     subtitle.textContent = `Veranderingen in energieverbruik uitgedrukt in ${energyUnit}`
     wrapper.appendChild(subtitle)
 
-    // Helper to format numbers
     const fmt = (v) => {
       if (v === null || v === undefined || isNaN(v)) return '–'
       const prefix = v > 0 ? '+' : ''
       return prefix + v.toFixed(2)
     }
 
+    const valColor = (v) => {
+      if (v === null || isNaN(v)) return '#888'
+      if (v > 0.005) return '#c0392b'
+      if (v < -0.005) return '#27ae60'
+      return '#555'
+    }
+
     // Table
     const table = document.createElement('table')
     table.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 10px; table-layout: fixed;'
 
-    // Header
     const thead = document.createElement('thead')
     const hr = document.createElement('tr')
-    ;['Periode', `Δ Energie`, `Vraag`, `Intensiteit`, `Interactie`].forEach((txt, idx) => {
+    ;['Periode', 'Δ Energie', 'Vraag', 'Structuur', 'Intensiteit'].forEach((txt, idx) => {
       const th = document.createElement('th')
       th.textContent = txt
       th.style.cssText = 'padding: 4px 4px; text-align: ' + (idx === 0 ? 'left' : 'right') + '; border-bottom: 2px solid #ddd; font-weight: 600; color: #444; overflow: hidden; text-overflow: ellipsis;'
@@ -1028,14 +1074,6 @@
     table.appendChild(thead)
 
     const tbody = document.createElement('tbody')
-
-    // Color helper for values
-    const valColor = (v) => {
-      if (v === null || isNaN(v)) return '#888'
-      if (v > 0.005) return '#c0392b'
-      if (v < -0.005) return '#27ae60'
-      return '#555'
-    }
 
     // Period rows
     periods.forEach(p => {
@@ -1047,7 +1085,7 @@
       tdPeriod.style.cssText = 'padding: 4px 4px; color: #333; font-weight: 500; white-space: nowrap;'
       tr.appendChild(tdPeriod)
 
-      ;[p.deltaE, p.demandEffect, p.intensityEffect, p.interactionEffect].forEach(val => {
+      ;[p.deltaE, p.actEffect, p.strEffect, p.intEffect].forEach(val => {
         const td = document.createElement('td')
         td.textContent = fmt(val)
         td.style.cssText = 'padding: 4px 4px; text-align: right; color: ' + valColor(val) + '; font-variant-numeric: tabular-nums;'
@@ -1066,7 +1104,7 @@
     tdTotal.style.cssText = 'padding: 4px 4px; color: #222; font-weight: 700; white-space: nowrap;'
     totalTr.appendChild(tdTotal)
 
-    ;[totalDeltaE, totalDemandEffect, totalIntensityEffect, totalInteractionEffect].forEach(val => {
+    ;[totalResult.deltaE, totalResult.actEffect, totalResult.strEffect, totalResult.intEffect].forEach(val => {
       const td = document.createElement('td')
       td.textContent = fmt(val)
       td.style.cssText = 'padding: 4px 4px; text-align: right; font-weight: 700; color: ' + valColor(val) + '; font-variant-numeric: tabular-nums;'
@@ -1077,16 +1115,213 @@
     table.appendChild(tbody)
     wrapper.appendChild(table)
 
+    // ── Waterfall chart showing all periods ──
+    // Check that at least one period has valid decomposition
+    const hasAnyDecomp = periods.some(p => p.actEffect !== null)
+    if (hasAnyDecomp) {
+      // Build bars: for each period → year total, then 3 decomposition factors
+      // Final bar is the last year total
+      const bars = []
+
+      periods.forEach((p, pi) => {
+        // Year total bar at start of each period (use actual energy from LMDI result)
+        bars.push({ label: String(p.y0), value: p.totalE0, type: 'total', period: pi })
+
+        if (p.actEffect !== null) {
+          bars.push({ label: 'V', value: p.actEffect, type: 'delta', factor: 'V', period: pi })
+          bars.push({ label: 'S', value: p.strEffect, type: 'delta', factor: 'S', period: pi })
+          bars.push({ label: 'I', value: p.intEffect, type: 'delta', factor: 'I', period: pi })
+        }
+      })
+      // Final year total
+      const lastPeriod = periods[periods.length - 1]
+      bars.push({ label: String(yLast), value: lastPeriod.totalE1, type: 'total', period: periods.length })
+
+      // Compute running positions for waterfall
+      let running = 0
+      bars.forEach(b => {
+        if (b.type === 'total') {
+          b.barStart = 0
+          b.barEnd = b.value
+          running = b.value
+        } else {
+          b.barStart = running
+          b.barEnd = running + b.value
+          running += b.value
+        }
+        b.barBottom = Math.min(b.barStart, b.barEnd)
+        b.barTop = Math.max(b.barStart, b.barEnd)
+      })
+
+      // Give each bar a unique key for the x scale
+      bars.forEach((b, i) => { b.key = i })
+
+      const nBars = bars.length
+      const barUnitWidth = 22
+      const chartMargin = { top: 14, right: 10, bottom: 30, left: 38 }
+      const innerW = nBars * barUnitWidth
+      const chartWidth = innerW + chartMargin.left + chartMargin.right
+      const chartHeight = 160
+      const innerH = chartHeight - chartMargin.top - chartMargin.bottom
+
+      // Determine y domain
+      const allVals = bars.flatMap(b => [b.barBottom, b.barTop])
+      let yMin = Math.min(0, ...allVals)
+      let yMax = Math.max(0, ...allVals)
+      const yPad = (yMax - yMin) * 0.1 || 1
+      yMin -= yPad
+      yMax += yPad
+
+      const xScale = d3.scaleBand().domain(bars.map(b => b.key)).range([0, innerW]).padding(0.15)
+      const yScale = d3.scaleLinear().domain([yMin, yMax]).range([innerH, 0])
+
+      const chartDiv = document.createElement('div')
+      chartDiv.style.cssText = 'margin-top: 12px; overflow-x: auto;'
+      wrapper.appendChild(chartDiv)
+
+      const svg = d3.select(chartDiv).append('svg')
+        .attr('width', chartWidth)
+        .attr('height', chartHeight)
+      const g = svg.append('g').attr('transform', `translate(${chartMargin.left},${chartMargin.top})`)
+
+      // Period separator lines (light vertical lines between period groups)
+      bars.forEach((b, i) => {
+        if (b.type === 'total' && i > 0) {
+          g.append('line')
+            .attr('x1', xScale(b.key) - xScale.step() * xScale.padding() / 2)
+            .attr('x2', xScale(b.key) - xScale.step() * xScale.padding() / 2)
+            .attr('y1', 0).attr('y2', innerH)
+            .attr('stroke', '#e0e0e0').attr('stroke-width', 1)
+        }
+      })
+
+      // Connector lines between bars
+      for (let i = 0; i < bars.length - 1; i++) {
+        const curr = bars[i]
+        const next = bars[i + 1]
+        const connectorY = curr.type === 'total' ? curr.barTop : curr.barEnd
+        g.append('line')
+          .attr('x1', xScale(curr.key) + xScale.bandwidth())
+          .attr('x2', xScale(next.key))
+          .attr('y1', yScale(connectorY))
+          .attr('y2', yScale(connectorY))
+          .attr('stroke', '#ccc').attr('stroke-width', 0.75)
+          .attr('stroke-dasharray', '2,2')
+      }
+
+      // Bars
+      bars.forEach(b => {
+        const barColor = b.type === 'total' ? '#5b7fa5'
+          : b.value > 0.005 ? '#c0392b'
+          : b.value < -0.005 ? '#27ae60'
+          : '#bbb'
+
+        g.append('rect')
+          .attr('x', xScale(b.key))
+          .attr('y', yScale(b.barTop))
+          .attr('width', xScale.bandwidth())
+          .attr('height', Math.max(1, yScale(b.barBottom) - yScale(b.barTop)))
+          .attr('fill', barColor)
+          .attr('rx', 1.5)
+
+        // Value labels on bars (only for total bars and significant deltas)
+        if (b.type === 'total') {
+          g.append('text')
+            .attr('x', xScale(b.key) + xScale.bandwidth() / 2)
+            .attr('y', yScale(b.barTop) - 3)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '7px')
+            .attr('fill', '#333')
+            .attr('font-weight', '600')
+            .text(b.value.toFixed(1))
+        } else if (Math.abs(b.value) > 0.01) {
+          const labelY = b.value >= 0 ? yScale(b.barTop) - 2 : yScale(b.barBottom) + 8
+          g.append('text')
+            .attr('x', xScale(b.key) + xScale.bandwidth() / 2)
+            .attr('y', labelY)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '6.5px')
+            .attr('fill', barColor)
+            .text((b.value > 0 ? '+' : '') + b.value.toFixed(1))
+        }
+      })
+
+      // X axis labels
+      bars.forEach(b => {
+        const isTotal = b.type === 'total'
+        g.append('text')
+          .attr('x', xScale(b.key) + xScale.bandwidth() / 2)
+          .attr('y', innerH + (isTotal ? 14 : 12))
+          .attr('text-anchor', 'middle')
+          .attr('font-size', isTotal ? '8px' : '7px')
+          .attr('fill', isTotal ? '#333' : '#999')
+          .attr('font-weight', isTotal ? '600' : '400')
+          .text(b.label)
+      })
+
+      // Y axis
+      const yTicks = yScale.ticks(5)
+      yTicks.forEach(tick => {
+        g.append('line')
+          .attr('x1', -4).attr('x2', 0)
+          .attr('y1', yScale(tick)).attr('y2', yScale(tick))
+          .attr('stroke', '#999')
+        g.append('text')
+          .attr('x', -6)
+          .attr('y', yScale(tick) + 3)
+          .attr('text-anchor', 'end')
+          .attr('font-size', '8px')
+          .attr('fill', '#888')
+          .text(tick.toFixed(1))
+      })
+
+      // Y axis label
+      g.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('x', -innerH / 2)
+        .attr('y', -30)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '8px')
+        .attr('fill', '#888')
+        .text(energyUnit)
+
+      // Legend
+      const legendDiv = document.createElement('div')
+      legendDiv.style.cssText = 'display: flex; gap: 12px; margin-top: 6px; font-size: 8px; color: #888;'
+      ;[
+        { color: '#5b7fa5', label: 'Totaal' },
+        { color: '#c0392b', label: 'Toename' },
+        { color: '#27ae60', label: 'Afname' }
+      ].forEach(item => {
+        const span = document.createElement('span')
+        span.style.cssText = 'display: flex; align-items: center; gap: 3px;'
+        span.innerHTML = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${item.color};"></span>${item.label}`
+        legendDiv.appendChild(span)
+      })
+      ;[
+        { abbr: 'V', full: 'Vraag' },
+        { abbr: 'S', full: 'Structuur' },
+        { abbr: 'I', full: 'Intensiteit' }
+      ].forEach(item => {
+        const span = document.createElement('span')
+        span.style.cssText = 'color: #aaa;'
+        span.textContent = `${item.abbr}=${item.full}`
+        legendDiv.appendChild(span)
+      })
+      chartDiv.appendChild(legendDiv)
+    }
+
     // Explanation
     const note = document.createElement('div')
     note.style.cssText = 'font-size: 10px; color: #999; margin-top: 10px; line-height: 1.5;'
-    note.innerHTML = '<b>Vraageffect</b>: verandering in energieverbruik door verandering in vraagvolume (bij constante intensiteit). ' +
-      '<b>Intensiteitseffect</b>: verandering door efficiëntiewinst of -verlies (bij constant vraagvolume). ' +
-      '<b>Interactie</b>: gecombineerd effect van gelijktijdige verandering in vraag én intensiteit.'
+    note.innerHTML = '<b>Vraageffect</b>: verandering door groei/krimp in totaal vraagvolume. ' +
+      '<b>Structuureffect</b>: verandering door verschuiving tussen technologieën (opties). ' +
+      '<b>Intensiteitseffect</b>: verandering door efficiëntiewinst of -verlies per technologie. ' +
+      'Methode: LMDI-I (Log-Mean Divisia Index).'
     wrapper.appendChild(note)
   }
 
-  // ── scenario-wide decomposition (all service demands) ──────────────
+  // ── scenario-wide decomposition (all service demands, 3-factor LMDI) ──
   function renderScenarioDecompositionTile (parentEl, scenario, yearsToUse) {
     const years = yearsToUse || YEARS
     if (years.length < 2) return
@@ -1094,7 +1329,6 @@
     const sdMap = serviceDemandIndex[scenario]
     if (!sdMap) return
 
-    // Get available service demands (respects sector filter)
     const availableSDs = getAvailableServiceDemands()
     if (availableSDs.length === 0) return
 
@@ -1102,10 +1336,8 @@
     const yFirst = years[0]
     const yLast = years[years.length - 1]
 
-    // For each service demand, aggregate demand and energy across all its options
+    // For each service demand, compute 3-factor LMDI at option level
     const sdRows = []
-    let grandTotalEFirst = 0
-    let grandTotalELast = 0
 
     availableSDs.forEach(sd => {
       const optionsMap = sdMap[sd]
@@ -1121,7 +1353,7 @@
       })
       if (filteredOptions.length === 0) return
 
-      // Determine sector from first option's metadata
+      // Determine sector
       let sector = 'Overig'
       for (const opt of filteredOptions) {
         const meta = optiesMetadataIndex[opt]
@@ -1131,52 +1363,59 @@
         }
       }
 
-      // Aggregate demand per year
-      const demandByYear = {}
-      years.forEach(y => {
-        demandByYear[y] = 0
+      // Build per-option demand and energy data
+      const optData = {}
+      filteredOptions.forEach(opt => {
+        const demand = {}
+        years.forEach(y => { demand[y] = getServiceDemandValue(scenario, sd, opt, y) })
+        const energy = {}
+        years.forEach(y => { energy[y] = 0 })
+        const scMap = energyFlowIndex[scenario]
+        if (scMap && scMap[opt]) {
+          scMap[opt].forEach(row => {
+            const yr = parseInt(row.Year)
+            const val = parseVal(row.Value)
+            if (!years.includes(yr)) return
+            if (row.Carrier === 'CO2Flow' || row.Carrier === 'CO2flow') return
+            if (val > 0) energy[yr] += val
+          })
+        }
+        optData[opt] = { demand, energy }
+      })
+
+      // Total demand and energy for this SD
+      const EPS_SD = 1e-10
+      const D0 = Math.max(EPS_SD, filteredOptions.reduce((s, o) => s + (optData[o].demand[yFirst] || 0), 0))
+      const D1 = Math.max(EPS_SD, filteredOptions.reduce((s, o) => s + (optData[o].demand[yLast] || 0), 0))
+      const totalE0 = filteredOptions.reduce((s, o) => s + convertUnit(optData[o].energy[yFirst] || 0), 0)
+      const totalE1 = filteredOptions.reduce((s, o) => s + convertUnit(optData[o].energy[yLast] || 0), 0)
+
+      const deltaE = totalE1 - totalE0
+      let actEffect = 0, strEffect = 0, intEffect = 0
+      let valid = totalE0 > 0 || totalE1 > 0
+
+      if (valid) {
         filteredOptions.forEach(opt => {
-          demandByYear[y] += getServiceDemandValue(scenario, sd, opt, y)
+          const d0 = Math.max(EPS_SD, optData[opt].demand[yFirst] || 0)
+          const d1 = Math.max(EPS_SD, optData[opt].demand[yLast] || 0)
+          const e0 = Math.max(EPS_SD, convertUnit(optData[opt].energy[yFirst] || 0))
+          const e1 = Math.max(EPS_SD, convertUnit(optData[opt].energy[yLast] || 0))
+
+          const w = logMeanWeight(e1, e0)
+          const s0 = d0 / D0
+          const s1 = d1 / D1
+          const i0 = e0 / d0
+          const i1 = e1 / d1
+
+          actEffect += w * Math.log(D1 / D0)
+          strEffect += w * Math.log(s1 / s0)
+          intEffect += w * Math.log(i1 / i0)
         })
-      })
-
-      // Aggregate energy per year (positive values only = inputs)
-      const energyByYear = {}
-      years.forEach(y => { energyByYear[y] = 0 })
-      const flows = getEnergyFlows(filteredOptions, scenario)
-      flows.forEach(row => {
-        const yr = parseInt(row.Year)
-        const val = parseVal(row.Value)
-        if (!years.includes(yr)) return
-        if (row.Carrier === 'CO2Flow' || row.Carrier === 'CO2flow') return
-        if (val > 0) energyByYear[yr] += val
-      })
-
-      // Compute intensity
-      const dFirst = demandByYear[yFirst] || 0
-      const dLast = demandByYear[yLast] || 0
-      const eFirst = energyByYear[yFirst] || 0
-      const eLast = energyByYear[yLast] || 0
-      const iFirst = dFirst !== 0 ? eFirst / dFirst : null
-      const iLast = dLast !== 0 ? eLast / dLast : null
-
-      const deltaE = convertUnit(eLast) - convertUnit(eFirst)
-      let demandEffect = null
-      let intensityEffect = null
-      let interactionEffect = null
-
-      if (iFirst !== null && iLast !== null) {
-        const dD = dLast - dFirst
-        const dI = convertUnit(iLast) - convertUnit(iFirst)
-        demandEffect = dD * convertUnit(iFirst)
-        intensityEffect = dI * dFirst
-        interactionEffect = dD * dI
+      } else {
+        actEffect = null; strEffect = null; intEffect = null
       }
 
-      grandTotalEFirst += eFirst
-      grandTotalELast += eLast
-
-      sdRows.push({ sd, sector, deltaE, demandEffect, intensityEffect, interactionEffect })
+      sdRows.push({ sd, sector, deltaE, actEffect, strEffect, intEffect, eStart: totalE0, eEnd: totalE1 })
     })
 
     if (sdRows.length === 0) return
@@ -1184,30 +1423,33 @@
     // Group by sector and compute sector totals
     const sectorMap = {}
     sdRows.forEach(r => {
-      if (!sectorMap[r.sector]) sectorMap[r.sector] = { rows: [], deltaE: 0, demandEffect: 0, intensityEffect: 0, interactionEffect: 0, hasDecomp: false }
+      if (!sectorMap[r.sector]) sectorMap[r.sector] = { rows: [], deltaE: 0, actEffect: 0, strEffect: 0, intEffect: 0, eStart: 0, eEnd: 0, hasDecomp: false }
       const s = sectorMap[r.sector]
       s.rows.push(r)
       s.deltaE += r.deltaE
-      if (r.demandEffect !== null) {
-        s.demandEffect += r.demandEffect
-        s.intensityEffect += r.intensityEffect
-        s.interactionEffect += r.interactionEffect
+      s.eStart += r.eStart
+      s.eEnd += r.eEnd
+      if (r.actEffect !== null) {
+        s.actEffect += r.actEffect
+        s.strEffect += r.strEffect
+        s.intEffect += r.intEffect
         s.hasDecomp = true
       }
     })
     const sortedSectors = Object.keys(sectorMap).sort((a, b) => Math.abs(sectorMap[b].deltaE) - Math.abs(sectorMap[a].deltaE))
 
     // Grand totals
-    const grandDeltaE = convertUnit(grandTotalELast) - convertUnit(grandTotalEFirst)
-    let grandDemandEffect = 0
-    let grandIntensityEffect = 0
-    let grandInteractionEffect = 0
+    let grandDeltaE = 0, grandActEffect = 0, grandStrEffect = 0, grandIntEffect = 0
+    let grandEStart = 0, grandEEnd = 0
     let hasDecomp = false
     sdRows.forEach(r => {
-      if (r.demandEffect !== null) {
-        grandDemandEffect += r.demandEffect
-        grandIntensityEffect += r.intensityEffect
-        grandInteractionEffect += r.interactionEffect
+      grandDeltaE += r.deltaE
+      grandEStart += r.eStart
+      grandEEnd += r.eEnd
+      if (r.actEffect !== null) {
+        grandActEffect += r.actEffect
+        grandStrEffect += r.strEffect
+        grandIntEffect += r.intEffect
         hasDecomp = true
       }
     })
@@ -1260,7 +1502,7 @@
 
     const thead = document.createElement('thead')
     const hr = document.createElement('tr')
-    ;['Sector', 'Δ Energie', 'Vraag', 'Intensiteit', 'Interactie'].forEach((txt, idx) => {
+    ;['Sector', 'Δ Energie', 'Vraag', 'Structuur', 'Intensiteit'].forEach((txt, idx) => {
       const th = document.createElement('th')
       th.textContent = txt
       th.style.cssText = 'padding: 4px 4px; text-align: ' + (idx === 0 ? 'left' : 'right') + '; border-bottom: 2px solid #ddd; font-weight: 600; color: #444; overflow: hidden; text-overflow: ellipsis;'
@@ -1284,9 +1526,9 @@
       tr.appendChild(tdName)
 
       ;[s.deltaE,
-        s.hasDecomp ? s.demandEffect : null,
-        s.hasDecomp ? s.intensityEffect : null,
-        s.hasDecomp ? s.interactionEffect : null
+        s.hasDecomp ? s.actEffect : null,
+        s.hasDecomp ? s.strEffect : null,
+        s.hasDecomp ? s.intEffect : null
       ].forEach(val => {
         const td = document.createElement('td')
         td.textContent = fmt(val)
@@ -1307,9 +1549,9 @@
     totalTr.appendChild(tdTotal)
 
     ;[grandDeltaE,
-      hasDecomp ? grandDemandEffect : null,
-      hasDecomp ? grandIntensityEffect : null,
-      hasDecomp ? grandInteractionEffect : null
+      hasDecomp ? grandActEffect : null,
+      hasDecomp ? grandStrEffect : null,
+      hasDecomp ? grandIntEffect : null
     ].forEach(val => {
       const td = document.createElement('td')
       td.textContent = fmt(val)
@@ -1320,6 +1562,168 @@
 
     table.appendChild(tbody)
     contentDiv.appendChild(table)
+
+    // ── Waterfall chart for grand total decomposition ──
+    if (hasDecomp) {
+      const bars = [
+        { label: String(yFirst), value: grandEStart, type: 'total' },
+        { label: 'Vraag', value: grandActEffect, type: 'delta' },
+        { label: 'Structuur', value: grandStrEffect, type: 'delta' },
+        { label: 'Intensiteit', value: grandIntEffect, type: 'delta' },
+        { label: String(yLast), value: grandEEnd, type: 'total' }
+      ]
+
+      // Compute running positions
+      let running = grandEStart
+      bars.forEach(b => {
+        if (b.type === 'total') {
+          b.barStart = 0
+          b.barEnd = b.value
+          running = b.value
+        } else {
+          b.barStart = running
+          b.barEnd = running + b.value
+          running += b.value
+        }
+        b.barBottom = Math.min(b.barStart, b.barEnd)
+        b.barTop = Math.max(b.barStart, b.barEnd)
+      })
+
+      bars.forEach((b, i) => { b.key = i })
+
+      const chartMargin = { top: 14, right: 10, bottom: 30, left: 38 }
+      const vbWidth = 500
+      const vbHeight = 160
+      const innerW = vbWidth - chartMargin.left - chartMargin.right
+      const innerH = vbHeight - chartMargin.top - chartMargin.bottom
+
+      const allVals = bars.flatMap(b => [b.barBottom, b.barTop])
+      let yMin = Math.min(0, ...allVals)
+      let yMax = Math.max(0, ...allVals)
+      const yPad = (yMax - yMin) * 0.1 || 1
+      yMin -= yPad
+      yMax += yPad
+
+      const xScale = d3.scaleBand().domain(bars.map(b => b.key)).range([0, innerW]).padding(0.25)
+      const yScale = d3.scaleLinear().domain([yMin, yMax]).range([innerH, 0])
+
+      const chartDiv = document.createElement('div')
+      chartDiv.style.cssText = 'margin-top: 12px;'
+      contentDiv.appendChild(chartDiv)
+
+      const svg = d3.select(chartDiv).append('svg')
+        .attr('viewBox', `0 0 ${vbWidth} ${vbHeight}`)
+        .attr('width', '100%')
+        .attr('preserveAspectRatio', 'xMidYMid meet')
+        .style('display', 'block')
+      const gChart = svg.append('g').attr('transform', `translate(${chartMargin.left},${chartMargin.top})`)
+
+      // Connector lines
+      for (let i = 0; i < bars.length - 1; i++) {
+        const curr = bars[i]
+        const next = bars[i + 1]
+        const connectorY = curr.type === 'total' ? curr.barTop : curr.barEnd
+        gChart.append('line')
+          .attr('x1', xScale(curr.key) + xScale.bandwidth())
+          .attr('x2', xScale(next.key))
+          .attr('y1', yScale(connectorY))
+          .attr('y2', yScale(connectorY))
+          .attr('stroke', '#ccc').attr('stroke-width', 0.75)
+          .attr('stroke-dasharray', '2,2')
+      }
+
+      // Bars
+      bars.forEach(b => {
+        const barColor = b.type === 'total' ? '#5b7fa5'
+          : b.value > 0.005 ? '#c0392b'
+          : b.value < -0.005 ? '#27ae60'
+          : '#bbb'
+
+        gChart.append('rect')
+          .attr('x', xScale(b.key))
+          .attr('y', yScale(b.barTop))
+          .attr('width', xScale.bandwidth())
+          .attr('height', Math.max(1, yScale(b.barBottom) - yScale(b.barTop)))
+          .attr('fill', barColor)
+          .attr('rx', 2)
+
+        // Value labels
+        if (b.type === 'total') {
+          gChart.append('text')
+            .attr('x', xScale(b.key) + xScale.bandwidth() / 2)
+            .attr('y', yScale(b.barTop) - 3)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '8px')
+            .attr('fill', '#333')
+            .attr('font-weight', '600')
+            .text(b.value.toFixed(1))
+        } else if (Math.abs(b.value) > 0.01) {
+          const labelY = b.value >= 0 ? yScale(b.barTop) - 3 : yScale(b.barBottom) + 9
+          gChart.append('text')
+            .attr('x', xScale(b.key) + xScale.bandwidth() / 2)
+            .attr('y', labelY)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '7px')
+            .attr('fill', barColor)
+            .attr('font-weight', '500')
+            .text((b.value > 0 ? '+' : '') + b.value.toFixed(1))
+        }
+      })
+
+      // X axis labels
+      bars.forEach(b => {
+        const isTotal = b.type === 'total'
+        gChart.append('text')
+          .attr('x', xScale(b.key) + xScale.bandwidth() / 2)
+          .attr('y', innerH + 14)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', isTotal ? '8px' : '7px')
+          .attr('fill', isTotal ? '#333' : '#999')
+          .attr('font-weight', isTotal ? '600' : '400')
+          .text(b.label)
+      })
+
+      // Y axis
+      const yTicks = yScale.ticks(5)
+      yTicks.forEach(tick => {
+        gChart.append('line')
+          .attr('x1', -4).attr('x2', 0)
+          .attr('y1', yScale(tick)).attr('y2', yScale(tick))
+          .attr('stroke', '#999')
+        gChart.append('text')
+          .attr('x', -6)
+          .attr('y', yScale(tick) + 3)
+          .attr('text-anchor', 'end')
+          .attr('font-size', '8px')
+          .attr('fill', '#888')
+          .text(tick.toFixed(1))
+      })
+
+      // Y axis label
+      gChart.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('x', -innerH / 2)
+        .attr('y', -30)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '8px')
+        .attr('fill', '#888')
+        .text(energyUnit)
+
+      // Legend
+      const legendDiv = document.createElement('div')
+      legendDiv.style.cssText = 'display: flex; gap: 10px; margin-top: 6px; font-size: 8px; color: #888; flex-wrap: wrap;'
+      ;[
+        { color: '#5b7fa5', label: 'Totaal' },
+        { color: '#c0392b', label: 'Toename' },
+        { color: '#27ae60', label: 'Afname' }
+      ].forEach(item => {
+        const span = document.createElement('span')
+        span.style.cssText = 'display: flex; align-items: center; gap: 3px;'
+        span.innerHTML = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${item.color};"></span>${item.label}`
+        legendDiv.appendChild(span)
+      })
+      chartDiv.appendChild(legendDiv)
+    }
   }
 
   // ── total demand overview table ───────────────────────────────────────

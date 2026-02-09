@@ -283,6 +283,10 @@ window.updateScenarioAvailability = updateScenarioAvailability
 // }
 
 function processData (links, nodes, legend, settings, config) {
+  if (!config || !settings || !links || !nodes) {
+    console.error('processData: missing required arguments', { config: !!config, settings: !!settings, links: !!links, nodes: !!nodes })
+    return
+  }
 
   nodesGlobal = nodes
 

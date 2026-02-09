@@ -520,7 +520,7 @@
   // In development mode: initialize immediately
   // In production mode: initialization happens in loadData.js after zip is loaded
   if (typeof dataSource !== 'undefined' && dataSource === 'development') {
-    if (typeof window.initTVKNAnalysis === 'function') {
+    if (typeof window.initTVKNAnalysis === 'function' && typeof viewerConfig !== 'undefined' && viewerConfig?.viewer?.hasServiceDemandSection !== false) {
       window.initTVKNAnalysis()
     }
   }

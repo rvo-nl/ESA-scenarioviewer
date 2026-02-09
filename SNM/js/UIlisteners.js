@@ -34,10 +34,13 @@ const resizeObserver = new ResizeObserver((entries) => {
     // Scale the SVG
     // console.log(sankeyConfigs)
 
+    if (typeof sankeyConfigs === 'undefined' || !sankeyConfigs) return
     sankeyConfigs.forEach(element => {
       const svgElement = d3.select('#' + element.sankeyInstanceID + '_sankeySVGPARENT')
       const backdropElement = d3.select('#' + element.sankeyInstanceID + '_backdropSVG')
-      const containerWidth = document.getElementById(element.targetDIV).offsetWidth - 40
+      const targetEl = document.getElementById(element.targetDIV)
+      if (!targetEl) return
+      const containerWidth = targetEl.offsetWidth - 40
       const originalWidth = element.width; // Adjust based on your SVG's original width
       const originalHeight = element.height; // Adjust based on your SVG's original heigh
       const scale = containerWidth / originalWidth
@@ -52,7 +55,10 @@ const resizeObserver = new ResizeObserver((entries) => {
       backdropElement.attr('width', originalWidth * scale)
       backdropElement.attr('height', originalHeight * scale)
 
-      d3.select(element.targetDIV).style('height', document.getElementById(element.sankeyInstanceID + '_sankeySVGPARENT').getBoundingClientRect().height + 'px')
+      const svgParent = document.getElementById(element.sankeyInstanceID + '_sankeySVGPARENT')
+      if (svgParent) {
+        d3.select(element.targetDIV).style('height', svgParent.getBoundingClientRect().height + 'px')
+      }
     })
     d3.select('#menuContainer2').style('top', document.getElementById('menuContainer').offsetHeight + 'px')
   }

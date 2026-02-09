@@ -577,8 +577,8 @@ passphraseWrapper.appendChild(passphraseInput);
        };
        console.log('TVKN CSV data stored from zip file');
 
-      // Initialize TVKN Analysis now that data is available
-      if (typeof window.initTVKNAnalysis === 'function') {
+      // Initialize TVKN Analysis now that data is available (if enabled in viewer config)
+      if (typeof window.initTVKNAnalysis === 'function' && viewerConfig?.viewer?.hasServiceDemandSection !== false) {
         window.initTVKNAnalysis();
       }
      }

@@ -2997,18 +2997,19 @@
         })
 
         // Continue with table HTML
-        optHTML = `<table style="width:100%; border-collapse: collapse; font-size: 10px;">`
+        optHTML = `<table style="width:100%; border-collapse: collapse; font-size: 10px; table-layout: fixed;">`
+        optHTML += `<colgroup><col style="width: auto;"/>${years.map(() => `<col style="width: 52px;"/>`).join('')}</colgroup>`
         optHTML += `<thead><tr style="border-bottom: 2px solid #ddd;">`
         optHTML += `<th style="text-align:left; padding: 3px 6px; font-weight: 600; color: #555;">Option</th>`
         years.forEach(yr => {
-          optHTML += `<th style="text-align:right; padding: 3px 6px; font-weight: 600; color: #555;">${yr}</th>`
+          optHTML += `<th style="text-align:right; padding: 3px 6px; font-weight: 600; color: #555; white-space: nowrap;">${yr}</th>`
         })
         optHTML += `</tr></thead><tbody>`
 
         optionsWithData.forEach((opt, idx) => {
           const optLineColor = optColors(idx)
           optHTML += `<tr style="border-bottom: 1px solid #f0f0f0;">`
-          optHTML += `<td style="padding: 2px 6px; color: #333; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 4px;" title="${opt}"><span style="width: 7px; height: 7px; border-radius: 50%; background:${optLineColor}; display:inline-block; flex-shrink:0;"></span>${opt}</td>`
+          optHTML += `<td style="padding: 2px 6px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${opt}"><span style="width: 7px; height: 7px; border-radius: 50%; background:${optLineColor}; display:inline-block; flex-shrink:0; margin-right: 4px; vertical-align: middle;"></span>${opt}</td>`
           years.forEach(yr => {
             const val = optionYearData[opt][yr]
             const display = Math.abs(convertUnit(val)) < 0.05 ? '-' : fmt(val)

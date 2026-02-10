@@ -1397,37 +1397,46 @@
         optData[opt] = { demand, energy }
       })
 
-      // Total demand and energy for this SD
+      // Compute LMDI chained over periods (not directly from yFirst to yLast)
+      // to avoid extreme structure/intensity effects when options appear or disappear
       const EPS_SD = 1e-10
-      const D0 = Math.max(EPS_SD, filteredOptions.reduce((s, o) => s + (optData[o].demand[yFirst] || 0), 0))
-      const D1 = Math.max(EPS_SD, filteredOptions.reduce((s, o) => s + (optData[o].demand[yLast] || 0), 0))
-      const totalE0 = filteredOptions.reduce((s, o) => s + convertUnit(optData[o].energy[yFirst] || 0), 0)
-      const totalE1 = filteredOptions.reduce((s, o) => s + convertUnit(optData[o].energy[yLast] || 0), 0)
 
-      const deltaE = totalE1 - totalE0
-      let actEffect = 0, strEffect = 0, intEffect = 0
-      let valid = totalE0 > 0 || totalE1 > 0
-
-      if (valid) {
-        filteredOptions.forEach(opt => {
-          const d0 = Math.max(EPS_SD, optData[opt].demand[yFirst] || 0)
-          const d1 = Math.max(EPS_SD, optData[opt].demand[yLast] || 0)
-          const e0 = Math.max(EPS_SD, convertUnit(optData[opt].energy[yFirst] || 0))
-          const e1 = Math.max(EPS_SD, convertUnit(optData[opt].energy[yLast] || 0))
-
-          const w = logMeanWeight(e1, e0)
-          const s0 = d0 / D0
-          const s1 = d1 / D1
-          const i0 = e0 / d0
-          const i1 = e1 / d1
-
-          actEffect += w * Math.log(D1 / D0)
-          strEffect += w * Math.log(s1 / s0)
-          intEffect += w * Math.log(i1 / i0)
-        })
-      } else {
-        actEffect = null; strEffect = null; intEffect = null
+      function computeLMDI3_SD (y0, y1) {
+        const D0 = Math.max(EPS_SD, filteredOptions.reduce((s, o) => s + (optData[o].demand[y0] || 0), 0))
+        const D1 = Math.max(EPS_SD, filteredOptions.reduce((s, o) => s + (optData[o].demand[y1] || 0), 0))
+        const tE0 = filteredOptions.reduce((s, o) => s + convertUnit(optData[o].energy[y0] || 0), 0)
+        const tE1 = filteredOptions.reduce((s, o) => s + convertUnit(optData[o].energy[y1] || 0), 0)
+        const dE = tE1 - tE0
+        let act = 0, str = 0, intEff = 0
+        const valid = tE0 > 0 || tE1 > 0
+        if (valid) {
+          filteredOptions.forEach(opt => {
+            const d0 = Math.max(EPS_SD, optData[opt].demand[y0] || 0)
+            const d1 = Math.max(EPS_SD, optData[opt].demand[y1] || 0)
+            const e0 = Math.max(EPS_SD, convertUnit(optData[opt].energy[y0] || 0))
+            const e1 = Math.max(EPS_SD, convertUnit(optData[opt].energy[y1] || 0))
+            const w = logMeanWeight(e1, e0)
+            act += w * Math.log(D1 / D0)
+            str += w * Math.log((d1 / D1) / (d0 / D0))
+            intEff += w * Math.log((e1 / d1) / (e0 / d0))
+          })
+        } else { act = null; str = null; intEff = null }
+        return { deltaE: dE, actEffect: act, strEffect: str, intEffect: intEff, tE0, tE1 }
       }
+
+      // Chain periods
+      const sdPeriods = []
+      for (let i = 1; i < years.length; i++) {
+        sdPeriods.push(computeLMDI3_SD(years[i - 1], years[i]))
+      }
+
+      const totalE0 = sdPeriods[0]?.tE0 || 0
+      const totalE1 = sdPeriods[sdPeriods.length - 1]?.tE1 || 0
+      const deltaE = sdPeriods.reduce((s, p) => s + p.deltaE, 0)
+      const allValid = sdPeriods.every(p => p.actEffect !== null)
+      const actEffect = allValid ? sdPeriods.reduce((s, p) => s + p.actEffect, 0) : null
+      const strEffect = allValid ? sdPeriods.reduce((s, p) => s + p.strEffect, 0) : null
+      const intEffect = allValid ? sdPeriods.reduce((s, p) => s + p.intEffect, 0) : null
 
       sdRows.push({ sd, sector, deltaE, actEffect, strEffect, intEffect, eStart: totalE0, eEnd: totalE1 })
     })

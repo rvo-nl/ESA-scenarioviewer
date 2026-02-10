@@ -1317,7 +1317,11 @@
     note.innerHTML = '<b>Vraageffect</b>: verandering door groei/krimp in totaal vraagvolume. ' +
       '<b>Technologiemix</b>: verandering door verschuiving in aandeel tussen technologieën (opties). ' +
       '<b>Intensiteitseffect</b>: verandering door efficiëntiewinst of -verlies per technologie. ' +
-      'Methode: LMDI-I (Log-Mean Divisia Index).'
+      'Methode: LMDI-I (Log-Mean Divisia Index).' +
+      '<br><br><em>Let op: bij grote verschuivingen in technologiemix (bijv. opties die verdwijnen of verschijnen) ' +
+      'kan het intensiteitseffect sterk beïnvloed worden door de veranderende samenstelling, ' +
+      'en weerspiegelt het dan niet uitsluitend efficiëntieveranderingen binnen individuele technologieën. ' +
+      'De Δ Energie kolom geeft altijd de werkelijke energieverandering weer.</em>'
     wrapper.appendChild(note)
   }
 
@@ -1724,6 +1728,15 @@
       })
       chartDiv.appendChild(legendDiv)
     }
+
+    // Explanation note
+    const note = document.createElement('div')
+    note.style.cssText = 'font-size: 10px; color: #999; margin-top: 10px; line-height: 1.5;'
+    note.innerHTML = '<em>Let op: bij grote verschuivingen in technologiemix (bijv. opties die verdwijnen of verschijnen) ' +
+      'kan het intensiteitseffect sterk beïnvloed worden door de veranderende samenstelling, ' +
+      'en weerspiegelt het dan niet uitsluitend efficiëntieveranderingen binnen individuele technologieën. ' +
+      'De Δ Energie kolom geeft altijd de werkelijke energieverandering weer.</em>'
+    contentDiv.appendChild(note)
   }
 
   // ── total demand overview table ───────────────────────────────────────

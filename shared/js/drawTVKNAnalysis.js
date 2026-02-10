@@ -1064,7 +1064,7 @@
 
     const thead = document.createElement('thead')
     const hr = document.createElement('tr')
-    ;['Periode', 'Δ Energie', 'Vraag', 'Structuur', 'Intensiteit'].forEach((txt, idx) => {
+    ;['Periode', 'Δ Energie', 'Vraag', 'Technologiemix', 'Intensiteit'].forEach((txt, idx) => {
       const th = document.createElement('th')
       th.textContent = txt
       th.style.cssText = 'padding: 4px 4px; text-align: ' + (idx === 0 ? 'left' : 'right') + '; border-bottom: 2px solid #ddd; font-weight: 600; color: #444; overflow: hidden; text-overflow: ellipsis;'
@@ -1300,7 +1300,7 @@
       })
       ;[
         { abbr: 'V', full: 'Vraag' },
-        { abbr: 'S', full: 'Structuur' },
+        { abbr: 'S', full: 'Technologiemix' },
         { abbr: 'I', full: 'Intensiteit' }
       ].forEach(item => {
         const span = document.createElement('span')
@@ -1315,7 +1315,7 @@
     const note = document.createElement('div')
     note.style.cssText = 'font-size: 10px; color: #999; margin-top: 10px; line-height: 1.5;'
     note.innerHTML = '<b>Vraageffect</b>: verandering door groei/krimp in totaal vraagvolume. ' +
-      '<b>Structuureffect</b>: verandering door verschuiving tussen technologieën (opties). ' +
+      '<b>Technologiemix</b>: verandering door verschuiving in aandeel tussen technologieën (opties). ' +
       '<b>Intensiteitseffect</b>: verandering door efficiëntiewinst of -verlies per technologie. ' +
       'Methode: LMDI-I (Log-Mean Divisia Index).'
     wrapper.appendChild(note)
@@ -1502,7 +1502,7 @@
 
     const thead = document.createElement('thead')
     const hr = document.createElement('tr')
-    ;['Sector', 'Δ Energie', 'Vraag', 'Structuur', 'Intensiteit'].forEach((txt, idx) => {
+    ;['Sector', 'Δ Energie', 'Vraag', 'Technologiemix', 'Intensiteit'].forEach((txt, idx) => {
       const th = document.createElement('th')
       th.textContent = txt
       th.style.cssText = 'padding: 4px 4px; text-align: ' + (idx === 0 ? 'left' : 'right') + '; border-bottom: 2px solid #ddd; font-weight: 600; color: #444; overflow: hidden; text-overflow: ellipsis;'
@@ -1568,7 +1568,7 @@
       const bars = [
         { label: String(yFirst), value: grandEStart, type: 'total' },
         { label: 'Vraag', value: grandActEffect, type: 'delta' },
-        { label: 'Structuur', value: grandStrEffect, type: 'delta' },
+        { label: 'Technologiemix', value: grandStrEffect, type: 'delta' },
         { label: 'Intensiteit', value: grandIntEffect, type: 'delta' },
         { label: String(yLast), value: grandEEnd, type: 'total' }
       ]

@@ -1025,10 +1025,20 @@
       periods.push({ y0, y1, ...result })
     }
 
-    // Total row
+    // Total row: sum individual period effects rather than re-running LMDI over full span.
+    // Re-running LMDI from yFirst to yLast directly produces extreme structure/intensity
+    // terms when options appear or disappear over a long horizon (the log-mean weights
+    // span too large a range), so summing the chained periods is the correct approach.
     const yFirst = years[0]
     const yLast = years[years.length - 1]
-    const totalResult = computeLMDI3(yFirst, yLast)
+    const totalResult = {
+      deltaE: periods.reduce((s, p) => s + p.deltaE, 0),
+      actEffect: periods.every(p => p.actEffect !== null) ? periods.reduce((s, p) => s + p.actEffect, 0) : null,
+      strEffect: periods.every(p => p.strEffect !== null) ? periods.reduce((s, p) => s + p.strEffect, 0) : null,
+      intEffect: periods.every(p => p.intEffect !== null) ? periods.reduce((s, p) => s + p.intEffect, 0) : null,
+      totalE0: periods[0]?.totalE0,
+      totalE1: periods[periods.length - 1]?.totalE1
+    }
 
     // Wrapper
     const wrapper = document.createElement('div')

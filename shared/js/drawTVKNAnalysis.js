@@ -2388,8 +2388,8 @@
 
       carriers.forEach(carrier => {
         const carrierEnergy = yearCarriers[carrier] || 0
-        // Use absolute value to handle both inputs (positive) and outputs (negative)
-        obj[carrier] = demand > 0 ? Math.abs(carrierEnergy) / demand : 0
+        // Only include positive values (inputs), exclude outputs (negative values)
+        obj[carrier] = demand > 0 && carrierEnergy > 0 ? carrierEnergy / demand : 0
       })
 
       return obj
@@ -2495,6 +2495,20 @@
           tooltip.style('display', 'none')
         })
     })
+
+    // Add intensity values text below chart
+    const intensityValues = chartYears.map(yr => {
+      const demand = demandData[yr] || 0
+      const energy = energyData[yr] || 0
+      const intensity = demand > 0 ? energy / demand : 0
+      return { year: yr, value: intensity }
+    })
+
+    const intensityTextDiv = document.createElement('div')
+    intensityTextDiv.style.cssText = 'margin-top: 8px; font-size: 10px; color: #666;'
+    const columns = intensityValues.map(d => `<div style="display: inline-block; text-align: center; min-width: 70px; margin-right: 6px;"><div style="font-weight: 600; color: #444; margin-bottom: 2px;">${d.year}</div><div>${d3.format('.2f')(d.value)}</div><div style="font-size: 9px; color: #888;">${yLabel}</div></div>`).join('')
+    intensityTextDiv.innerHTML = `<div style="font-weight: 600; color: #444; margin-bottom: 6px;">Energie-intensiteit per jaar:</div><div style="display: flex; flex-wrap: nowrap; overflow-x: auto;">${columns}</div>`
+    wrapper.appendChild(intensityTextDiv)
   }
 
   // ── metadata tile renderer ────────────────────────────────────────────
@@ -3238,20 +3252,25 @@
         })
         const carriersList = Array.from(allCarriersSet)
 
-        // Sort carriers by total output across all years
+        // Filter and sort only input carriers (positive values)
+        const inputCarriersList = carriersList.filter(c => {
+          return years.some(yr => (optionCarrierData[yr][c] || 0) > 0)
+        })
+
         const carrierTotals = {}
-        carriersList.forEach(carrier => {
+        inputCarriersList.forEach(carrier => {
           carrierTotals[carrier] = 0
           years.forEach(yr => {
-            carrierTotals[carrier] += optionCarrierData[yr][carrier] || 0
+            const val = optionCarrierData[yr][carrier] || 0
+            if (val > 0) carrierTotals[carrier] += val
           })
         })
-        const sortedCarriers = carriersList.sort((a, b) => carrierTotals[b] - carrierTotals[a])
+        const sortedInputCarriers = inputCarriersList.sort((a, b) => carrierTotals[b] - carrierTotals[a])
 
         renderOptionMultiCarrierChart(intensityGraphDiv, {
           title: `Energie-intensiteit | ${optionName}`,
           yLabel: `${tvknUnit} per ${demandUnit}`,
-          carriers: sortedCarriers,
+          carriers: sortedInputCarriers,
           demandData: optionDemandData,
           carrierData: optionCarrierData,
           energyData: optionEnergyData,
@@ -3263,11 +3282,8 @@
         contentDiv.appendChild(graphsDiv)
 
         // ── Stacked area chart: energy input by carrier over time ──────
-        const inputCarriers = sortedCarriers.filter(c => {
-          return years.some(yr => (optionCarrierData[yr][c] || 0) > 0)
-        })
-
-        if (inputCarriers.length > 0) {
+        // sortedInputCarriers already contains only input carriers
+        if (sortedInputCarriers.length > 0) {
           const eaChartDiv = document.createElement('div')
           eaChartDiv.style.cssText = 'margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;'
 
@@ -3342,7 +3358,7 @@
 
           const eaStackData = years.map(yr => {
             const obj = { year: yr }
-            inputCarriers.forEach(carrier => {
+            sortedInputCarriers.forEach(carrier => {
               const val = optionCarrierData[yr][carrier] || 0
               obj[carrier] = val > 0 ? convertUnit(val) : 0
             })
@@ -3350,7 +3366,7 @@
           })
 
           const eaStack = d3.stack()
-            .keys(inputCarriers)
+            .keys(sortedInputCarriers)
             .order(d3.stackOrderNone)
             .offset(d3.stackOffsetNone)
 
@@ -3408,7 +3424,7 @@
                   .style('font-weight', 'bold')
                   .text(`${yr}: ${d3.format('.1f')(totalVal)} ${tvknUnit}`)
 
-                inputCarriers.forEach(carrier => {
+                sortedInputCarriers.forEach(carrier => {
                   const cVal = convertUnit(optionCarrierData[yr][carrier] || 0)
                   if (cVal > 0.05) {
                     eaTooltipText.append('tspan')
@@ -4181,6 +4197,14 @@
         })
         .on('mouseout', () => tooltip.style('display', 'none'))
     })
+
+    // Add intensity values text below chart
+    const intensityTextDiv = document.createElement('div')
+    intensityTextDiv.style.cssText = 'margin-top: 8px; font-size: 10px; color: #666;'
+    const unit = `${tvknUnit}/${yLabel.split(' per ')[1] || 'unit'}`
+    const columns = totalPts.map(d => `<div style="display: inline-block; text-align: center; min-width: 70px; margin-right: 6px;"><div style="font-weight: 600; color: #444; margin-bottom: 2px;">${d.year}</div><div>${d3.format('.2f')(d.value)}</div><div style="font-size: 9px; color: #888;">${unit}</div></div>`).join('')
+    intensityTextDiv.innerHTML = `<div style="font-weight: 600; color: #444; margin-bottom: 6px;">Energie-intensiteit per jaar:</div><div style="display: flex; flex-wrap: nowrap; overflow-x: auto;">${columns}</div>`
+    wrapper.appendChild(intensityTextDiv)
 
     // Return legend data for rendering in separate tile
     const allLegendItems = [{ name: 'Totaal', type: 'total', color: '#000000' }]

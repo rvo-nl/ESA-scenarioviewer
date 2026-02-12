@@ -1807,7 +1807,23 @@
         })
         values[yr] = total
       })
-      return { sd, unit, sector, values }
+      // Compute total energy input for this service demand per year
+      const energyInput = {}
+      years.forEach(yr => { energyInput[yr] = 0 })
+      const scMap = energyFlowIndex[scenario]
+      Object.keys(options).forEach(opt => {
+        if (scMap && scMap[opt]) {
+          scMap[opt].forEach(row => {
+            const yr = parseInt(row.Year)
+            if (!years.includes(yr)) return
+            if (row.Carrier === 'CO2Flow' || row.Carrier === 'CO2flow') return
+            const val = parseVal(row.Value)
+            if (val > 0) energyInput[yr] += val
+          })
+        }
+      })
+
+      return { sd, unit, sector, values, energyInput }
     })
 
     // Group by sector
@@ -1818,10 +1834,28 @@
     })
     const sortedSectors = Object.keys(sectorMap).sort()
 
+    // Compute sector energy totals
+    const sectorEnergyTotals = {}
+    sortedSectors.forEach(sector => {
+      const totals = {}
+      years.forEach(yr => { totals[yr] = 0 })
+      sectorMap[sector].forEach(row => {
+        years.forEach(yr => { totals[yr] += row.energyInput[yr] })
+      })
+      sectorEnergyTotals[sector] = totals
+    })
+
+    const energyUnit = tvknUnit || 'PJ'
+
     // Wrapper
     const wrapper = document.createElement('div')
     wrapper.style.cssText = 'margin-top: 18px; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);'
     parentEl.appendChild(wrapper)
+
+    // Title bar with export button
+    const titleBar = document.createElement('div')
+    titleBar.style.cssText = 'display: flex; justify-content: space-between; align-items: center;'
+    wrapper.appendChild(titleBar)
 
     const titleEl = document.createElement('div')
     titleEl.style.cssText = 'font-size: 11px; font-weight: 600; color: #222; cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none;'
@@ -1832,7 +1866,49 @@
     const titleText = document.createElement('span')
     titleText.textContent = `Totaaloverzicht service demand | ${selectedDemandType} ${selectedDataSource}`
     titleEl.appendChild(titleText)
-    wrapper.appendChild(titleEl)
+    titleBar.appendChild(titleEl)
+
+    // Export button
+    const exportBtn = document.createElement('button')
+    exportBtn.textContent = 'Export data (xlsx)'
+    exportBtn.style.cssText = 'font-size: 9px; padding: 3px 10px; border: 1px solid #ccc; border-radius: 4px; background: #f8f8f8; color: #555; cursor: pointer; white-space: nowrap; font-family: inherit;'
+    exportBtn.addEventListener('mouseenter', () => { exportBtn.style.background = '#eee' })
+    exportBtn.addEventListener('mouseleave', () => { exportBtn.style.background = '#f8f8f8' })
+    exportBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      // Build export data
+      const exportRows = []
+      const header = ['Sector', 'Service demand', 'Eenheid', ...years.map(y => `Vraag ${y}`), ...years.map(y => `Energie-input ${y} (${energyUnit})`)]
+      exportRows.push(header)
+      sortedSectors.forEach(sector => {
+        sectorMap[sector].forEach(row => {
+          const r = [sector, row.sd, row.unit]
+          years.forEach(yr => r.push(row.values[yr] || 0))
+          years.forEach(yr => r.push(convertUnit(row.energyInput[yr] || 0)))
+          exportRows.push(r)
+        })
+        // Sector subtotal
+        const sub = [sector, `Totaal ${sector}`, energyUnit]
+        years.forEach(() => sub.push(''))
+        years.forEach(yr => sub.push(convertUnit(sectorEnergyTotals[sector][yr] || 0)))
+        exportRows.push(sub)
+      })
+      // Grand total
+      const grand = ['', 'TOTAAL', energyUnit]
+      years.forEach(() => grand.push(''))
+      years.forEach(yr => {
+        let t = 0
+        sortedSectors.forEach(s => { t += sectorEnergyTotals[s][yr] || 0 })
+        grand.push(convertUnit(t))
+      })
+      exportRows.push(grand)
+
+      const ws = XLSX.utils.aoa_to_sheet(exportRows)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Service demand overzicht')
+      XLSX.writeFile(wb, `service_demand_overzicht_${scenario}_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    })
+    titleBar.appendChild(exportBtn)
 
     // Collapsible content container (collapsed by default)
     const contentDiv = document.createElement('div')
@@ -1858,7 +1934,7 @@
 
     const thStyle = 'padding: 4px 8px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #ddd; white-space: nowrap;'
     const thRight = 'padding: 4px 8px; text-align: right; font-weight: 600; color: #555; border-bottom: 2px solid #ddd; white-space: nowrap;'
-    const colCount = 2 + years.length
+    const colCount = 3 + years.length * 2
 
     const thSD = document.createElement('th')
     thSD.style.cssText = thStyle
@@ -1877,6 +1953,20 @@
       headerRow.appendChild(th)
     })
 
+    // Energy input header
+    const thEnergyLabel = document.createElement('th')
+    thEnergyLabel.style.cssText = thStyle + ' border-left: 2px solid #ddd;'
+    thEnergyLabel.textContent = `Energie-input (${energyUnit})`
+    headerRow.appendChild(thEnergyLabel)
+
+    years.forEach((yr, i) => {
+      const th = document.createElement('th')
+      th.style.cssText = thRight
+      if (i === 0) th.style.cssText = thRight
+      th.textContent = yr
+      headerRow.appendChild(th)
+    })
+
     // Body
     const tbody = document.createElement('tbody')
     table.appendChild(tbody)
@@ -1885,6 +1975,8 @@
     const tdRight = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;'
     const tdSelected = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; white-space: nowrap; background: #EEF5FA; font-weight: 600;'
     const tdSelectedRight = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; background: #EEF5FA; font-weight: 600;'
+    const tdSubtotalStyle = 'padding: 4px 8px; border-bottom: 1px solid #ccc; color: #333; font-weight: 600; font-size: 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;'
+    const tdSubtotalLeft = 'padding: 4px 8px; border-bottom: 1px solid #ccc; color: #333; font-weight: 600; font-size: 10px; white-space: nowrap;'
 
     sortedSectors.forEach(sector => {
       // Sector header row
@@ -1926,9 +2018,60 @@
           tr.appendChild(td)
         })
 
+        // Energy input values
+        const tdSep = document.createElement('td')
+        tdSep.style.cssText = (isSelected ? tdSelectedRight : tdRight) + ' border-left: 2px solid #eee;'
+        const eVal0 = convertUnit(row.energyInput[years[0]] || 0)
+        tdSep.textContent = eVal0 < 0.05 ? '-' : d3.format(',.1f')(eVal0)
+        tr.appendChild(tdSep)
+
+        years.slice(1).forEach(yr => {
+          const td = document.createElement('td')
+          td.style.cssText = isSelected ? tdSelectedRight : tdRight
+          const eVal = convertUnit(row.energyInput[yr] || 0)
+          td.textContent = eVal < 0.05 ? '-' : d3.format(',.1f')(eVal)
+          tr.appendChild(td)
+        })
+
         tbody.appendChild(tr)
       })
+
+      // Sector subtotal row for energy
+      const subTr = document.createElement('tr')
+      const subNameTd = document.createElement('td')
+      subNameTd.colSpan = 2 + years.length
+      subNameTd.style.cssText = tdSubtotalLeft
+      subNameTd.textContent = `Totaal ${sector}`
+      subTr.appendChild(subNameTd)
+
+      years.forEach((yr, i) => {
+        const td = document.createElement('td')
+        td.style.cssText = tdSubtotalStyle + (i === 0 ? ' border-left: 2px solid #eee;' : '')
+        const val = convertUnit(sectorEnergyTotals[sector][yr] || 0)
+        td.textContent = val < 0.05 ? '-' : d3.format(',.1f')(val)
+        subTr.appendChild(td)
+      })
+      tbody.appendChild(subTr)
     })
+
+    // Grand total row
+    const grandTr = document.createElement('tr')
+    grandTr.style.cssText = 'border-top: 2px solid #999;'
+    const grandNameTd = document.createElement('td')
+    grandNameTd.colSpan = 2 + years.length
+    grandNameTd.style.cssText = 'padding: 6px 8px; font-weight: 700; color: #000; font-size: 10px;'
+    grandNameTd.textContent = 'TOTAAL'
+    grandTr.appendChild(grandNameTd)
+
+    years.forEach((yr, i) => {
+      const td = document.createElement('td')
+      td.style.cssText = 'padding: 6px 8px; text-align: right; font-weight: 700; color: #000; font-variant-numeric: tabular-nums; font-size: 10px;' + (i === 0 ? ' border-left: 2px solid #eee;' : '')
+      let grandTotal = 0
+      sortedSectors.forEach(s => { grandTotal += sectorEnergyTotals[s][yr] || 0 })
+      td.textContent = d3.format(',.1f')(convertUnit(grandTotal))
+      grandTr.appendChild(td)
+    })
+    tbody.appendChild(grandTr)
   }
 
   // ── reusable D3 line chart renderer ────────────────────────────────────

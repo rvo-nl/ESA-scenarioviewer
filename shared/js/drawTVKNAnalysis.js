@@ -1871,7 +1871,7 @@
     // Export button
     const exportBtn = document.createElement('button')
     exportBtn.textContent = 'Export data (xlsx)'
-    exportBtn.style.cssText = 'font-size: 9px; padding: 3px 10px; border: 1px solid #ccc; border-radius: 4px; background: #f8f8f8; color: #555; cursor: pointer; white-space: nowrap; font-family: inherit;'
+    exportBtn.style.cssText = 'font-size: 9px; padding: 2px 8px; line-height: 1; border: 1px solid #ccc; border-radius: 4px; background: #f8f8f8; color: #555; cursor: pointer; white-space: nowrap; font-family: inherit;'
     exportBtn.addEventListener('mouseenter', () => { exportBtn.style.background = '#eee' })
     exportBtn.addEventListener('mouseleave', () => { exportBtn.style.background = '#f8f8f8' })
     exportBtn.addEventListener('click', (e) => {
@@ -1926,45 +1926,52 @@
     table.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 10px;'
     contentDiv.appendChild(table)
 
-    // Header
+    // Header (two rows)
     const thead = document.createElement('thead')
     table.appendChild(thead)
-    const headerRow = document.createElement('tr')
-    thead.appendChild(headerRow)
 
     const thStyle = 'padding: 4px 8px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #ddd; white-space: nowrap;'
     const thRight = 'padding: 4px 8px; text-align: right; font-weight: 600; color: #555; border-bottom: 2px solid #ddd; white-space: nowrap;'
-    const colCount = 3 + years.length * 2
+    const colCount = 2 + years.length * 2
 
+    // Top header row: group labels
+    const topRow = document.createElement('tr')
+    thead.appendChild(topRow)
     const thSD = document.createElement('th')
-    thSD.style.cssText = thStyle
+    thSD.rowSpan = 2
+    thSD.style.cssText = thStyle + ' vertical-align: bottom;'
     thSD.textContent = 'Service demand'
-    headerRow.appendChild(thSD)
-
+    topRow.appendChild(thSD)
     const thUnit = document.createElement('th')
-    thUnit.style.cssText = thStyle
+    thUnit.rowSpan = 2
+    thUnit.style.cssText = thStyle + ' vertical-align: bottom;'
     thUnit.textContent = 'Eenheid'
-    headerRow.appendChild(thUnit)
+    topRow.appendChild(thUnit)
+    const thDemandGroup = document.createElement('th')
+    thDemandGroup.colSpan = years.length
+    thDemandGroup.style.cssText = 'padding: 4px 8px; text-align: center; font-weight: 600; color: #555; border-bottom: 1px solid #ddd; white-space: nowrap;'
+    thDemandGroup.textContent = 'Vraag'
+    topRow.appendChild(thDemandGroup)
+    const thEnergyGroup = document.createElement('th')
+    thEnergyGroup.colSpan = years.length
+    thEnergyGroup.style.cssText = 'padding: 4px 8px; text-align: center; font-weight: 600; color: #555; border-bottom: 1px solid #ddd; border-left: 2px solid #ddd; white-space: nowrap;'
+    thEnergyGroup.textContent = `Energie-input (${energyUnit})`
+    topRow.appendChild(thEnergyGroup)
 
+    // Bottom header row: year columns
+    const bottomRow = document.createElement('tr')
+    thead.appendChild(bottomRow)
     years.forEach(yr => {
       const th = document.createElement('th')
       th.style.cssText = thRight
       th.textContent = yr
-      headerRow.appendChild(th)
+      bottomRow.appendChild(th)
     })
-
-    // Energy input header
-    const thEnergyLabel = document.createElement('th')
-    thEnergyLabel.style.cssText = thStyle + ' border-left: 2px solid #ddd;'
-    thEnergyLabel.textContent = `Energie-input (${energyUnit})`
-    headerRow.appendChild(thEnergyLabel)
-
     years.forEach((yr, i) => {
       const th = document.createElement('th')
-      th.style.cssText = thRight
-      if (i === 0) th.style.cssText = thRight
+      th.style.cssText = thRight + (i === 0 ? ' border-left: 2px solid #ddd;' : '')
       th.textContent = yr
-      headerRow.appendChild(th)
+      bottomRow.appendChild(th)
     })
 
     // Body

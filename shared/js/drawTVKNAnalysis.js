@@ -1880,9 +1880,6 @@
 
     const energyUnit = tvknUnit || 'PJ'
 
-    // Track currently selected carrier for the table display
-    let selectedCarrier = '__total__' // '__total__' means aggregate of all carriers
-
     // Wrapper
     const wrapper = document.createElement('div')
     wrapper.style.cssText = 'margin-top: 18px; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);'
@@ -1912,25 +1909,24 @@
     exportBtn.addEventListener('mouseleave', () => { exportBtn.style.background = '#f8f8f8' })
     exportBtn.addEventListener('click', (e) => {
       e.stopPropagation()
-      // Build export workbook with aggregate + per-carrier sheets
-      const wb = XLSX.utils.book_new()
-
-      // --- Sheet 1: Aggregate (all carriers total) ---
-      const aggRows = []
-      const aggHeader = ['Sector', 'Service demand', 'Eenheid', ...years.map(y => `Vraag ${y}`), ...years.map(y => `Energie-input (totaal) ${y} (${energyUnit})`)]
-      aggRows.push(aggHeader)
+      // Build export data
+      const exportRows = []
+      const header = ['Sector', 'Service demand', 'Eenheid', ...years.map(y => `Vraag ${y}`), ...years.map(y => `Energie-input ${y} (${energyUnit})`)]
+      exportRows.push(header)
       sortedSectors.forEach(sector => {
         sectorMap[sector].forEach(row => {
           const r = [sector, row.sd, row.unit]
           years.forEach(yr => r.push(row.values[yr] || 0))
           years.forEach(yr => r.push(convertUnit(row.energyInput[yr] || 0)))
-          aggRows.push(r)
+          exportRows.push(r)
         })
+        // Sector subtotal
         const sub = [sector, `Totaal ${sector}`, energyUnit]
         years.forEach(() => sub.push(''))
         years.forEach(yr => sub.push(convertUnit(sectorEnergyTotals[sector][yr] || 0)))
-        aggRows.push(sub)
+        exportRows.push(sub)
       })
+      // Grand total
       const grand = ['', 'TOTAAL', energyUnit]
       years.forEach(() => grand.push(''))
       years.forEach(yr => {
@@ -1938,41 +1934,11 @@
         sortedSectors.forEach(s => { t += sectorEnergyTotals[s][yr] || 0 })
         grand.push(convertUnit(t))
       })
-      aggRows.push(grand)
-      const wsAgg = XLSX.utils.aoa_to_sheet(aggRows)
-      XLSX.utils.book_append_sheet(wb, wsAgg, 'Totaal alle dragers')
+      exportRows.push(grand)
 
-      // --- Sheet per carrier ---
-      allCarriers.forEach(carrier => {
-        const cRows = []
-        const cHeader = ['Sector', 'Service demand', 'Eenheid', ...years.map(y => `Vraag ${y}`), ...years.map(y => `Energie-input (${carrier}) ${y} (${energyUnit})`)]
-        cRows.push(cHeader)
-        sortedSectors.forEach(sector => {
-          sectorMap[sector].forEach(row => {
-            const r = [sector, row.sd, row.unit]
-            years.forEach(yr => r.push(row.values[yr] || 0))
-            years.forEach(yr => r.push(convertUnit((row.energyInputByCarrier[carrier] && row.energyInputByCarrier[carrier][yr]) || 0)))
-            cRows.push(r)
-          })
-          const sub = [sector, `Totaal ${sector}`, energyUnit]
-          years.forEach(() => sub.push(''))
-          years.forEach(yr => sub.push(convertUnit(sectorEnergyTotalsByCarrier[sector][carrier][yr] || 0)))
-          cRows.push(sub)
-        })
-        const cGrand = ['', 'TOTAAL', energyUnit]
-        years.forEach(() => cGrand.push(''))
-        years.forEach(yr => {
-          let t = 0
-          sortedSectors.forEach(s => { t += sectorEnergyTotalsByCarrier[s][carrier][yr] || 0 })
-          cGrand.push(convertUnit(t))
-        })
-        cRows.push(cGrand)
-        const wsC = XLSX.utils.aoa_to_sheet(cRows)
-        // Sheet name max 31 chars in Excel
-        const sheetName = carrier.length > 31 ? carrier.substring(0, 31) : carrier
-        XLSX.utils.book_append_sheet(wb, wsC, sheetName)
-      })
-
+      const ws = XLSX.utils.aoa_to_sheet(exportRows)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Service demand overzicht')
       XLSX.writeFile(wb, `service_demand_overzicht_${scenario}_${new Date().toISOString().slice(0, 10)}.xlsx`)
     })
     titleBar.appendChild(exportBtn)
@@ -1997,215 +1963,155 @@
     const thRight = 'padding: 4px 8px; text-align: right; font-weight: 600; color: #555; border-bottom: 2px solid #ddd; white-space: nowrap;'
     const colCount = 2 + years.length * 2
 
-    // Helper: get energy value for a row based on selected carrier
-    function getEnergyVal(row, yr) {
-      if (selectedCarrier === '__total__') {
-        return row.energyInput[yr] || 0
-      }
-      return (row.energyInputByCarrier[selectedCarrier] && row.energyInputByCarrier[selectedCarrier][yr]) || 0
-    }
+    // Header (two rows)
+    const thead = document.createElement('thead')
+    table.appendChild(thead)
 
-    // Helper: get sector energy total based on selected carrier
-    function getSectorTotal(sector, yr) {
-      if (selectedCarrier === '__total__') {
-        return sectorEnergyTotals[sector][yr] || 0
-      }
-      return sectorEnergyTotalsByCarrier[sector][selectedCarrier][yr] || 0
-    }
+    // Top header row: group labels
+    const topRow = document.createElement('tr')
+    thead.appendChild(topRow)
+    const thSD = document.createElement('th')
+    thSD.rowSpan = 2
+    thSD.style.cssText = thStyle + ' vertical-align: bottom;'
+    thSD.textContent = 'Service demand'
+    topRow.appendChild(thSD)
+    const thUnit = document.createElement('th')
+    thUnit.rowSpan = 2
+    thUnit.style.cssText = thStyle + ' vertical-align: bottom;'
+    thUnit.textContent = 'Eenheid'
+    topRow.appendChild(thUnit)
+    const thDemandGroup = document.createElement('th')
+    thDemandGroup.colSpan = years.length
+    thDemandGroup.style.cssText = 'padding: 4px 8px; text-align: center; font-weight: 600; color: #555; border-bottom: 1px solid #ddd; white-space: nowrap;'
+    thDemandGroup.textContent = 'Vraag'
+    topRow.appendChild(thDemandGroup)
+    const thEnergyGroup = document.createElement('th')
+    thEnergyGroup.colSpan = years.length
+    thEnergyGroup.style.cssText = 'padding: 4px 8px; text-align: center; font-weight: 600; color: #555; border-bottom: 1px solid #ddd; border-left: 2px solid #ddd; white-space: nowrap;'
+    thEnergyGroup.textContent = `Energie-input (${energyUnit})`
+    topRow.appendChild(thEnergyGroup)
 
-    // Carrier dropdown container (persists across re-renders)
-    let carrierSelectRow = null
+    // Bottom header row: year columns
+    const bottomRow = document.createElement('tr')
+    thead.appendChild(bottomRow)
+    years.forEach(yr => {
+      const th = document.createElement('th')
+      th.style.cssText = thRight
+      th.textContent = yr
+      bottomRow.appendChild(th)
+    })
+    years.forEach((yr, i) => {
+      const th = document.createElement('th')
+      th.style.cssText = thRight + (i === 0 ? ' border-left: 2px solid #ddd;' : '')
+      th.textContent = yr
+      bottomRow.appendChild(th)
+    })
 
-    // Render (or re-render) the table header and body
-    function renderTable() {
-      table.innerHTML = ''
+    // Body
+    const tbody = document.createElement('tbody')
+    table.appendChild(tbody)
 
-      // Header (two rows)
-      const thead = document.createElement('thead')
-      table.appendChild(thead)
+    const tdStyle = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; white-space: nowrap;'
+    const tdRight = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;'
+    const tdSelected = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; white-space: nowrap; background: #EEF5FA; font-weight: 600;'
+    const tdSelectedRight = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; background: #EEF5FA; font-weight: 600;'
+    const tdSubtotalStyle = 'padding: 4px 8px; border-bottom: 1px solid #ccc; color: #333; font-weight: 600; font-size: 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;'
+    const tdSubtotalLeft = 'padding: 4px 8px; border-bottom: 1px solid #ccc; color: #333; font-weight: 600; font-size: 10px; white-space: nowrap;'
 
-      // Top header row: group labels
-      const topRow = document.createElement('tr')
-      thead.appendChild(topRow)
-      const thSD = document.createElement('th')
-      thSD.rowSpan = 2
-      thSD.style.cssText = thStyle + ' vertical-align: bottom;'
-      thSD.textContent = 'Service demand'
-      topRow.appendChild(thSD)
-      const thUnit = document.createElement('th')
-      thUnit.rowSpan = 2
-      thUnit.style.cssText = thStyle + ' vertical-align: bottom;'
-      thUnit.textContent = 'Eenheid'
-      topRow.appendChild(thUnit)
-      const thDemandGroup = document.createElement('th')
-      thDemandGroup.colSpan = years.length
-      thDemandGroup.style.cssText = 'padding: 4px 8px; text-align: center; font-weight: 600; color: #555; border-bottom: 1px solid #ddd; white-space: nowrap;'
-      thDemandGroup.textContent = 'Vraag'
-      topRow.appendChild(thDemandGroup)
+    sortedSectors.forEach(sector => {
+      // Sector header row
+      const sectorTr = document.createElement('tr')
+      const sectorTd = document.createElement('td')
+      sectorTd.colSpan = colCount
+      sectorTd.style.cssText = 'padding: 8px 8px 4px; font-size: 10px; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #ccc;'
+      sectorTd.textContent = sector
+      sectorTr.appendChild(sectorTd)
+      tbody.appendChild(sectorTr)
 
-      // Energy input header cell
-      const thEnergyGroup = document.createElement('th')
-      thEnergyGroup.colSpan = years.length
-      thEnergyGroup.style.cssText = 'padding: 4px 8px; text-align: center; font-weight: 600; color: #555; border-bottom: 1px solid #ddd; border-left: 2px solid #ddd; white-space: nowrap;'
-      thEnergyGroup.textContent = `Energie-input (${energyUnit})`
-      topRow.appendChild(thEnergyGroup)
-
-      // Carrier dropdown — placed above table, right-aligned, dropdown matches export button width
-      if (allCarriers.length > 0 && !carrierSelectRow) {
-        carrierSelectRow = document.createElement('div')
-        carrierSelectRow.style.cssText = 'display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-bottom: 6px;'
-        const filterLabel = document.createElement('span')
-        filterLabel.textContent = 'Filter drager:'
-        filterLabel.style.cssText = 'font-size: 9px; font-weight: 600; color: #555; white-space: nowrap; position: relative; top: -1px;'
-        carrierSelectRow.appendChild(filterLabel)
-        const btnW = exportBtn.offsetWidth
-        const carrierSelect = document.createElement('select')
-        carrierSelect.style.cssText = `font-size: 9px; padding: 1px 4px; height: 18px; line-height: 18px; border: 1px solid #ccc; border-radius: 3px; background: #f8f8f8; color: #555; cursor: pointer; font-family: inherit; width: ${btnW}px;`
-        const optAll = document.createElement('option')
-        optAll.value = '__total__'
-        optAll.textContent = 'Alle dragers (totaal)'
-        carrierSelect.appendChild(optAll)
-        allCarriers.forEach(carrier => {
-          const opt = document.createElement('option')
-          opt.value = carrier
-          opt.textContent = carrier
-          carrierSelect.appendChild(opt)
-        })
-        carrierSelect.value = selectedCarrier
-        carrierSelect.addEventListener('click', (e) => { e.stopPropagation() })
-        carrierSelect.addEventListener('change', (e) => {
-          e.stopPropagation()
-          selectedCarrier = carrierSelect.value
-          renderTable()
-        })
-        carrierSelectRow.appendChild(carrierSelect)
-        contentDiv.insertBefore(carrierSelectRow, table)
-      }
-      // Update the select value on re-render
-      if (carrierSelectRow) {
-        const sel = carrierSelectRow.querySelector('select')
-        if (sel) sel.value = selectedCarrier
-      }
-
-      // Bottom header row: year columns
-      const bottomRow = document.createElement('tr')
-      thead.appendChild(bottomRow)
-      years.forEach(yr => {
-        const th = document.createElement('th')
-        th.style.cssText = thRight
-        th.textContent = yr
-        bottomRow.appendChild(th)
-      })
-      years.forEach((yr, i) => {
-        const th = document.createElement('th')
-        th.style.cssText = thRight + (i === 0 ? ' border-left: 2px solid #ddd;' : '')
-        th.textContent = yr
-        bottomRow.appendChild(th)
-      })
-
-      // Body
-      const tbody = document.createElement('tbody')
-      table.appendChild(tbody)
-
-      const tdStyle = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; white-space: nowrap;'
-      const tdRight = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;'
-      const tdSelected = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; white-space: nowrap; background: #EEF5FA; font-weight: 600;'
-      const tdSelectedRight = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; background: #EEF5FA; font-weight: 600;'
-      const tdSubtotalStyle = 'padding: 4px 8px; border-bottom: 1px solid #ccc; color: #333; font-weight: 600; font-size: 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;'
-      const tdSubtotalLeft = 'padding: 4px 8px; border-bottom: 1px solid #ccc; color: #333; font-weight: 600; font-size: 10px; white-space: nowrap;'
-
-      sortedSectors.forEach(sector => {
-        // Sector header row
-        const sectorTr = document.createElement('tr')
-        const sectorTd = document.createElement('td')
-        sectorTd.colSpan = colCount
-        sectorTd.style.cssText = 'padding: 8px 8px 4px; font-size: 10px; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #ccc;'
-        sectorTd.textContent = sector
-        sectorTr.appendChild(sectorTd)
-        tbody.appendChild(sectorTr)
-
-        // Data rows for this sector
-        sectorMap[sector].forEach(row => {
-          const tr = document.createElement('tr')
-          tr.style.cursor = 'pointer'
-          const isSelected = row.sd === selectedServiceDemand
-          tr.addEventListener('click', () => {
-            selectedServiceDemand = row.sd
-            const sdSel = document.getElementById('tvkn-sd-select')
-            if (sdSel) sdSel.value = row.sd
-            renderCharts()
-          })
-
-          const tdName = document.createElement('td')
-          tdName.style.cssText = isSelected ? tdSelected : tdStyle
-          tdName.textContent = row.sd
-          tr.appendChild(tdName)
-
-          const tdU = document.createElement('td')
-          tdU.style.cssText = isSelected ? tdSelected : tdStyle
-          tdU.textContent = row.unit
-          tr.appendChild(tdU)
-
-          years.forEach(yr => {
-            const td = document.createElement('td')
-            td.style.cssText = isSelected ? tdSelectedRight : tdRight
-            const val = row.values[yr]
-            td.textContent = val === 0 ? '-' : d3.format(',.2f')(val)
-            tr.appendChild(td)
-          })
-
-          // Energy input values (based on selected carrier)
-          years.forEach((yr, i) => {
-            const td = document.createElement('td')
-            td.style.cssText = (isSelected ? tdSelectedRight : tdRight) + (i === 0 ? ' border-left: 2px solid #eee;' : '')
-            const eVal = convertUnit(getEnergyVal(row, yr))
-            td.textContent = eVal < 0.05 ? '-' : d3.format(',.1f')(eVal)
-            tr.appendChild(td)
-          })
-
-          tbody.appendChild(tr)
+      // Data rows for this sector
+      sectorMap[sector].forEach(row => {
+        const tr = document.createElement('tr')
+        tr.style.cursor = 'pointer'
+        const isSelected = row.sd === selectedServiceDemand
+        tr.addEventListener('click', () => {
+          selectedServiceDemand = row.sd
+          const sdSel = document.getElementById('tvkn-sd-select')
+          if (sdSel) sdSel.value = row.sd
+          renderCharts()
         })
 
-        // Sector subtotal row for energy
-        const subTr = document.createElement('tr')
-        const subNameTd = document.createElement('td')
-        subNameTd.colSpan = 2 + years.length
-        subNameTd.style.cssText = tdSubtotalLeft
-        subNameTd.textContent = `Totaal ${sector}`
-        subTr.appendChild(subNameTd)
+        const tdName = document.createElement('td')
+        tdName.style.cssText = isSelected ? tdSelected : tdStyle
+        tdName.textContent = row.sd
+        tr.appendChild(tdName)
 
-        years.forEach((yr, i) => {
+        const tdU = document.createElement('td')
+        tdU.style.cssText = isSelected ? tdSelected : tdStyle
+        tdU.textContent = row.unit
+        tr.appendChild(tdU)
+
+        years.forEach(yr => {
           const td = document.createElement('td')
-          td.style.cssText = tdSubtotalStyle + (i === 0 ? ' border-left: 2px solid #eee;' : '')
-          const val = convertUnit(getSectorTotal(sector, yr))
-          td.textContent = val < 0.05 ? '-' : d3.format(',.1f')(val)
-          subTr.appendChild(td)
+          td.style.cssText = isSelected ? tdSelectedRight : tdRight
+          const val = row.values[yr]
+          td.textContent = val === 0 ? '-' : d3.format(',.2f')(val)
+          tr.appendChild(td)
         })
-        tbody.appendChild(subTr)
+
+        // Energy input values
+        const tdSep = document.createElement('td')
+        tdSep.style.cssText = (isSelected ? tdSelectedRight : tdRight) + ' border-left: 2px solid #eee;'
+        const eVal0 = convertUnit(row.energyInput[years[0]] || 0)
+        tdSep.textContent = eVal0 < 0.05 ? '-' : d3.format(',.1f')(eVal0)
+        tr.appendChild(tdSep)
+
+        years.slice(1).forEach(yr => {
+          const td = document.createElement('td')
+          td.style.cssText = isSelected ? tdSelectedRight : tdRight
+          const eVal = convertUnit(row.energyInput[yr] || 0)
+          td.textContent = eVal < 0.05 ? '-' : d3.format(',.1f')(eVal)
+          tr.appendChild(td)
+        })
+
+        tbody.appendChild(tr)
       })
 
-      // Grand total row
-      const grandTr = document.createElement('tr')
-      grandTr.style.cssText = 'border-top: 2px solid #999;'
-      const grandNameTd = document.createElement('td')
-      grandNameTd.colSpan = 2 + years.length
-      grandNameTd.style.cssText = 'padding: 6px 8px; font-weight: 700; color: #000; font-size: 10px;'
-      grandNameTd.textContent = 'TOTAAL'
-      grandTr.appendChild(grandNameTd)
+      // Sector subtotal row for energy
+      const subTr = document.createElement('tr')
+      const subNameTd = document.createElement('td')
+      subNameTd.colSpan = 2 + years.length
+      subNameTd.style.cssText = tdSubtotalLeft
+      subNameTd.textContent = `Totaal ${sector}`
+      subTr.appendChild(subNameTd)
 
       years.forEach((yr, i) => {
         const td = document.createElement('td')
-        td.style.cssText = 'padding: 6px 8px; text-align: right; font-weight: 700; color: #000; font-variant-numeric: tabular-nums; font-size: 10px;' + (i === 0 ? ' border-left: 2px solid #eee;' : '')
-        let grandTotal = 0
-        sortedSectors.forEach(s => { grandTotal += getSectorTotal(s, yr) })
-        td.textContent = d3.format(',.1f')(convertUnit(grandTotal))
-        grandTr.appendChild(td)
+        td.style.cssText = tdSubtotalStyle + (i === 0 ? ' border-left: 2px solid #eee;' : '')
+        const val = convertUnit(sectorEnergyTotals[sector][yr] || 0)
+        td.textContent = val < 0.05 ? '-' : d3.format(',.1f')(val)
+        subTr.appendChild(td)
       })
-      tbody.appendChild(grandTr)
-    }
+      tbody.appendChild(subTr)
+    })
 
-    // Initial render
-    renderTable()
+    // Grand total row
+    const grandTr = document.createElement('tr')
+    grandTr.style.cssText = 'border-top: 2px solid #999;'
+    const grandNameTd = document.createElement('td')
+    grandNameTd.colSpan = 2 + years.length
+    grandNameTd.style.cssText = 'padding: 6px 8px; font-weight: 700; color: #000; font-size: 10px;'
+    grandNameTd.textContent = 'TOTAAL'
+    grandTr.appendChild(grandNameTd)
+
+    years.forEach((yr, i) => {
+      const td = document.createElement('td')
+      td.style.cssText = 'padding: 6px 8px; text-align: right; font-weight: 700; color: #000; font-variant-numeric: tabular-nums; font-size: 10px;' + (i === 0 ? ' border-left: 2px solid #eee;' : '')
+      let grandTotal = 0
+      sortedSectors.forEach(s => { grandTotal += sectorEnergyTotals[s][yr] || 0 })
+      td.textContent = d3.format(',.1f')(convertUnit(grandTotal))
+      grandTr.appendChild(td)
+    })
+    tbody.appendChild(grandTr)
   }
 
   // ── reusable D3 line chart renderer ────────────────────────────────────

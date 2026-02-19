@@ -94,12 +94,12 @@ function exportSankeyToFlux(options) {
   }
 
   // 1. LINKS TAB
-  // Format: source.id, target.id, value, carrier, type, visibility, direction
+  // Format: source, target, value, carrier, type, visibility, direction
   const linksData = links
     .filter(link => link.value !== 0 && link.value !== '0')
     .map(link => ({
-      'source.id': typeof link.source === 'object' ? link.source.id : link.source,
-      'target.id': typeof link.target === 'object' ? link.target.id : link.target,
+      'source': typeof link.source === 'object' ? link.source.id : link.source,
+      'target': typeof link.target === 'object' ? link.target.id : link.target,
       'value': link.value,
       'carrier': link.legend || '',
       'type': link.type || 0,

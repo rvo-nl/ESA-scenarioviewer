@@ -274,12 +274,12 @@ function fileLoadButton () {
     for (let i = 0; i < links.length; i++) {
       newData.links.push({
         index: i,
-        source: links[i]['source.id'],
-        target: links[i]['target.id'],
-        color: getColor(links[i]['legend'], legend),
+        source: links[i]['source'],
+        target: links[i]['target'],
+        color: getColor(links[i]['carrier'], legend),
         value: links[i].value,
         type: links[i].type,
-        legend: links[i]['legend']
+        legend: links[i]['carrier']
       })
       scenarios.forEach((element) => {
         newData.links[i][element.id] = links[i][element.id]

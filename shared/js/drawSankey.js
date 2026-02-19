@@ -305,7 +305,7 @@ function processData (links, nodes, legend, settings, config) {
   let scaleValues_co2flow = settings[0].scaleDataValueCO2flow
   for (i = 0;i < links.length;i++) {
     let co2flow = false
-    if (links[i].legend == 'co2flow') {co2flow = true}
+    if (links[i].carrier == 'co2flow') {co2flow = true}
     Object.keys(links[i]).forEach(key => {
       if (typeof links[i][key] == 'number') {
         if (co2flow) {
@@ -450,17 +450,17 @@ function processData (links, nodes, legend, settings, config) {
     sankeyDataObjects[config.sankeyDataID].links.push({
       // remark: remarks[i],
       index: i,
-      source: links[i]['source.id'],
-      target: links[i]['target.id'],
+      source: links[i]['source'],
+      target: links[i]['target'],
       filter_system: links[i]['filter_system'],
       filter_electricity: links[i]['filter_electricity'],
       filter_hydrogen: links[i]['filter_hydrogen'],
       filter_heat: links[i]['filter_heat'],
       filter_carbon: links[i]['filter_carbon'],
-      color: getColor(links[i]['legend'], legend),
+      color: getColor(links[i]['carrier'], legend),
       value: links[i].value,
       type: links[i].type,
-      legend: links[i]['legend'],
+      legend: links[i]['carrier'],
       visibility: 1
     })
     scenarios.forEach((element) => {

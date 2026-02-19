@@ -1809,8 +1809,6 @@
       })
       // Compute total energy input for this service demand per year
       const energyInput = {}
-      // Also compute per-carrier energy input: { carrier -> { year -> value } }
-      const energyInputByCarrier = {}
       years.forEach(yr => { energyInput[yr] = 0 })
       const scMap = energyFlowIndex[scenario]
       Object.keys(options).forEach(opt => {
@@ -1820,20 +1818,12 @@
             if (!years.includes(yr)) return
             if (row.Carrier === 'CO2Flow' || row.Carrier === 'CO2flow') return
             const val = parseVal(row.Value)
-            if (val > 0) {
-              energyInput[yr] += val
-              const carrier = row.Carrier
-              if (!energyInputByCarrier[carrier]) {
-                energyInputByCarrier[carrier] = {}
-                years.forEach(y => { energyInputByCarrier[carrier][y] = 0 })
-              }
-              energyInputByCarrier[carrier][yr] += val
-            }
+            if (val > 0) energyInput[yr] += val
           })
         }
       })
 
-      return { sd, unit, sector, values, energyInput, energyInputByCarrier }
+      return { sd, unit, sector, values, energyInput }
     })
 
     // Group by sector
@@ -1844,14 +1834,7 @@
     })
     const sortedSectors = Object.keys(sectorMap).sort()
 
-    // Collect all unique carriers across all rows
-    const allCarriersSet = new Set()
-    rows.forEach(row => {
-      Object.keys(row.energyInputByCarrier).forEach(c => allCarriersSet.add(c))
-    })
-    const allCarriers = Array.from(allCarriersSet).sort()
-
-    // Compute sector energy totals (aggregate)
+    // Compute sector energy totals
     const sectorEnergyTotals = {}
     sortedSectors.forEach(sector => {
       const totals = {}
@@ -1860,22 +1843,6 @@
         years.forEach(yr => { totals[yr] += row.energyInput[yr] })
       })
       sectorEnergyTotals[sector] = totals
-    })
-
-    // Compute sector energy totals per carrier
-    const sectorEnergyTotalsByCarrier = {}
-    sortedSectors.forEach(sector => {
-      sectorEnergyTotalsByCarrier[sector] = {}
-      allCarriers.forEach(carrier => {
-        const totals = {}
-        years.forEach(yr => { totals[yr] = 0 })
-        sectorMap[sector].forEach(row => {
-          if (row.energyInputByCarrier[carrier]) {
-            years.forEach(yr => { totals[yr] += row.energyInputByCarrier[carrier][yr] || 0 })
-          }
-        })
-        sectorEnergyTotalsByCarrier[sector][carrier] = totals
-      })
     })
 
     const energyUnit = tvknUnit || 'PJ'
@@ -1959,13 +1926,13 @@
     table.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 10px;'
     contentDiv.appendChild(table)
 
-    const thStyle = 'padding: 4px 8px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #ddd; white-space: nowrap;'
-    const thRight = 'padding: 4px 8px; text-align: right; font-weight: 600; color: #555; border-bottom: 2px solid #ddd; white-space: nowrap;'
-    const colCount = 2 + years.length * 2
-
     // Header (two rows)
     const thead = document.createElement('thead')
     table.appendChild(thead)
+
+    const thStyle = 'padding: 4px 8px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #ddd; white-space: nowrap;'
+    const thRight = 'padding: 4px 8px; text-align: right; font-weight: 600; color: #555; border-bottom: 2px solid #ddd; white-space: nowrap;'
+    const colCount = 2 + years.length * 2
 
     // Top header row: group labels
     const topRow = document.createElement('tr')

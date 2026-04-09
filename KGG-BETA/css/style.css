@@ -165,6 +165,16 @@ body {
   align-items: center;
 }
 
+.menuContainer-part[id="yearButtons"] {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.menuContainer-part[id="yearButtons"] button {
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
 .menuContainer-part.hidden {
   opacity: 0;
   transform: translateY(-20px);

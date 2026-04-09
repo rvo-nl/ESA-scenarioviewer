@@ -80,7 +80,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds02032026pbl.enc.json');
+    const response = await fetch('public/ds09042026pbl.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -181,6 +181,12 @@ function switchDiagram(diagramId) {
 
   // Update diagram button highlighting
   updateDiagramButtonHighlight(diagramId)
+
+  // Apply per-diagram scope visibility (hides scope buttons that the
+  // newly loaded diagram opts out of via its `scopes` field in viewer-config).
+  if (typeof updateScopeButtonsForDiagram === 'function') {
+    updateScopeButtonsForDiagram(diagramId)
+  }
 
   // Re-apply the current scenario/year selection to the new diagram
   if (typeof setScenario === 'function') {

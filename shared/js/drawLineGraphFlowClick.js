@@ -493,11 +493,19 @@ function drawBarGraph(data, config) {
   }
 
   // Build scenario colors from config
+  // Clamp the bright end so categories with light/grey base colors don't
+  // produce a near-white shade (which would be invisible on the popup background).
+  const MAX_LIGHTNESS = 75 // HSL lightness cap for the brightest scenario in a category
+  function clampBright(baseColor, factor) {
+    const c = d3.hsl(d3.color(baseColor).brighter(factor))
+    if (c.l * 100 > MAX_LIGHTNESS) c.l = MAX_LIGHTNESS / 100
+    return c
+  }
   const scenarioColors = {}
   Object.values(categoryInfo).forEach(cat => {
     const colorScale = d3.scaleLinear()
-      .domain([0, cat.scenarios.length - 1])
-      .range([d3.color(cat.baseColor).brighter(1.5), d3.color(cat.baseColor).darker(1.5)])
+      .domain([0, Math.max(1, cat.scenarios.length - 1)])
+      .range([clampBright(cat.baseColor, 1.5), d3.color(cat.baseColor).darker(1.5)])
     cat.scenarios.forEach((scenario, i) => {
       scenarioColors[scenario] = colorScale(i)
     })

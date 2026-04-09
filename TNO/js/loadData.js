@@ -182,6 +182,12 @@ function switchDiagram(diagramId) {
   // Update diagram button highlighting
   updateDiagramButtonHighlight(diagramId)
 
+  // Apply per-diagram scope visibility (hides scope buttons that the
+  // newly loaded diagram opts out of via its `scopes` field in viewer-config).
+  if (typeof updateScopeButtonsForDiagram === 'function') {
+    updateScopeButtonsForDiagram(diagramId)
+  }
+
   // Re-apply the current scenario/year selection to the new diagram
   if (typeof setScenario === 'function') {
     setTimeout(() => {

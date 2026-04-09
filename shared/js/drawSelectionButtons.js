@@ -191,6 +191,35 @@ function drawSelectionButtons(config) {
   globalActiveEnergyflowsFilter = defaults.energyflowsFilter || 'system'
 
   function setScenario(scenario, type) {
+    // Always refresh scenario availability up-front so the buttons reflect the
+    // currently loaded diagram, even if we end up aborting below because the
+    // current scenario is not available in this diagram.
+    if (typeof updateScenarioAvailability === 'function') {
+      updateScenarioAvailability(config)
+    }
+
+    // If the current scenario was just greyed out by updateScenarioAvailability
+    // (i.e. it has no data or all-zero data in the newly loaded diagram), or
+    // it has no entry in scenarioIdLookup at all, auto-pick the first
+    // scenario button that is still enabled so the user is never stuck on a
+    // greyed-out selection after switching diagrams.
+    const currentScenarioGreyed = typeof scenariosWithZeroValues !== 'undefined'
+      && scenariosWithZeroValues.has(globalActiveScenario.id)
+    const currentScenarioMissing = !scenarioIdLookup[globalActiveScenario.id]
+      || scenarioIdLookup[globalActiveScenario.id][globalActiveYear.id] === undefined
+    if (currentScenarioGreyed || currentScenarioMissing) {
+      const scenarioButtonsContainer = document.getElementById('scenarioButtons')
+      if (scenarioButtonsContainer) {
+        const firstAvailableScenarioBtn = Array.from(
+          scenarioButtonsContainer.getElementsByTagName('button')
+        ).find(btn => btn.style.pointerEvents !== 'none' && !btn.disabled)
+        if (firstAvailableScenarioBtn && firstAvailableScenarioBtn.textContent !== globalActiveScenario.title) {
+          firstAvailableScenarioBtn.click()
+          return
+        }
+      }
+    }
+
     activeScenario = scenarioIdLookup[globalActiveScenario.id]?.[globalActiveYear.id]
     if (activeScenario === undefined) {
       console.warn(`Scenario ${globalActiveScenario.id} is not available for year ${globalActiveYear.id}. Aborting update.`)
@@ -765,7 +794,74 @@ function drawSankeyEnergiestromenSelectieButtons() {
 
     container.appendChild(button)
   })
+
+  // Apply per-diagram scope visibility for the initial diagram
+  if (typeof updateScopeButtonsForDiagram === 'function') {
+    updateScopeButtonsForDiagram(window.activeDiagramId)
+  }
 }
+
+// Show/hide scope buttons based on the active diagram's `scopes` field in
+// viewer-config.json. If a diagram has no `scopes` array, all scopes are
+// shown (legacy behavior). If the currently active scope is hidden by the
+// new diagram, auto-switch to the first scope that is still visible.
+function updateScopeButtonsForDiagram(diagramId) {
+  if (!viewerConfig) {
+    console.warn('[scopes] viewerConfig not yet loaded, skipping scope visibility for', diagramId)
+    return
+  }
+  const container = document.getElementById('sankeyEnergiestromenSelectieMenu')
+  if (!container) {
+    console.warn('[scopes] sankeyEnergiestromenSelectieMenu container not found')
+    return
+  }
+
+  const diagramConfigs = viewerConfig.sankeyDiagrams || []
+  // If no diagramId was passed, fall back to whatever the viewer thinks is
+  // active right now, or to the diagram marked as default in viewer-config.
+  if (!diagramId) {
+    diagramId = window.activeDiagramId
+      || (diagramConfigs.find(d => d.default) || diagramConfigs[0] || {}).id
+  }
+  const diagramConfig = diagramConfigs.find(d => d.id === diagramId)
+  // allowedScopes === null means "no restriction" (show all)
+  const allowedScopes = (diagramConfig && Array.isArray(diagramConfig.scopes))
+    ? diagramConfig.scopes
+    : null
+  console.log('[scopes] updateScopeButtonsForDiagram', { diagramId, foundDiagram: !!diagramConfig, allowedScopes })
+
+  const buttons = container.getElementsByTagName('button')
+  const focusOptions = viewerConfig.focusOptions || [
+    {id: 'system', title: 'Integraal'},
+    {id: 'electricity', title: 'Elektriciteitsketen'},
+    {id: 'hydrogen', title: 'Waterstofketen'},
+    {id: 'heat', title: 'Warmteketen'},
+    {id: 'carbon', title: 'Koolstofketen'}
+  ]
+
+  let activeStillVisible = false
+  let firstVisibleButton = null
+
+  Array.from(buttons).forEach((btn, idx) => {
+    const focus = focusOptions[idx]
+    if (!focus) return
+    const visible = allowedScopes === null || allowedScopes.includes(focus.id)
+    btn.style.display = visible ? '' : 'none'
+    if (visible) {
+      if (!firstVisibleButton) firstVisibleButton = btn
+      if (typeof globalActiveEnergyflowsSankey !== 'undefined'
+        && globalActiveEnergyflowsSankey
+        && globalActiveEnergyflowsSankey.id === focus.id) {
+        activeStillVisible = true
+      }
+    }
+  })
+
+  if (!activeStillVisible && firstVisibleButton) {
+    firstVisibleButton.click()
+  }
+}
+window.updateScopeButtonsForDiagram = updateScopeButtonsForDiagram
 
 // Y-MAX LOOKUP
 function getYMax(toepassing, sector) {

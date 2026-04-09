@@ -82,7 +82,10 @@ function checkScenarioHasAllZeroValues(scenarioId, config) {
   const scenarioYears = scenarioIdLookup[scenarioId]
 
   if (!scenarioYears || Object.keys(scenarioYears).length === 0) {
-    return false // Scenario has no years defined - don't grey out
+    // Scenario has no years available in the currently loaded diagram —
+    // grey it out so the user can't get stuck on a scenario with no
+    // selectable year.
+    return true
   }
 
   // Check all sankey data objects (different scopes) for any year's data

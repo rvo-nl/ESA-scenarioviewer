@@ -652,31 +652,11 @@ function drawSankey (sankeyDataInput, config) {
     setScenario() // init
   }, 1000)
 
-  // Add hover event handlers to links
-  sankeyInstances[config.sankeyInstanceID].sankeyDiagram
-    .linkTitle((d) => {
-      if (d.legend === 'co2flow') {
-        return d.legend + ' | ' + parseInt(d.value * globalCO2flowScale) + ' kton CO2'
-      } else {
-        if (currentUnit === 'TWh') {
-          return d.legend + ' | ' + parseInt(d.value / 3.6) + ' TWh'
-        } else {
-          return d.legend + ' | ' + parseInt(d.value) + ' PJ'
-        }
-      }
-    })
-    .on('mouseover', function (event, d) {
-      d3.select('#showValueOnHover')
-        .style('opacity', 1)
-        .html(d.legend + ' | ' + (d.legend === 'co2flow'
-            ? parseInt(d.value * globalCO2flowScale) + ' kton CO2'
-            : currentUnit === 'TWh'
-              ? parseInt(d.value / 3.6) + ' TWh'
-              : parseInt(d.value) + ' PJ'))
-    })
-    .on('mouseout', function () {
-      d3.select('#showValueOnHover').style('opacity', 0)
-    })
+  // Remove the delayed browser-native SVG <title> tooltips created by
+  // d3-sankey-diagram's linkTitle, so we can show an instant custom tooltip.
+  d3.select('#' + config.sankeyInstanceID + '_sankeySVGPARENT')
+    .selectAll('.link title')
+    .remove()
 
   // Ensure links have pointer events enabled
   d3.select('#' + config.sankeyInstanceID + '_sankeySVGPARENT')
@@ -685,10 +665,16 @@ function drawSankey (sankeyDataInput, config) {
     .style('cursor', 'pointer')
     .on('mouseover', function (event, d) {
       showValueOnHover(d3.select(this))
+      showCursorFlowTooltip(event, d)
       d3.select(this).style('opacity', 0.8)
     })
-    .on('mouseout', function (d) {
+    .on('mousemove', function (event) {
+      moveCursorFlowTooltip(event)
+    })
+    .on('mouseout', function () {
       d3.select(this).style('opacity', 1)
+      hideValueOnHover()
+      hideCursorFlowTooltip()
     })
 }
 
@@ -1094,6 +1080,12 @@ function updateSankey (json, offsetX, offsetY, fontSize, fontFamily, config) {
   d3.select('#' + config.sankeyInstanceID + ' .sankey').attr('transform', 'translate(' + offsetX + ',' + offsetY + ')')
   d3.selectAll('#' + config.sankeyInstanceID + ' .node-title').style('font-size', fontSize + 'tepx')
 
+  // Remove the delayed browser-native SVG <title> tooltips so the custom
+  // cursor tooltip can show instantly on hover.
+  d3.select('#' + config.sankeyInstanceID + '_sankeySVGPARENT')
+    .selectAll('.link title')
+    .remove()
+
   // Update link styles and events
   d3.select('#' + config.sankeyInstanceID + '_sankeySVGPARENT')
     .selectAll('.link')
@@ -1103,12 +1095,20 @@ function updateSankey (json, offsetX, offsetY, fontSize, fontFamily, config) {
     .on('mouseover', function (event, d) {
       if (d.visibility !== 0) {
         showValueOnHover(d3.select(this))
+        showCursorFlowTooltip(event, d)
         d3.select(this).style('opacity', 0.8)
       }
     })
-    .on('mouseout', function (d) {
+    .on('mousemove', function (event, d) {
+      if (d.visibility !== 0) {
+        moveCursorFlowTooltip(event)
+      }
+    })
+    .on('mouseout', function (event, d) {
       if (d.visibility !== 0) {
         d3.select(this).style('opacity', 0.9)
+        hideValueOnHover()
+        hideCursorFlowTooltip()
       }
     })
     .on('click', function (event, d) {
@@ -1283,24 +1283,84 @@ function drawUnitSelector () {
 }
 
 function showValueOnHover (value) {
-  const formatMillions = (d) => {
-    const scaled = d / 1e6 // Scale the number to millions
-    return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }).format(scaled); // Format with '.' as thousands separator
+  const formatWithThousandsSeparator = (d) => {
+    return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }).format(d)
   }
-  d3.select('#showValueOnHover').html(function (d) {
-    if (value._groups[0][0].__data__.legend == 'co2flow') {
-      return value._groups[0][0].__data__.legend + ' | ' + parseInt(value._groups[0][0].__data__.value) * globalCO2flowScale + ' kton CO2'
-    } else {
-      if (currentUnit == 'TWh') {
-        return value._groups[0][0].__data__.legend + ' | ' + parseInt(value._groups[0][0].__data__.value / 3.6) + ' TWh'
-      } else { return value._groups[0][0].__data__.legend + ' | ' + parseInt(value._groups[0][0].__data__.value) + ' PJ'}
-    }
-  } // note
 
-  )
-    .style('background-color', value._groups[0][0].__data__.color).interrupt().style('opacity', 1)
-  d3.select('#showValueOnHover').transition().duration(4000).style('opacity', 0)
-  if (value._groups[0][0].__data__.color == '#F8D377' || value._groups[0][0].__data__.color == '#62D3A4') {d3.select('#showValueOnHover').style('color', 'black')} else {d3.select('#showValueOnHover').style('color', 'white')}
+  const linkData = value._groups[0][0].__data__
+  const originalValue = linkData.value
+  const carrierColor = linkData.color
+  const carrier = linkData.legend
+  const sourceId = (linkData.source && linkData.source.id) || linkData.source || ''
+  const targetId = (linkData.target && linkData.target.id) || linkData.target || ''
+
+  d3.select('#showValueOnHover').html(function () {
+    let mainText = ''
+    if (carrier === 'co2flow') {
+      const displayValue = (originalValue > 0 && originalValue < 0.5) ? 0 : parseInt(originalValue * globalCO2flowScale)
+      mainText = carrier + ' | ' + formatWithThousandsSeparator(displayValue) + ' kton CO2'
+    } else if (currentUnit === 'TWh') {
+      const displayValue = (originalValue > 0 && originalValue < 0.5) ? 0 : parseInt(originalValue / 3.6)
+      mainText = carrier + ' | ' + formatWithThousandsSeparator(displayValue) + ' TWh'
+    } else {
+      const displayValue = (originalValue > 0 && originalValue < 0.5) ? 0 : parseInt(originalValue)
+      mainText = carrier + ' | ' + formatWithThousandsSeparator(displayValue) + ' PJ'
+    }
+
+    let tooltipHTML = '<div class="tooltip-header">'
+    tooltipHTML += '<span class="carrier-dot" style="background-color: ' + carrierColor + ';"></span>'
+    tooltipHTML += '<span>' + mainText + '</span>'
+    tooltipHTML += '</div>'
+
+    tooltipHTML += '<div class="tooltip-annotation">'
+    tooltipHTML += '<strong>From:</strong> ' + sourceId + '<br>'
+    tooltipHTML += '<strong>To:</strong> ' + targetId
+    tooltipHTML += '</div>'
+
+    return tooltipHTML
+  })
+    .interrupt()
+    .style('opacity', 1)
+}
+
+function hideValueOnHover () {
+  d3.select('#showValueOnHover')
+    .interrupt()
+    .transition()
+    .duration(200)
+    .style('opacity', 0)
+}
+
+// Formats the short cursor-following tooltip for a link datum
+function formatCursorFlowTooltip (d) {
+  if (d.legend === 'co2flow') {
+    return d.legend + ' | ' + parseInt(d.value * globalCO2flowScale) + ' kton CO2'
+  }
+  if (currentUnit === 'TWh') {
+    return d.legend + ' | ' + parseInt(d.value / 3.6) + ' TWh'
+  }
+  return d.legend + ' | ' + parseInt(d.value) + ' PJ'
+}
+
+function showCursorFlowTooltip (event, d) {
+  const tip = d3.select('#cursorFlowTooltip')
+  tip.interrupt()
+    .html(formatCursorFlowTooltip(d))
+    .style('left', (event.clientX + 12) + 'px')
+    .style('top', (event.clientY + 12) + 'px')
+    .style('opacity', 1)
+}
+
+function moveCursorFlowTooltip (event) {
+  d3.select('#cursorFlowTooltip')
+    .style('left', (event.clientX + 12) + 'px')
+    .style('top', (event.clientY + 12) + 'px')
+}
+
+function hideCursorFlowTooltip () {
+  d3.select('#cursorFlowTooltip')
+    .interrupt()
+    .style('opacity', 0)
 }
 
 // ============================================================

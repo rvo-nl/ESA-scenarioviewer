@@ -528,11 +528,12 @@ function drawBarGraph(data, config) {
   // Year range filter state
   const allYears = availableYears
 
-  // Check if CBS diagram (studies_vs_cbs) is selected - if so, show all years
-  const isCBSDiagram = window.activeDiagramId === 'studies_vs_cbs'
+  // Diagrams that include historical years in their data and should show all available years by default
+  const showAllYearsDiagrams = ['studies_vs_cbs', 'basis']
+  const showAllByDefault = showAllYearsDiagrams.includes(window.activeDiagramId)
 
-  // Default: show all years for CBS diagram, only 2025+ for other diagrams
-  let showAllYears = isCBSDiagram
+  // Default: show all years for whitelisted diagrams, only 2025+ for other diagrams
+  let showAllYears = showAllByDefault
   let filteredYears = showAllYears ? allYears : allYears.filter(y => y >= 2025)
 
   // x-scale for years (will be updated when year filter changes)

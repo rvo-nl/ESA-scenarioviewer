@@ -200,7 +200,18 @@
 
   // Toggle individual scenario visibility
   function toggleScenario(scenarioId) {
-    visibilitySettings[scenarioId] = !visibilitySettings[scenarioId];
+    const newValue = !visibilitySettings[scenarioId];
+    visibilitySettings[scenarioId] = newValue;
+    // If enabling a scenario whose group is hidden, also enable the group
+    if (newValue) {
+      const scenario = allScenarios.find(s => s.id === scenarioId);
+      if (scenario) {
+        const groupKey = `group:${scenario.scenarioGroup || 'Ungrouped'}`;
+        if (visibilitySettings[groupKey] === false) {
+          visibilitySettings[groupKey] = true;
+        }
+      }
+    }
     saveSettings();
   }
 
@@ -515,10 +526,9 @@
           background: ${isScenarioChecked && isEnabled ? '#14B8A6' : '#ccc'};
           border-radius: 12px;
           position: relative;
-          cursor: ${isEnabled ? 'pointer' : 'not-allowed'};
+          cursor: pointer;
           transition: background 0.3s ease;
           flex-shrink: 0;
-          opacity: ${isEnabled ? '1' : '0.5'};
         `;
 
         const scenarioToggleCircle = document.createElement('div');
@@ -537,29 +547,25 @@
         scenarioToggleContainer.appendChild(scenarioToggleCircle);
 
         scenarioToggleContainer.addEventListener('click', function() {
-          if (isGroupVisible(groupName)) {
-            toggleScenario(scenario.id);
-            refreshPopupContent();
-            notifyScenarioChange();
-          }
+          toggleScenario(scenario.id);
+          refreshPopupContent();
+          notifyScenarioChange();
         });
 
         const scenarioLabel = document.createElement('label');
         scenarioLabel.textContent = scenario.title;
         scenarioLabel.style.cssText = `
           font-size: 12px;
-          color: ${!isGroupVisible(groupName) ? '#bdc3c7' : '#34495e'};
+          color: #34495e;
           cursor: pointer;
           user-select: none;
           flex: 1;
           line-height: 1.3;
         `;
         scenarioLabel.addEventListener('click', function() {
-          if (isGroupVisible(groupName)) {
-            toggleScenario(scenario.id);
-            refreshPopupContent();
-            notifyScenarioChange();
-          }
+          toggleScenario(scenario.id);
+          refreshPopupContent();
+          notifyScenarioChange();
         });
 
         scenarioDiv.appendChild(scenarioToggleContainer);
@@ -943,10 +949,9 @@
             background: ${isScenarioChecked && isEnabled ? '#14B8A6' : '#ccc'};
             border-radius: 12px;
             position: relative;
-            cursor: ${isEnabled ? 'pointer' : 'not-allowed'};
+            cursor: pointer;
             transition: background 0.3s ease;
             flex-shrink: 0;
-            opacity: ${isEnabled ? '1' : '0.5'};
           `;
 
           const scenarioToggleCircle = document.createElement('div');
@@ -965,29 +970,25 @@
           scenarioToggleContainer.appendChild(scenarioToggleCircle);
 
           scenarioToggleContainer.addEventListener('click', function() {
-            if (isGroupVisible(groupName)) {
-              toggleScenario(scenario.id);
-              refreshPopupContent();
-              notifyScenarioChange();
-            }
+            toggleScenario(scenario.id);
+            refreshPopupContent();
+            notifyScenarioChange();
           });
 
           const scenarioLabel = document.createElement('label');
           scenarioLabel.textContent = scenario.title;
           scenarioLabel.style.cssText = `
             font-size: 12px;
-            color: ${!isGroupVisible(groupName) ? '#bdc3c7' : '#34495e'};
+            color: #34495e;
             cursor: pointer;
             user-select: none;
             flex: 1;
             line-height: 1.3;
           `;
           scenarioLabel.addEventListener('click', function() {
-            if (isGroupVisible(groupName)) {
-              toggleScenario(scenario.id);
-              refreshPopupContent();
-              notifyScenarioChange();
-            }
+            toggleScenario(scenario.id);
+            refreshPopupContent();
+            notifyScenarioChange();
           });
 
           scenarioDiv.appendChild(scenarioToggleContainer);

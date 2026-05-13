@@ -51,7 +51,12 @@ async function initSelectionButtons(config) {
     return
   }
 
-  // Set version labels based on config
+  // Initialize ScenarioSettings (creates settings button, replaces topRightLabel)
+  if (typeof window.ScenarioSettings !== 'undefined' && typeof window.ScenarioSettings.initialize === 'function') {
+    window.ScenarioSettings.initialize(viewerConfig)
+  }
+
+  // Set version labels based on config (skipped if ScenarioSettings already placed the button)
   setVersionLabels()
   applySectionVisibilityFromConfig()
 
@@ -1038,5 +1043,7 @@ if (typeof dataSource === 'undefined' || dataSource === 'development') {
 // Listen for scenario visibility changes and redraw buttons
 window.addEventListener('scenarioVisibilityChanged', function() {
   console.log('Scenario visibility changed, redrawing buttons');
-  drawScenarioButtons();
+  if (typeof window.drawScenarioButtons === 'function') {
+    window.drawScenarioButtons();
+  }
 });

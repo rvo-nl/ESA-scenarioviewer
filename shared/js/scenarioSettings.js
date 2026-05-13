@@ -194,7 +194,14 @@
   // Toggle group visibility
   function toggleGroup(groupName) {
     const groupKey = `group:${groupName}`;
-    visibilitySettings[groupKey] = !visibilitySettings[groupKey];
+    const newValue = !visibilitySettings[groupKey];
+    visibilitySettings[groupKey] = newValue;
+    // When enabling a group, also enable all its individual scenarios
+    if (newValue && scenarioGroups[groupName]) {
+      scenarioGroups[groupName].forEach(s => {
+        visibilitySettings[s.id] = true;
+      });
+    }
     saveSettings();
   }
 

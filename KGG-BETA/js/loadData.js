@@ -80,7 +80,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds18052026kggbeta.enc.json');
+    const response = await fetch('public/ds19052026kggbeta.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -330,7 +330,7 @@ function loadSankeyDiagram(rawSankeyData) {
     if (typeof updateScenarioAvailability === 'function') {
       // Get the config object from the first sankey config
       const firstConfig = sankeyConfigs.length > 0 ? sankeyConfigs[0] : {}
-      updateScenarioAvailability({ scenarios: config.scenarios })
+      updateScenarioAvailability({ scenarios: firstConfig.scenarios })
     }
   }, 100)
 }

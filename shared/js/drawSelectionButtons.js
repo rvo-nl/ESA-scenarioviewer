@@ -188,6 +188,8 @@ function drawSelectionButtons(config) {
 
   // SET DEFAULTS
   globalActiveScenario.id = defaults.scenario || 'TNOAT2024_ADAPT'
+  const defaultScenarioConfig = (viewerConfig.scenarios || []).find(s => s.id === globalActiveScenario.id)
+  globalActiveScenario.title = defaultScenarioConfig ? defaultScenarioConfig.title : ''
   globalActiveYear.id = defaults.year || '2030'
   globalActiveEnergyflowsSankey.id = defaults.energyflowsSankey || 'system'
   globalSankeyInstancesActiveDataset = {
@@ -307,6 +309,7 @@ function drawSelectionButtons(config) {
     }))
 
     let container = document.getElementById('scenarioButtons')
+    if (!container) return
     container.innerHTML = ''
 
     // Add label
@@ -393,8 +396,8 @@ function drawSelectionButtons(config) {
             })
           } catch (error) {
             console.error('Error in switchRoutekaart:', error)
-            const mainSectorButtons = document.getElementById('mainSectorButtons').getElementsByTagName('button')
-            const alleSectorenButton = Array.from(mainSectorButtons).find(btn => btn.textContent === 'Alle sectoren')
+            const mainSectorEl = document.getElementById('mainSectorButtons')
+            const alleSectorenButton = mainSectorEl ? Array.from(mainSectorEl.getElementsByTagName('button')).find(btn => btn.textContent === 'Alle sectoren') : null
             if (alleSectorenButton) {
               alleSectorenButton.click()
             }
@@ -409,6 +412,7 @@ function drawSelectionButtons(config) {
   drawYearButtons()
   function drawYearButtons() {
     let container = document.getElementById('yearButtons')
+    if (!container) return
     container.innerHTML = ''
 
     // Add label
@@ -467,6 +471,7 @@ function drawSelectionButtons(config) {
     ]
 
     const container = document.getElementById('toepassingenButtons')
+    if (!container) return
     container.innerHTML = ''
 
     let label = document.createElement('div')
@@ -497,8 +502,8 @@ function drawSelectionButtons(config) {
             })
           } catch (error) {
             console.error('Error in switchRoutekaart:', error)
-            const mainSectorButtons = document.getElementById('mainSectorButtons').getElementsByTagName('button')
-            const alleSectorenButton = Array.from(mainSectorButtons).find(btn => btn.textContent === 'Alle sectoren')
+            const mainSectorEl = document.getElementById('mainSectorButtons')
+            const alleSectorenButton = mainSectorEl ? Array.from(mainSectorEl.getElementsByTagName('button')).find(btn => btn.textContent === 'Alle sectoren') : null
             if (alleSectorenButton) {
               alleSectorenButton.click()
             }
@@ -511,9 +516,12 @@ function drawSelectionButtons(config) {
   }
 
   function updateButtonStates() {
-    const mainSectorButtons = document.getElementById('mainSectorButtons').getElementsByTagName('button')
-    const toepassingButtons = document.getElementById('toepassingenButtons').getElementsByTagName('button')
-    const subSectorButtons = document.getElementById('subSectorButtons').getElementsByTagName('button')
+    const mainSectorEl = document.getElementById('mainSectorButtons')
+    const toepassingEl = document.getElementById('toepassingenButtons')
+    const subSectorEl = document.getElementById('subSectorButtons')
+    const mainSectorButtons = mainSectorEl ? mainSectorEl.getElementsByTagName('button') : []
+    const toepassingButtons = toepassingEl ? toepassingEl.getElementsByTagName('button') : []
+    const subSectorButtons = subSectorEl ? subSectorEl.getElementsByTagName('button') : []
 
     Array.from(mainSectorButtons).forEach(btn => {
       btn.disabled = false
@@ -589,6 +597,7 @@ function drawSelectionButtons(config) {
     let mainContainer = document.getElementById('mainSectorButtons')
     let subContainer = document.getElementById('subSectorButtons')
 
+    if (!mainContainer || !subContainer) return
     mainContainer.innerHTML = ''
     subContainer.innerHTML = ''
 
@@ -756,6 +765,7 @@ function drawSankeyEnergiestromenSelectieButtons() {
   ]
 
   let container = document.getElementById('sankeyEnergiestromenSelectieMenu')
+  if (!container) return
   container.innerHTML = ''
 
   let label = document.createElement('div')
@@ -794,7 +804,7 @@ function drawSankeyEnergiestromenSelectieButtons() {
           break
       }
 
-      setScenario()
+      if (typeof window.setScenario === 'function') window.setScenario()
     }
 
     container.appendChild(button)

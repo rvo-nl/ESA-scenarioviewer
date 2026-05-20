@@ -1,10 +1,16 @@
 // Generic Capacity Visualization Module
 // Loads configuration from viewer-config.json
 
+// Sync toggle circle when unit changes from another section
+window.addEventListener('unitChanged', function() {
+  d3.select('#capacityUnitStatus')
+    .transition().duration(200)
+    .attr('cx', currentUnit === 'PJ' ? 63 : 87);
+});
+
 // Global state for capacity data
 let capacityData = null;
 let processedCapacityData = null;
-let capacityEnergyUnit = 'PJ'; // Default to PJ, can be switched to TWh
 
 // Lookup table for nicer category display names with optional footnotes
 let categoryDisplayNames = {};
@@ -315,11 +321,12 @@ function drawCapacityUnitSelector() {
       .style('stroke-width', 0.5)
       .style('pointer-events', 'auto')
       .on('click', function() {
-        capacityEnergyUnit = (capacityEnergyUnit === 'PJ') ? 'TWh' : 'PJ';
+        currentUnit = (currentUnit === 'PJ') ? 'TWh' : 'PJ';
+        if (typeof window.persistCurrentUnit === 'function') window.persistCurrentUnit();
         d3.select('#capacityUnitStatus')
           .transition()
           .duration(200)
-          .attr('cx', capacityEnergyUnit === 'PJ' ? 63 : 87);
+          .attr('cx', currentUnit === 'PJ' ? 63 : 87);
 
         createCapacityBarCharts();
       });
@@ -327,7 +334,7 @@ function drawCapacityUnitSelector() {
     sCanvas.append('circle')
       .attr('id', 'capacityUnitStatus')
       .style('pointer-events', 'none')
-      .attr('cx', capacityEnergyUnit === 'PJ' ? 63 : 87)
+      .attr('cx', currentUnit === 'PJ' ? 63 : 87)
       .attr('cy', 12.5)
       .attr('r', 10)
       .attr('fill', '#444');
@@ -539,7 +546,7 @@ function createCombinedBarChart(allBarData, groupInfo, globalMaxCapacity, contai
         const capacityFactor = (d.fullLoadHours / 8760) * 100;
 
         let volumeText;
-        if (capacityEnergyUnit === 'PJ') {
+        if (currentUnit === 'PJ') {
           const volumePJ = d.volume / 1000000000;
           volumeText = `${volumePJ.toFixed(1)} PJ`;
         } else {
@@ -596,7 +603,7 @@ function createCombinedBarChart(allBarData, groupInfo, globalMaxCapacity, contai
           : `${Math.round(d.capacity)} MW`;
 
         let volumeText;
-        if (capacityEnergyUnit === 'PJ') {
+        if (currentUnit === 'PJ') {
           const volumePJ = d.volume / 1000000000;
           volumeText = `${Math.round(volumePJ)} PJ`;
         } else {
@@ -741,7 +748,7 @@ function createCombinedBarChart(allBarData, groupInfo, globalMaxCapacity, contai
       : `${Math.round(totalCapacity)} MW`;
 
     let volumeText;
-    if (capacityEnergyUnit === 'PJ') {
+    if (currentUnit === 'PJ') {
       volumeText = `${Math.round(totalVolume / 1000000000)} PJ`;
     } else {
       volumeText = `${Math.round(totalVolume / 3600000000)} TWh`;
@@ -1066,7 +1073,7 @@ function showCapacityPopup(categoryData) {
         const capacityFactor = (d.fullLoadHours / 8760) * 100;
 
         let volumeText;
-        if (capacityEnergyUnit === 'PJ') {
+        if (currentUnit === 'PJ') {
           const volumePJ = d.volume / 1000000000;
           volumeText = `${volumePJ.toFixed(1)} PJ`;
         } else {

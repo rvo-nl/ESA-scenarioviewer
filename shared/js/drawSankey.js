@@ -62,7 +62,27 @@ let legend = {}
 let settings = {}
 let globalSankeyInstancesActiveDataset = {}
 let OriginalSankeyDataObject
-let currentUnit = 'PJ'
+let currentUnit = (function() {
+  try {
+    const stored = localStorage.getItem('currentUnit')
+    return (stored === 'PJ' || stored === 'TWh') ? stored : 'PJ'
+  } catch (e) {
+    return 'PJ'
+  }
+})()
+function persistCurrentUnit() {
+  try { localStorage.setItem('currentUnit', currentUnit) } catch (e) {}
+  window.dispatchEvent(new CustomEvent('unitChanged'))
+}
+window.persistCurrentUnit = persistCurrentUnit
+
+// Sync Sankey toggle circle and redraw when unit changes from any section
+window.addEventListener('unitChanged', function() {
+  d3.selectAll('#selectorStatus').transition().duration(200)
+    .attr('cx', function() { return currentUnit === 'PJ' ? 63 : 87 })
+  if (typeof window.setScenario === 'function') window.setScenario()
+  if (typeof updateCijferBasisTables === 'function') updateCijferBasisTables()
+})
 
 let currentScenarioID = 0
 
@@ -1245,18 +1265,12 @@ function drawUnitSelector () {
     .style('pointer-events', 'auto')
     .on('click', function () {
       if (currentUnit == 'PJ') {currentUnit = 'TWh'} else currentUnit = 'PJ'
-      d3.selectAll('#selectorStatus').transition().duration(200).attr('cx', function () {if (currentUnit == 'PJ') { return 63} else return 87})
-      setScenario()
+      persistCurrentUnit()
 
       // redraw popup if open
       if (globalPopupData) {
         d3.select('#nodeInfoPopup').remove()
         drawBarGraph(globalPopupData, globalPopupConfig)
-      }
-
-      // Update cijferbasis tables if function exists
-      if (typeof updateCijferBasisTables === 'function') {
-        updateCijferBasisTables()
       }
     })
   sCanvas.append('circle')

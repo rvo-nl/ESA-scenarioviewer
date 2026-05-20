@@ -15,7 +15,6 @@
   let selectedServiceDemand = null
   let selectedDemandType = 'Activity' // 'Activity' or 'Capacity'
   let selectedDataSource = 'Run' // 'Baseline' or 'Run'
-  let tvknUnit = 'PJ'
   const YEARS = [2030, 2035, 2040, 2045, 2050]
   let useGlobalScenario = true // Flag to use global scenario selection
   let optiesMetadataIndex = {} // Index: { Optie -> metadata row }
@@ -459,13 +458,15 @@
         .style('stroke-width', 0.5)
         .style('cursor', 'pointer')
         .on('click', function () {
-          tvknUnit = (tvknUnit === 'PJ') ? 'TWh' : 'PJ'
+          currentUnit = (currentUnit === 'PJ') ? 'TWh' : 'PJ'
+          if (typeof window.persistCurrentUnit === 'function') window.persistCurrentUnit()
           updateUnitToggle()
           renderCharts()
         })
 
       const unitCircle = unitG.append('circle')
-        .attr('cx', tvknUnit === 'PJ' ? 32 : 54)
+        .attr('id', 'tvknUnitStatus')
+        .attr('cx', currentUnit === 'PJ' ? 32 : 54)
         .attr('cy', 10)
         .attr('r', 8)
         .attr('fill', '#444')
@@ -479,7 +480,7 @@
 
       function updateUnitToggle() {
         unitCircle.transition().duration(200)
-          .attr('cx', tvknUnit === 'PJ' ? 32 : 54)
+          .attr('cx', currentUnit === 'PJ' ? 32 : 54)
       }
     }
 
@@ -608,7 +609,7 @@
       ['Baseline / Run', selectedDataSource],
       ['Acitivity / Capcity', selectedDemandType],
       ['Scenario', scenario],
-      ['Unit', tvknUnit],
+      ['Unit', currentUnit],
       []
     ]
 
@@ -663,7 +664,7 @@
       ['Service Demand', selectedServiceDemand],
       ['Baseline / Run', selectedDataSource],
       ['Activity / Capacity', selectedDemandType],
-      ['Unit', tvknUnit],
+      ['Unit', currentUnit],
       []
     ]
 
@@ -735,7 +736,7 @@
   }
 
   function convertUnit(valPJ) {
-    return tvknUnit === 'TWh' ? valPJ / 3.6 : valPJ
+    return currentUnit === 'TWh' ? valPJ / 3.6 : valPJ
   }
 
   // LMDI logarithmic mean weight: L(a,b) = (a - b) / (ln(a) - ln(b))
@@ -883,7 +884,7 @@
       demandUnit: demandUnit,
       serviceDemandName: selectedServiceDemand,
       energyData: energyData[sc],
-      tvknUnit: tvknUnit,
+      currentUnit: currentUnit,
       yearsToUse: yearsToUse
     })
 
@@ -898,7 +899,7 @@
     rightCol.appendChild(rightChartWrapper)
     const chartResult = carriers.length > 0 ? renderMultiCarrierChart(rightChartWrapper, {
       title: `Energie-intensiteit | ${selectedServiceDemand}`,
-      yLabel: `${tvknUnit} per ${demandUnit}`,
+      yLabel: `${currentUnit} per ${demandUnit}`,
       scenario: sc,
       carriers: carriers,
       demandData: demandData,
@@ -946,7 +947,7 @@
     const options = Object.keys(optionsMap)
     if (options.length === 0) return
 
-    const energyUnit = tvknUnit || 'PJ'
+    const energyUnit = currentUnit || 'PJ'
 
     // Build per-option demand and energy data per year
     // optData[opt] = { demand: {year -> val}, energy: {year -> val (PJ)} }
@@ -1346,7 +1347,7 @@
     const availableSDs = getAvailableServiceDemands()
     if (availableSDs.length === 0) return
 
-    const energyUnit = tvknUnit || 'PJ'
+    const energyUnit = currentUnit || 'PJ'
     const yFirst = years[0]
     const yLast = years[years.length - 1]
 
@@ -1845,7 +1846,7 @@
       sectorEnergyTotals[sector] = totals
     })
 
-    const energyUnit = tvknUnit || 'PJ'
+    const energyUnit = currentUnit || 'PJ'
 
     // Wrapper
     const wrapper = document.createElement('div')
@@ -2083,7 +2084,7 @@
 
   // ── reusable D3 line chart renderer ────────────────────────────────────
   function renderLineChart(parentEl, opts) {
-    const { title, yLabel, scenarios, getData, skipUnit, demandData, demandUnit, serviceDemandName, energyData, tvknUnit, yearsToUse } = opts
+    const { title, yLabel, scenarios, getData, skipUnit, demandData, demandUnit, serviceDemandName, energyData, currentUnit, yearsToUse } = opts
     const years = yearsToUse || YEARS
 
     // Dimensions - fixed height for consistency
@@ -2212,7 +2213,7 @@
             const textEl = tooltip.select('text')
             textEl.selectAll('tspan').remove()
             textEl.append('tspan').attr('x', 0).attr('dy', '1.1em').style('font-weight', 'bold').text(sc)
-            const valText = skipUnit ? d3.format('.2f')(d.value) : `${d3.format('.2f')(d.value)} ${tvknUnit}`
+            const valText = skipUnit ? d3.format('.2f')(d.value) : `${d3.format('.2f')(d.value)} ${currentUnit}`
             textEl.append('tspan').attr('x', 0).attr('dy', '1.3em').text(`${d.year}: ${valText}`)
             const bbox = textEl.node().getBBox()
             const pad = 5
@@ -2290,10 +2291,10 @@
         yearBox.appendChild(demandLabel)
 
         // Add energy per unit if energy data is provided
-        if (energyData && tvknUnit) {
+        if (energyData && currentUnit) {
           const intensityLabel = document.createElement('div')
           intensityLabel.style.cssText = 'font-size:9px; color:#666; margin-top:2px;'
-          intensityLabel.textContent = `${d3.format('.2f')(intensity)} ${tvknUnit}/unit`
+          intensityLabel.textContent = `${d3.format('.2f')(intensity)} ${currentUnit}/unit`
           yearBox.appendChild(intensityLabel)
         }
 
@@ -2766,7 +2767,7 @@
         .style('font-size', '11px')
         .style('font-weight', '600')
         .style('fill', '#333')
-        .text(`Total energy input (${tvknUnit})`)
+        .text(`Total energy input (${currentUnit})`)
 
       const g = svg.append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`)
@@ -2808,7 +2809,7 @@
         .style('text-anchor', 'middle')
         .style('font-size', '8px')
         .style('fill', '#666')
-        .text(tvknUnit)
+        .text(currentUnit)
 
       const yTicks = y.ticks(5)
       const bandGroup = g.append('g').attr('class', 'grid-bands')
@@ -2879,7 +2880,7 @@
               .attr('x', 0)
               .attr('dy', '1em')
               .style('font-weight', 'bold')
-              .text(`${yr}: ${d3.format('.1f')(totalVal)} ${tvknUnit}`)
+              .text(`${yr}: ${d3.format('.1f')(totalVal)} ${currentUnit}`)
 
             inputCarriersList.forEach(carrier => {
               const cVal = convertUnit(yearData[yr].carrierInput[carrier] || 0)
@@ -2928,7 +2929,7 @@
 
     // Input carriers
     if (sortedInputCarriers.length > 0) {
-      tableHTML += `<tr><td colspan="${years.length + 1}" style="padding: 4px 6px 2px; font-weight: 700; color: #222; font-size: 10px;">Inputs (${tvknUnit})</td></tr>`
+      tableHTML += `<tr><td colspan="${years.length + 1}" style="padding: 4px 6px 2px; font-weight: 700; color: #222; font-size: 10px;">Inputs (${currentUnit})</td></tr>`
       sortedInputCarriers.forEach(carrier => {
         const color = carrierColorMapping[carrier] || '#999'
         tableHTML += `<tr style="border-bottom: 1px solid #f0f0f0;">`
@@ -2950,7 +2951,7 @@
 
     // Output carriers
     if (sortedOutputCarriers.length > 0) {
-      tableHTML += `<tr><td colspan="${years.length + 1}" style="padding: 6px 6px 2px; font-weight: 700; color: #222; font-size: 10px;">Outputs (${tvknUnit})</td></tr>`
+      tableHTML += `<tr><td colspan="${years.length + 1}" style="padding: 6px 6px 2px; font-weight: 700; color: #222; font-size: 10px;">Outputs (${currentUnit})</td></tr>`
       sortedOutputCarriers.forEach(carrier => {
         const color = carrierColorMapping[carrier] || '#999'
         tableHTML += `<tr style="border-bottom: 1px solid #f0f0f0;">`
@@ -3022,7 +3023,7 @@
         const optTableDiv = document.createElement('div')
         optTableDiv.style.cssText = 'font-size: 10px; color: #333; margin-top: 14px; overflow-x: auto;'
 
-        let optHTML = `<div style="font-size: 11px; font-weight: 700; color: #222; margin-bottom: 6px;">Energy input per option (${tvknUnit})</div>`
+        let optHTML = `<div style="font-size: 11px; font-weight: 700; color: #222; margin-bottom: 6px;">Energy input per option (${currentUnit})</div>`
 
         // ── LINE CHART: energy input per option over years ──────────────
         optTableDiv.innerHTML = optHTML
@@ -3076,7 +3077,7 @@
           .style('text-anchor', 'middle')
           .style('font-size', '8px')
           .style('fill', '#666')
-          .text(tvknUnit)
+          .text(currentUnit)
 
         const cYTicks = cY.ticks(5)
         const cBandGroup = cG.append('g').attr('class', 'grid-bands')
@@ -3139,7 +3140,7 @@
                   .attr('x', 0)
                   .attr('dy', '1em')
                   .style('font-weight', 'bold')
-                  .text(`${d.year}: ${d3.format('.1f')(d.value)} ${tvknUnit}`)
+                  .text(`${d.year}: ${d3.format('.1f')(d.value)} ${currentUnit}`)
                 cTooltipText.append('tspan')
                   .attr('x', 0)
                   .attr('dy', '1.2em')
@@ -3304,14 +3305,14 @@
           if (optTotalInput > 0) {
             const inputDiv = document.createElement('div')
             inputDiv.style.cssText = 'font-size: 8px; color: #666; font-weight: 400;'
-            inputDiv.textContent = `In: ${d3.format('.1f')(convertUnit(optTotalInput))} ${tvknUnit}`
+            inputDiv.textContent = `In: ${d3.format('.1f')(convertUnit(optTotalInput))} ${currentUnit}`
             optHeaderRight.appendChild(inputDiv)
           }
 
           if (optTotalOutput > 0) {
             const outputDiv = document.createElement('div')
             outputDiv.style.cssText = 'font-size: 8px; color: #666; font-weight: 400;'
-            outputDiv.textContent = `Out: ${d3.format('.1f')(convertUnit(optTotalOutput))} ${tvknUnit}`
+            outputDiv.textContent = `Out: ${d3.format('.1f')(convertUnit(optTotalOutput))} ${currentUnit}`
             optHeaderRight.appendChild(outputDiv)
           }
 
@@ -3439,7 +3440,7 @@
 
         renderOptionMultiCarrierChart(intensityGraphDiv, {
           title: `Energie-intensiteit | ${optionName}`,
-          yLabel: `${tvknUnit} per ${demandUnit}`,
+          yLabel: `${currentUnit} per ${demandUnit}`,
           carriers: sortedInputCarriers,
           demandData: optionDemandData,
           carrierData: optionCarrierData,
@@ -3511,7 +3512,7 @@
             .style('text-anchor', 'middle')
             .style('font-size', '8px')
             .style('fill', '#666')
-            .text(tvknUnit)
+            .text(currentUnit)
 
           const eaYTicks = eaY.ticks(5)
           const eaBandGroup = eaG.append('g').attr('class', 'grid-bands')
@@ -3592,7 +3593,7 @@
                   .attr('x', 0)
                   .attr('dy', '1em')
                   .style('font-weight', 'bold')
-                  .text(`${yr}: ${d3.format('.1f')(totalVal)} ${tvknUnit}`)
+                  .text(`${yr}: ${d3.format('.1f')(totalVal)} ${currentUnit}`)
 
                 sortedInputCarriers.forEach(carrier => {
                   const cVal = convertUnit(optionCarrierData[yr][carrier] || 0)
@@ -3680,7 +3681,7 @@
             const flowsTableDiv = document.createElement('div')
             flowsTableDiv.style.cssText = 'margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0; font-size: 9px; overflow-x: auto;'
 
-            let tHTML = `<div style="font-weight: 600; margin-bottom: 4px;">Energy Flows (${tvknUnit})</div>`
+            let tHTML = `<div style="font-weight: 600; margin-bottom: 4px;">Energy Flows (${currentUnit})</div>`
             tHTML += `<table style="width:100%; border-collapse: collapse; font-size: 9px;">`
             tHTML += `<thead><tr style="border-bottom: 2px solid #ddd;">`
             tHTML += `<th style="text-align:left; padding: 2px 4px; font-weight: 600; color: #555;">Carrier</th>`
@@ -4195,7 +4196,7 @@
                 const textEl = tooltip.select('text')
                 textEl.selectAll('tspan').remove()
                 textEl.append('tspan').attr('x', 0).attr('dy', '1.1em').style('font-weight', 'bold').text(carrier)
-                textEl.append('tspan').attr('x', 0).attr('dy', '1.3em').text(`${yr}: ${d3.format('.2f')(intensity)} ${tvknUnit}`)
+                textEl.append('tspan').attr('x', 0).attr('dy', '1.3em').text(`${yr}: ${d3.format('.2f')(intensity)} ${currentUnit}`)
                 const bbox = textEl.node().getBBox()
                 const pad = 5
                 tooltip.select('rect')
@@ -4259,7 +4260,7 @@
             const textEl = tooltip.select('text')
             textEl.selectAll('tspan').remove()
             textEl.append('tspan').attr('x', 0).attr('dy', '1.1em').style('font-weight', 'bold').text(carrier)
-            textEl.append('tspan').attr('x', 0).attr('dy', '1.3em').text(`${d.year}: ${d3.format('.2f')(d.value)} ${tvknUnit}`)
+            textEl.append('tspan').attr('x', 0).attr('dy', '1.3em').text(`${d.year}: ${d3.format('.2f')(d.value)} ${currentUnit}`)
             const bbox = textEl.node().getBBox()
             const pad = 5
             tooltip.select('rect')
@@ -4307,7 +4308,7 @@
             const textEl = tooltip.select('text')
             textEl.selectAll('tspan').remove()
             textEl.append('tspan').attr('x', 0).attr('dy', '1.1em').style('font-weight', 'bold').text(carrier + ' (output)')
-            textEl.append('tspan').attr('x', 0).attr('dy', '1.3em').text(`${d.year}: ${d3.format('.2f')(d.value)} ${tvknUnit}`)
+            textEl.append('tspan').attr('x', 0).attr('dy', '1.3em').text(`${d.year}: ${d3.format('.2f')(d.value)} ${currentUnit}`)
             const bbox = textEl.node().getBBox()
             const pad = 5
             tooltip.select('rect')
@@ -4352,7 +4353,7 @@
           const textEl = tooltip.select('text')
           textEl.selectAll('tspan').remove()
           textEl.append('tspan').attr('x', 0).attr('dy', '1.1em').style('font-weight', 'bold').text('Totaal')
-          textEl.append('tspan').attr('x', 0).attr('dy', '1.3em').text(`${d.year}: ${d3.format('.2f')(d.value)} ${tvknUnit}`)
+          textEl.append('tspan').attr('x', 0).attr('dy', '1.3em').text(`${d.year}: ${d3.format('.2f')(d.value)} ${currentUnit}`)
           const bbox = textEl.node().getBBox()
           const pad = 5
           tooltip.select('rect')
@@ -4371,7 +4372,7 @@
     // Add intensity values text below chart
     const intensityTextDiv = document.createElement('div')
     intensityTextDiv.style.cssText = 'margin-top: 8px; font-size: 10px; color: #666;'
-    const unit = `${tvknUnit}/${yLabel.split(' per ')[1] || 'unit'}`
+    const unit = `${currentUnit}/${yLabel.split(' per ')[1] || 'unit'}`
     const columns = totalPts.map(d => `<div style="display: inline-block; text-align: center; min-width: 70px; margin-right: 6px;"><div style="font-weight: 600; color: #444; margin-bottom: 2px;">${d.year}</div><div>${d3.format('.2f')(d.value)}</div><div style="font-size: 9px; color: #888;">${unit}</div></div>`).join('')
     intensityTextDiv.innerHTML = `<div style="font-weight: 600; color: #444; margin-bottom: 6px;">Energie-intensiteit per jaar:</div><div style="display: flex; flex-wrap: nowrap; overflow-x: auto;">${columns}</div>`
     wrapper.appendChild(intensityTextDiv)
@@ -4387,4 +4388,11 @@
       colorMap: colorMap
     }
   }
+
+  // Sync toggle circle when unit changes from another section
+  window.addEventListener('unitChanged', function() {
+    d3.select('#tvknUnitStatus')
+      .transition().duration(200)
+      .attr('cx', currentUnit === 'PJ' ? 32 : 54)
+  })
 })()

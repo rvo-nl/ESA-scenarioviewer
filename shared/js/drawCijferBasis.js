@@ -1067,6 +1067,7 @@ function createCijferBasisPopup(graphData, scenarios, availableYears, subcatName
       } else {
         currentUnit = 'PJ';
       }
+      if (typeof window.persistCurrentUnit === 'function') window.persistCurrentUnit();
       
       // Update all toggle positions (including other sections)
       d3.selectAll('#selectorStatus')
@@ -1671,6 +1672,7 @@ function drawCijferBasisUnitToggle() {
       } else {
         currentUnit = 'PJ';
       }
+      if (typeof window.persistCurrentUnit === 'function') window.persistCurrentUnit();
       
       // Update all toggle positions (including other sections)
       d3.selectAll('#selectorStatus')

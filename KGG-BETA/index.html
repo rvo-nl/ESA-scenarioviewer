@@ -6,7 +6,7 @@
   <!-- Basic Page Needs
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <meta charset="utf-8">
-  <title>Flux | KGG BETA </title>
+  <title>Flux | RVO </title>
   <meta name="description" content="">
   <meta name="author" content="">
 
@@ -76,7 +76,7 @@
                 </span>
                 FLUX<span style="font-weight:100;color:#999;">|</span><span
                   style="font-size:25px;color:#777">viewer</span><span style="font-weight:100;color:#999;">|</span><span
-                  style="font-weight:100"></span> <span style="font-size:12px; font-weight: 500;">KGG-BETA</span>
+                  style="font-weight:100"></span> <span style="font-size:12px; font-weight: 500;">RVO</span>
               </p>
 
               <!-- <div class="version-badge" style="margin-bottom: 36px;">AT &bull; TVKN &bull; WLO &bull; NBNL &bull; NPE &bull; KEV &bull; CBS</div> -->
@@ -371,109 +371,6 @@
             </div>
           </div>
 
-
-          <div id="section-capacity" class="content-constrained"
-            style="padding-bottom:20px;padding-top:40px;background-color: #EDEAE5; margin-bottom:30px; position: relative;">
-            <h4>Opgesteld vermogen elektriciteitsproductie</h4>
-
-            <div id="capacityVisualizationContainer"></div>
-
-            <blockquote style="background-color:none;margin-left:30px;border-left:0.5rem solid #999;margin-top:30px;">
-              <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#capacityMappingsCollapse"
-                aria-expanded="false" aria-controls="capacityMappingsCollapse">
-                <span class="toggle-icon">+</span>
-                <span style="margin-left:30px;">Mapping production parameters - categories
-                </span>
-              </div>
-
-              <div class="collapse mt-2" id="capacityMappingsCollapse">
-                <div class="card card-body" style="border:none;background-color: #EDEAE5;">
-                  <div style="width:100%;margin-left:0px;">
-                    <p>De elektriciteitsproductietechnologieën uit de OPERA- en ETM-data zijn, conform de indeling
-                      hieronder,
-                      samengevoegd tot categorieën en weergegeven in de grafieken.</p>
-
-                    <h5 style="margin-top: 20px;">OPERA Mapping</h5>
-                    <div id="operaMappingContainer" style="font-size:12px; margin-bottom: 30px; line-height: 1.6;">
-                      <!-- Loaded dynamically from config/categoryConfig.json -->
-                    </div>
-
-                    <h5 style="margin-top: 20px;">ETM Mapping (Electricity Production Only)</h5>
-                    <div id="etmMappingContainer" style="font-size:12px; line-height: 1.6;">
-                      <!-- Loaded dynamically from config/categoryConfig.json -->
-                      <p style="font-style: italic; color: #666; margin-top: 20px;">Note: Many ETM technologies are
-                        mapped
-                        to "ignore" and are not shown here</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </blockquote>
-          </div>
-
-          <div id="section-tvkn" class="content-fullwidth"
-            style="padding:0;background-color: #F5F3EF; margin-bottom:30px; position: relative;">
-            <div class="content-constrained"
-              style="padding-bottom:24px;padding-top:40px;background-color: #F5F3EF; display: flex; align-items: center; justify-content: space-between;">
-              <h4 style="margin:0;">Service Demand</h4>
-              <div id="tvknTopControls" style="display: flex; align-items: center; gap: 12px;"></div>
-            </div>
-            <div id="tvknAnalysisContainer"></div>
-            <br>
-            <br>
-          </div>
-
-          <!-- <div class="content-constrained"
-          style="padding-bottom:20px;padding-top:40px;background-color: rgb(220, 230, 239); margin-bottom:30px;">
-          <h4>NPE Cijferbasis</h4>
-          <div id="cijferbasis_container"></div>
-        </div> -->
-
-
-
-
-          <div id="section-waterfall">
-            <div class="content-fullwidth sticky" style="background-color:#EDEAE5;padding-bottom:0px;padding-top:0px;"
-              id="menuContainer2">
-              <script>
-                d3.select('#menuContainer2').style('top', document.getElementById('menuContainer').offsetHeight + 'px')
-              </script>
-              <div class="menuContainer">
-                <div class="menuContainer-part" id="toepassingenButtons">
-                  <div class="menu-label">Toepassing</div>
-                </div>
-                <div class="menuContainer-part" id="mainSectorButtons">
-                  <div class="menu-label">Sector</div>
-                </div>
-                <div class="menuContainer-part" id="subSectorButtons">
-                  <div class="menu-label"></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="content-constrained" style="padding-bottom:0px;padding-top:20px;">
-              <h4>Finaal verbruik</h4>
-              <span id="waterval-selection-display" style="font-size: 14px; color: #666; margin-left: 5px;"></span>
-            </div>
-            <div class="scaled-wrapper-waterfall">
-              <div class="content-fullwidth" id="SVGContainer_waterfalldiagram">
-                <div id="mainContainerBackdrop"></div>
-                <div id="chartArea">
-                  <div id="afbouw">
-                    <svg class="chart_opbouw"></svg>
-                  </div>
-                  <div id="ccs">
-                    <svg class="chart_ccs"></svg>
-                  </div>
-                  <div id="opbouw">
-                    <svg class="chart_afbouw"></svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-
           <!-- <div class=" content-fullwidth" style="height:600px;"></div> -->
         </div><!-- /viewerContent -->
       </div>
@@ -512,10 +409,10 @@
 <script src="../shared/js/drawLineGraphFlowClick.js"></script>
 <script src="../shared/js/drawNodeFlowPopup.js"></script>
 <script src="js/drawMainContainer.js" charset="utf-8"></script>
-<script src="../shared/js/drawWaterfall.js" charset="utf-8"></script>
-<script src="../shared/js/drawCijferBasis.js" charset="utf-8"></script>
-<script src="../shared/js/drawCapacityVisualization.js" charset="utf-8"></script>
-<script src="../shared/js/drawTVKNAnalysis.js" charset="utf-8"></script>
+<!-- <script src="../shared/js/drawWaterfall.js" charset="utf-8"></script> -->
+<!-- <script src="../shared/js/drawCijferBasis.js" charset="utf-8"></script> -->
+<!-- <script src="../shared/js/drawCapacityVisualization.js" charset="utf-8"></script> -->
+<!-- <script src="../shared/js/drawTVKNAnalysis.js" charset="utf-8"></script> -->
 <script src="../shared/js/scenarioSettings.js" charset="utf-8"></script>
 <script>
   // Initialize TVKN Analysis section

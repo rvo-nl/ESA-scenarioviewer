@@ -428,7 +428,7 @@ function generateSankeyLibrary (workbook) {
    const usernameInput = document.createElement('input');
    usernameInput.type = 'text';
    usernameInput.name = 'username';
-   usernameInput.value = 'KGG-BETA';
+   usernameInput.value = 'RVO';
    usernameInput.autocomplete = 'username';
    usernameInput.style.display = 'none';
    usernameInput.setAttribute('aria-hidden', 'true');

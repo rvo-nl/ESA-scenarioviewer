@@ -80,6 +80,20 @@ window.persistCurrentUnit = persistCurrentUnit
 ;(function() {
   const tip = document.createElement('div')
   tip.id = 'scenario-hover-tooltip'
+  tip.style.cssText = [
+    'position:fixed',
+    'background:#222',
+    'color:#fff',
+    'font-size:12px',
+    'line-height:1.4',
+    'padding:6px 10px',
+    'border-radius:4px',
+    'pointer-events:none',
+    'max-width:280px',
+    'white-space:normal',
+    'z-index:9999',
+    'display:none'
+  ].join(';')
   document.body.appendChild(tip)
 
   document.addEventListener('mousemove', function(e) {
@@ -102,7 +116,7 @@ window.persistCurrentUnit = persistCurrentUnit
 
   document.addEventListener('mouseout', function(e) {
     const btn = e.target.closest('button')
-    if (btn && btn.dataset.greyed === 'true') {
+    if (btn && btn.dataset.tooltipHtml) {
       tip.style.display = 'none'
     }
   })

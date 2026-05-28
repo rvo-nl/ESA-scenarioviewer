@@ -78,6 +78,12 @@ window.persistCurrentUnit = persistCurrentUnit
 
 // Floating tooltip for greyed-out scenario buttons
 ;(function() {
+  // Use a fixed-position overlay as the mount point so the tooltip
+  // is never a flex/grid item of <body> and cannot affect page layout.
+  const overlay = document.createElement('div')
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;pointer-events:none;z-index:9999;overflow:visible'
+  document.body.appendChild(overlay)
+
   const tip = document.createElement('div')
   tip.id = 'scenario-hover-tooltip'
   tip.style.cssText = [
@@ -94,7 +100,7 @@ window.persistCurrentUnit = persistCurrentUnit
     'z-index:9999',
     'display:none'
   ].join(';')
-  document.body.appendChild(tip)
+  overlay.appendChild(tip)
 
   document.addEventListener('mousemove', function(e) {
     if (tip.style.display === 'block') {

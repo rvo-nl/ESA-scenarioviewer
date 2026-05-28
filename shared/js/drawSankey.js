@@ -76,6 +76,38 @@ function persistCurrentUnit() {
 }
 window.persistCurrentUnit = persistCurrentUnit
 
+// Floating tooltip for greyed-out scenario buttons
+;(function() {
+  const tip = document.createElement('div')
+  tip.id = 'scenario-hover-tooltip'
+  document.body.appendChild(tip)
+
+  document.addEventListener('mousemove', function(e) {
+    if (tip.style.display === 'block') {
+      tip.style.left = (e.clientX + 14) + 'px'
+      tip.style.top  = (e.clientY + 14) + 'px'
+    }
+  })
+
+  // Event delegation: show tooltip when hovering a greyed scenario button
+  document.addEventListener('mouseover', function(e) {
+    const btn = e.target.closest('button')
+    if (btn && btn.dataset.greyed === 'true' && btn.dataset.tooltipHtml) {
+      tip.innerHTML = btn.dataset.tooltipHtml
+      tip.style.display = 'block'
+      tip.style.left = (e.clientX + 14) + 'px'
+      tip.style.top  = (e.clientY + 14) + 'px'
+    }
+  })
+
+  document.addEventListener('mouseout', function(e) {
+    const btn = e.target.closest('button')
+    if (btn && btn.dataset.greyed === 'true') {
+      tip.style.display = 'none'
+    }
+  })
+})()
+
 // Sync Sankey toggle circle and redraw when unit changes from any section
 window.addEventListener('unitChanged', function() {
   d3.selectAll('#selectorStatus').transition().duration(200)
@@ -189,17 +221,29 @@ function updateScenarioAvailability(config) {
         for (let i = 0; i < buttons.length; i++) {
           if (buttons[i].textContent === scenario.title) {
             if (scenariosWithZeroValues.has(scenario.id)) {
-              // Grey out the button
               buttons[i].style.opacity = '0.4'
-              buttons[i].style.pointerEvents = 'none'
+              buttons[i].style.pointerEvents = 'auto'
               buttons[i].style.cursor = 'not-allowed'
-              buttons[i].title = 'Dit scenario is niet beschikbaar voor de gegeven selectie'
+              buttons[i].dataset.greyed = 'true'
+              // Build tooltip HTML stored on the element, shown via floating tooltip
+              let tooltipHtml = 'Dit scenario is niet beschikbaar in het huidige diagram.'
+              if (window.diagramScenarioIndex && viewerConfig && viewerConfig.sankeyDiagrams) {
+                const availableIn = viewerConfig.sankeyDiagrams
+                  .filter(d => d.id !== window.activeDiagramId && window.diagramScenarioIndex[d.id]?.has(scenario.id))
+                  .map(d => d.title)
+                if (availableIn.length > 0) {
+                  const bullets = availableIn.map(t => `<li><em>'${t}'</em></li>`).join('')
+                  tooltipHtml += ` Selecteer eerst diagram:<ul style="margin:4px 0 0 0;padding-left:16px;">${bullets}</ul>`
+                }
+              }
+              buttons[i].dataset.tooltipHtml = tooltipHtml
+              buttons[i].removeAttribute('title')
             } else {
-              // Restore button
               buttons[i].style.opacity = '1'
               buttons[i].style.pointerEvents = 'auto'
               buttons[i].style.cursor = 'pointer'
-              buttons[i].title = ''
+              buttons[i].dataset.greyed = ''
+              buttons[i].dataset.tooltipHtml = ''
             }
             break
           }
@@ -604,52 +648,52 @@ function drawSankey (sankeyDataInput, config) {
   backdropCanvas.append('text').attr('id', 'delineator_text_ketenuitvoer').attr('x', 975).attr('y', 53).attr('fill', '#666').style('font-weight', 400).style('font-size', '20px').text('UITVOER NAAR KETEN').style('opacity', 0)
 
   // UIT / NAAR KETEN DILINEATORS
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_koolstofketen_uit').attr('width', 230).attr('height', 250).attr('x', 290).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_koolstofketen_uit').attr('width', 230).attr('height', 250).attr('x', 290).attr('y', 100).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_koolstofketen_uit').attr('x', 315).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('KOOLSTOFKETEN').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_waterstofketen_uit').attr('width', 230).attr('height', 190).attr('x', 290).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_waterstofketen_uit').attr('width', 230).attr('height', 190).attr('x', 290).attr('y', 100).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_waterstofketen_uit').attr('x', 315).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('WATERSTOFKETEN').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_elektriciteitsketen_uit').attr('width', 230).attr('height', 190).attr('x', 290).attr('y', 330).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_elektriciteitsketen_uit').attr('width', 230).attr('height', 190).attr('x', 290).attr('y', 330).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_elektriciteitsketen_uit').attr('x', 315).attr('y', 368).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('ELEKTRICITEITSKETEN').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_warmteketen_in').attr('width', 230).attr('height', 140).attr('x', 970).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_warmteketen_in').attr('width', 230).attr('height', 140).attr('x', 970).attr('y', 100).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_warmteketen_in').attr('x', 995).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('WARMTEKETEN').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_waterstofketen_in').attr('width', 230).attr('height', 120).attr('x', 970).attr('y', 275).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_waterstofketen_in').attr('width', 230).attr('height', 120).attr('x', 970).attr('y', 275).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_waterstofketen_in').attr('x', 995).attr('y', 313).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('WATERSTOFKETEN').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_elektriciteitsketen_in').attr('width', 230).attr('height', 140).attr('x', 970).attr('y', 95).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_elektriciteitsketen_in').attr('width', 230).attr('height', 140).attr('x', 970).attr('y', 95).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_elektriciteitsketen_in').attr('x', 995).attr('y', 133).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('ELEKTRICITEITSKETEN').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_koolstofketen_in').attr('width', 230).attr('height', 140).attr('x', 970).attr('y', 600).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_koolstofketen_in').attr('width', 230).attr('height', 140).attr('x', 970).attr('y', 600).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_koolstofketen_in').attr('x', 995).attr('y', 638).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('KOOLSTOFKETEN').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_go').attr('width', 230).attr('height', 140).attr('x', 1350).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_go').attr('width', 230).attr('height', 140).attr('x', 1350).attr('y', 100).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_finaal_go').attr('x', 1375).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('GEBOUWDE OMGEVING').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_mobiliteit').attr('width', 230).attr('height', 140).attr('x', 1350).attr('y', 680).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_mobiliteit').attr('width', 230).attr('height', 140).attr('x', 1350).attr('y', 680).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_finaal_mobiliteit').attr('x', 1375).attr('y', 680 + 30).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('MOBILITEIT').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_industrie').attr('width', 230).attr('height', 300).attr('x', 1350).attr('y', 370).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_industrie').attr('width', 230).attr('height', 300).attr('x', 1350).attr('y', 370).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_finaal_industrie').attr('x', 1375).attr('y', 400).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('INDUSTRIE').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_landbouw').attr('width', 230).attr('height', 110).attr('x', 1352).attr('y', 250).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_landbouw').attr('width', 230).attr('height', 110).attr('x', 1352).attr('y', 250).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_finaal_landbouw').attr('x', 1377).attr('y', 285).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('LANDBOUW').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_overige').attr('width', 230).attr('height', 200).attr('x', 1352).attr('y', 830).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_finaal_overige').attr('width', 230).attr('height', 200).attr('x', 1352).attr('y', 830).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_finaal_overige').attr('x', 1377).attr('y', 860).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('OVERIGE').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_vlak_conversie').attr('width', 278).attr('height', 945).attr('x', 600).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_vlak_conversie').attr('width', 278).attr('height', 945).attr('x', 600).attr('y', 100).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_vlak_conversie').attr('x', 625).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('CONVERSIE').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_productie').attr('width', 228).attr('height', 945).attr('x', 25).attr('y', 100).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_productie').attr('width', 228).attr('height', 945).attr('x', 25).attr('y', 100).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_productie').attr('x', 50).attr('y', 138).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('IMPORT & PRODUCTIE').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_warmteketen_uit').attr('width', 230).attr('height', 110).attr('x', 290).attr('y', 390).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_warmteketen_uit').attr('width', 230).attr('height', 110).attr('x', 290).attr('y', 390).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_warmteketen_uit').attr('x', 315).attr('y', 528).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('WARMTEKETEN').style('opacity', 0)
 
-  backdropCanvas.append('rect').attr('id', 'delineator_rect_warmteproductie_bij_finaal_verbruik_uit').attr('width', 230).attr('height', 305).attr('x', 290).attr('y', 740).attr('fill', '#DCE6EF').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
+  backdropCanvas.append('rect').attr('id', 'delineator_rect_warmteproductie_bij_finaal_verbruik_uit').attr('width', 230).attr('height', 305).attr('x', 290).attr('y', 740).attr('fill', '#EDEAE5').attr('rx', 10).attr('ry', 10).style('stroke', '#BBB').style('stroke-width', '0px').style('opacity', 0)
   backdropCanvas.append('text').attr('id', 'delineator_text_warmteproductie_bij_finaal_verbruik_uit').attr('x', 315).attr('y', 638 + 130).attr('fill', '#666').style('font-weight', 400).style('font-size', '16px').text('LOKAAL').style('opacity', 0)
   } // End of default system diagram backdrop
 

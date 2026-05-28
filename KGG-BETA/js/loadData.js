@@ -80,7 +80,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds20052026kggbeta.enc.json');
+    const response = await fetch('public/ds28052026kggbeta.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -132,6 +132,37 @@ let sankeyConfigs = []
 let sankeyDataLibraries = {}
 let activeDiagramId = null
 let diagramConfigs = []
+
+// Build a map of { diagramId -> Set<scenarioId> } from all loaded diagram libraries
+function buildDiagramScenarioIndex() {
+  const index = {}
+  const allScenarioIds = new Set((viewerConfig?.scenarios || []).map(s => s.id))
+  const years = (viewerConfig?.years || []).map(y => y.id)
+
+  Object.entries(sankeyDataLibraries).forEach(([diagramId, rawData]) => {
+    const found = new Set()
+    // Check links in all scopes (system, electricity, etc.)
+    const scopeLinks = rawData.links || {}
+    Object.values(scopeLinks).forEach(links => {
+      if (!Array.isArray(links)) return
+      links.forEach(link => {
+        Object.keys(link).forEach(col => {
+          // Column format: "{year}_{scenarioId}"
+          years.forEach(year => {
+            if (col.startsWith(year + '_')) {
+              const scenarioId = col.slice((year + '_').length)
+              if (allScenarioIds.has(scenarioId)) {
+                found.add(scenarioId)
+              }
+            }
+          })
+        })
+      })
+    })
+    index[diagramId] = found
+  })
+  window.diagramScenarioIndex = index
+}
 
 // Function to switch between sankey diagrams
 function switchDiagram(diagramId) {
@@ -267,6 +298,8 @@ function initTool () {
         // Make diagramConfigs globally available for buttons
         window.diagramConfigs = diagramConfigs
         window.activeDiagramId = activeDiagramId
+
+        buildDiagramScenarioIndex()
       })
     } else {
       // Fallback to single file loading (original behavior)
@@ -637,6 +670,8 @@ passphraseWrapper.appendChild(passphraseInput);
        // Make diagramConfigs globally available for buttons
        window.diagramConfigs = diagramConfigs
        window.activeDiagramId = activeDiagramId
+
+       buildDiagramScenarioIndex()
 
        // Process the default diagram
        sankeyConfigs.forEach(element => {

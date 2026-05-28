@@ -376,7 +376,7 @@
   function buildUI(container) {
     const wrap = document.createElement('div')
     wrap.id = 'tvkn-analysis-wrap'
-    wrap.style.cssText = 'background-color: #EEF5FA; padding: 0;'
+    wrap.style.cssText = 'background-color: #F5F3EF; padding: 0;'
     container.appendChild(wrap)
 
     // Place download buttons and unit toggle in the existing top controls div
@@ -486,7 +486,7 @@
 
     // Content area with selectors and charts
     const contentArea = document.createElement('div')
-    contentArea.style.cssText = 'display: flex; gap: 24px; padding: 0 40px 20px 40px; background-color: #EEF5FA;'
+    contentArea.style.cssText = 'display: flex; gap: 24px; padding: 0 40px 20px 40px; background-color: #F5F3EF;'
     wrap.appendChild(contentArea)
 
     // Selectors column (vertical)
@@ -1981,8 +1981,8 @@
 
     const tdStyle = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; white-space: nowrap;'
     const tdRight = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;'
-    const tdSelected = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; white-space: nowrap; background: #EEF5FA; font-weight: 600;'
-    const tdSelectedRight = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; background: #EEF5FA; font-weight: 600;'
+    const tdSelected = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; white-space: nowrap; background: #F5F3EF; font-weight: 600;'
+    const tdSelectedRight = 'padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; background: #F5F3EF; font-weight: 600;'
     const tdSubtotalStyle = 'padding: 4px 8px; border-bottom: 1px solid #ccc; color: #333; font-weight: 600; font-size: 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;'
     const tdSubtotalLeft = 'padding: 4px 8px; border-bottom: 1px solid #ccc; color: #333; font-weight: 600; font-size: 10px; white-space: nowrap;'
 

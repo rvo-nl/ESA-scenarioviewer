@@ -337,6 +337,7 @@ function drawSelectionButtons(config) {
       }
 
       button.onclick = function() {
+        if (this.dataset.greyed === 'true') return
         // Update button states with color restoration
         setButtonsInContainer(buttonWrapper, button, (btn) => {
           const btnScenario = scenarios.find(s => s.title === btn.textContent)

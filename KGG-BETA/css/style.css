@@ -1,21 +1,24 @@
 @font-face {
-  font-family: 'RO Sans';
-  src: url('../../shared/fonts/ROsanswebtextregular.woff') format('woff'),
-       url('../../shared/fonts/ROsanswebtextregular.ttf') format('truetype');
+  font-family: "RO Sans";
+  src:
+    url("../../shared/fonts/ROsanswebtextregular.woff") format("woff"),
+    url("../../shared/fonts/ROsanswebtextregular.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
 }
 @font-face {
-  font-family: 'RO Sans';
-  src: url('../../shared/fonts/ROsanswebtextbold.woff') format('woff'),
-       url('../../shared/fonts/ROsanswebtextbold.ttf') format('truetype');
+  font-family: "RO Sans";
+  src:
+    url("../../shared/fonts/ROsanswebtextbold.woff") format("woff"),
+    url("../../shared/fonts/ROsanswebtextbold.ttf") format("truetype");
   font-weight: bold;
   font-style: normal;
 }
 @font-face {
-  font-family: 'RO Sans';
-  src: url('../../shared/fonts/ROsanswebtextitalic.woff') format('woff'),
-       url('../../shared/fonts/ROsanswebtextitalic.ttf') format('truetype');
+  font-family: "RO Sans";
+  src:
+    url("../../shared/fonts/ROsanswebtextitalic.woff") format("woff"),
+    url("../../shared/fonts/ROsanswebtextitalic.ttf") format("truetype");
   font-weight: normal;
   font-style: italic;
 }
@@ -23,9 +26,8 @@
 body {
   /* background-color: #E2D2C6; */
   /* background-color: #E8F0F4; */
-  background-color: #CCC;
+  background-color: #ccc;
 
-  
   margin: 0;
   margin-top: 40px;
   /* margin-top: 50px; */
@@ -46,10 +48,26 @@ body {
   /* background-size: 8px 8px; */
 }
 
+#scenario-hover-tooltip {
+  position: fixed;
+  background: #222;
+  color: #fff;
+  font-family: 'RO Sans', sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 6px 10px;
+  border-radius: 4px;
+  pointer-events: none;
+  max-width: 280px;
+  white-space: normal;
+  z-index: 9999;
+  display: none;
+}
+
 #main-container {
   width: 1300px;
   min-height: 100vh;
-  background-color: #EEF5FA;
+  background-color: #f5f3ef;
   padding: 0;
   box-sizing: border-box;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
@@ -59,12 +77,12 @@ body {
 /* Add growing sidebars */
 #main-container::before,
 #main-container::after {
-  content: '';
+  content: "";
   position: fixed;
   top: 0;
   bottom: 0;
   width: calc((100% - 1300px) / 2);
-  background-color: #CCC;
+  background-color: #ccc;
   z-index: -1;
 }
 
@@ -84,13 +102,11 @@ body {
 }
 
 .full-width-container {
-
   width: 100%;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
-
 
 .container {
   margin: 0;
@@ -116,7 +132,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  background-color: #EEF5FA;
+  background-color: #f5f3ef;
   padding: 8px 0;
   margin-bottom: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -137,17 +153,11 @@ body {
 
 #SVGContainer_energyflows {
   width: 100%;
-  background-color: #EEF5FA;
+  background-color: #f5f3ef;
   background-repeat: repeat;
   background-size: 8px 8px;
   pointer-events: all;
 }
-
-
-
-
-
-
 
 .menuContainer {
   display: flex;
@@ -251,7 +261,6 @@ body {
   font-weight: 400;
 }
 
-
 /* The circle icon on the left */
 /* The circle icon on the left */
 .toggle-icon {
@@ -265,7 +274,9 @@ body {
   background-color: #333;
   color: #fff;
   font-size: 24px;
-  transition: transform 0.3s ease, background-color 0.2s ease;
+  transition:
+    transform 0.3s ease,
+    background-color 0.2s ease;
 }
 
 /* Grow the icon slightly when hovered */
@@ -279,7 +290,6 @@ body {
   background-color: #007bff;
   color: #fff;
 } */
-
 
 /* 
       A simple keyframe animation that slides the label down from above the viewport.
@@ -312,7 +322,7 @@ body {
 
   background-color: #999;
   color: #fff;
-  font-family: 'RO Sans', sans-serif;
+  font-family: "RO Sans", sans-serif;
   font-weight: 700;
   font-size: 1.2rem;
 
@@ -326,7 +336,6 @@ body {
 
   /* Top padding for height, equal left/right/bottom padding around text */
   padding: 2.5rem 1rem 1rem 1rem;
-
 }
 
 .version-label {
@@ -334,8 +343,8 @@ body {
   margin-left: 50px;
 
   background-color: #999;
-  color: #FFF;
-  font-family: 'RO Sans', sans-serif;
+  color: #fff;
+  font-family: "RO Sans", sans-serif;
   font-weight: 700;
   font-size: 1.1rem;
 
@@ -348,7 +357,6 @@ body {
 
   /* Equal padding on all sides */
   padding: 0.5rem 1rem;
-
 }
 
 #liner {
@@ -356,10 +364,9 @@ body {
   top: 0px;
   width: 100%;
   height: 40px;
-  background-color: #CCC;
+  background-color: #ccc;
   z-index: 1000;
 }
-
 
 #popupContainer {
   position: fixed;
@@ -406,7 +413,7 @@ body {
   visibility: visible;
   width: 100%;
   height: 100%;
-  background-color: #E8F0F4;
+  background-color: #e8f0f4;
   z-index: 10000;
   position: fixed;
   top: 0;
@@ -416,7 +423,6 @@ body {
 
   padding-left: 100px;
   padding-top: 100px;
-
 }
 
 #showValueOnHover {
@@ -437,7 +443,7 @@ body {
   word-wrap: break-word;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border: 1px solid #e0e0e0;
-  font-family: 'RO Sans', sans-serif;
+  font-family: "RO Sans", sans-serif;
 }
 
 #showValueOnHover .tooltip-header {
@@ -475,7 +481,7 @@ body {
   color: white;
   border-radius: 4px;
   font-size: 12px;
-  font-family: 'RO Sans', sans-serif;
+  font-family: "RO Sans", sans-serif;
   white-space: nowrap;
 }
 
@@ -488,17 +494,12 @@ body {
   float: right;
 }
 
-
-
-
-
 .scaled-wrapper-waterfall {
   width: 100%;
-  height:600px;
+  height: 600px;
   overflow: hidden; /* Prevent content overflow */
-  background-color: #EEF5FA;
+  background-color: #f5f3ef;
 }
-
 
 #mainContainerBackdrop {
   margin-left: 50px;
@@ -513,19 +514,19 @@ body {
 
 #SVGContainer_waterfalldiagram {
   /* width: 100%; */
-  padding-top:122px;  /* TODO: change dimensions and positions, remove scaling*/
-  /* background-color: #EEF5FA; */
+  padding-top: 122px; /* TODO: change dimensions and positions, remove scaling*/
+  /* background-color: #F5F3EF; */
   background-repeat: repeat;
   background-size: 8px 8px;
   pointer-events: all;
   overflow: visible; /* TODO: change dimensions, remove scaling*/
 
-    /* Scaling */
-    transform: scale(0.8); /* TODO: change dimensions, remove scaling*/
-    transform-origin: top left;
-  
-    /* Prevent layout collapse due to transform */
-    /* overflow: hidden; */
+  /* Scaling */
+  transform: scale(0.8); /* TODO: change dimensions, remove scaling*/
+  transform-origin: top left;
+
+  /* Prevent layout collapse due to transform */
+  /* overflow: hidden; */
 }
 
 #chartArea {
@@ -539,7 +540,7 @@ body {
 
 #opbouw {
   width: 50%;
-  height:312px;
+  height: 312px;
   z-index: 2000;
   position: relative;
 }
@@ -552,15 +553,12 @@ body {
   position: relative;
 }
 
-
-
 #afbouw {
   width: 50%;
   height: 312px;
   top: 0px;
   z-index: 2000;
   position: relative;
-
 }
 
 /* Remove the old sector button styles */
@@ -568,7 +566,8 @@ body {
   display: none;
 }
 
-.main-sectors, .subsectors {
+.main-sectors,
+.subsectors {
   display: none;
 }
 
@@ -580,7 +579,8 @@ body {
   display: none;
 }
 
-#mainSectorButtons, #subSectorButtons {
+#mainSectorButtons,
+#subSectorButtons {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -590,10 +590,10 @@ body {
 
 .note-box {
   font-size: 14px;
-  background-color: #FDEFCE;
+  background-color: #fdefce;
   padding: 40px;
   border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   margin: 20px 50px; /* Add some margin to position it nicely */
 }
 
@@ -622,7 +622,7 @@ body {
   background-color: white;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
   table-layout: fixed;
 }
@@ -881,7 +881,7 @@ body {
   font-weight: 500;
   text-align: center;
   line-height: 1.2;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -890,7 +890,7 @@ body {
 }
 
 .unit-label:hover {
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transform: translateY(-1px);
 }
 
@@ -901,7 +901,7 @@ body {
 }
 
 .unit-label.diagonal-stripes:hover {
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transform: translateY(-1px);
 }
 
@@ -940,7 +940,7 @@ body {
   background: #333 !important;
   color: white !important;
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .column-header:first-of-type {
@@ -951,24 +951,24 @@ body {
   #cijferbasis_container {
     padding: 10px 20px;
   }
-  
+
   .cijferbasis-table {
     font-size: 11px;
     min-width: 600px;
     width: 100%;
   }
-  
+
   .cijferbasis-table th,
   .cijferbasis-table td {
     padding: 6px 8px;
   }
-  
+
   .cijferbasis-table thead tr {
     height: 80px;
     min-height: 80px;
     max-height: 80px;
   }
-  
+
   .cijferbasis-table th {
     height: 80px;
     min-height: 80px;
@@ -977,25 +977,16 @@ body {
     padding: 6px 8px;
     line-height: 1.1;
   }
-  
+
   .cijferbasis-table th:first-child {
     font-size: 11px;
     height: 80px;
     min-height: 80px;
     max-height: 80px;
   }
-  
+
   /* Keten titles now use collapsible structure */
 }
-
-
-
-
-
-
-
-
-
 
 /* Modern Welcome Screen Styles */
 .welcome-container {
@@ -1004,7 +995,7 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: linear-gradient(135deg, #aaa 0%, #FFF 30%);
+  background: linear-gradient(135deg, #aaa 0%, #fff 30%);
   background-size: 400% 400%;
   /* animation: gradientShift 15s ease infinite; */
   display: flex;
@@ -1012,31 +1003,37 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  font-family: 'RO Sans', sans-serif;
+  font-family: "RO Sans", sans-serif;
   overflow: hidden;
 }
 
 .welcome-container::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")
+    repeat;
   pointer-events: none;
 }
 
 @keyframes gradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .welcome-card {
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(20px);
   border-radius: 28px;
-  box-shadow: 
+  box-shadow:
     0 32px 64px rgba(0, 0, 0, 0.12),
     0 0 0 1px rgba(255, 255, 255, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.4);
@@ -1050,19 +1047,29 @@ body {
 }
 
 .welcome-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -50%;
   width: 200%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
   animation: cardShimmer 3s ease-in-out infinite;
 }
 
 @keyframes cardShimmer {
-  0%, 100% { transform: translateX(-100%); }
-  50% { transform: translateX(100%); }
+  0%,
+  100% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes welcomeSlideUp {
@@ -1092,7 +1099,7 @@ body {
   justify-content: center;
   margin: 0 auto 28px;
   color: white;
-  box-shadow: 
+  box-shadow:
     0 12px 24px rgba(99, 102, 241, 0.25),
     0 0 0 1px rgba(255, 255, 255, 0.1);
   position: relative;
@@ -1100,7 +1107,7 @@ body {
 }
 
 .lock-icon::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: -2px;
   background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
@@ -1115,8 +1122,13 @@ body {
 }
 
 @keyframes iconFloat {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-4px) rotate(1deg); }
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(1deg);
+  }
 }
 
 .welcome-title {
@@ -1188,7 +1200,9 @@ body {
   color: #1f2937;
   font-family: inherit;
   font-weight: 400;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   box-sizing: border-box;
 }
 
@@ -1334,27 +1348,27 @@ body {
     max-width: none;
     border-radius: 20px;
   }
-  
+
   .welcome-title {
-    font-size: 20px!important;
+    font-size: 20px !important;
     letter-spacing: -0.6px;
   }
-  
+
   .welcome-subtitle {
     font-size: 16px;
   }
-  
+
   .lock-icon {
     width: 64px;
     height: 64px;
     border-radius: 20px;
   }
-  
+
   .modern-passphrase-input {
     padding: 16px 20px;
     font-size: 16px;
   }
-  
+
   .modern-decrypt-button {
     padding: 18px 28px;
   }
@@ -1365,11 +1379,11 @@ body {
     margin: 12px;
     padding: 32px 20px;
   }
-  
+
   .welcome-title {
     font-size: 26px;
   }
-  
+
   .lock-icon {
     width: 56px;
     height: 56px;
@@ -1394,13 +1408,18 @@ body {
 }
 
 .welcome-card-embedded::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -50%;
   width: 200%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
   animation: cardShimmer 3s ease-in-out infinite;
 }
 
@@ -1412,4 +1431,3 @@ body {
     border-radius: 20px;
   }
 }
-

@@ -602,7 +602,9 @@ passphraseWrapper.appendChild(passphraseInput);
     //  dataset_WLO3 = excelData['data_watervaldiagram_WLO3']
     //  dataset_WLO4 = excelData['data_watervaldiagram_WLO4']
 
-     initWaterfallDiagram()
+     if (viewerConfig?.viewer?.hasWaterfall !== false && typeof initWaterfallDiagram === 'function') {
+       initWaterfallDiagram()
+     }
 
     //  alert('Excel data extracted — check the console!');
 

@@ -740,14 +740,19 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
   // State for incoming/outgoing toggle
   let showIncomingFlows = true
 
-  // Build scenario colors from config
+  // Build scenario colors from config using HSL interpolation for perceptually
+  // even lightness steps. Bright end is capped at 80% lightness to stay visible;
+  // dark end is capped at 20% to stay distinguishable from black.
   const scenarioColors = {}
   Object.values(categoryInfo).forEach(cat => {
-    const colorScale = d3.scaleLinear()
-      .domain([0, cat.scenarios.length - 1])
-      .range([d3.color(cat.baseColor).brighter(1.5), d3.color(cat.baseColor).darker(1.5)])
+    const base = d3.hsl(d3.color(cat.baseColor))
+    const n = cat.scenarios.length
+    const lightHigh = Math.min(0.80, base.l + 0.28)
+    const lightLow  = Math.max(0.20, base.l - 0.28)
     cat.scenarios.forEach((scenario, i) => {
-      scenarioColors[scenario] = colorScale(i)
+      const t = n <= 1 ? 0 : i / (n - 1)
+      const l = lightHigh - t * (lightHigh - lightLow)
+      scenarioColors[scenario] = d3.hsl(base.h, base.s, l)
     })
   })
 
@@ -1206,6 +1211,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
         .attr('fill', 'none')
         .attr('stroke', color)
         .attr('stroke-width', 2)
+        .attr('stroke-opacity', 0.75)
         .attr('d', line)
 
       // Draw dots
@@ -1215,6 +1221,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
           .attr('d', symbolGenerator())
           .attr('transform', `translate(${xScale(d.year)}, ${yScale(d.value)})`)
           .attr('fill', color)
+          .attr('fill-opacity', 0.75)
           .style('cursor', 'pointer')
           .on('mouseover', function(event) {
             lgTooltip.raise().style('display', 'block')

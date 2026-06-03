@@ -289,7 +289,9 @@ function processCapacityDataByGroups(capacityData) {
 
 function drawCapacityUnitSelector() {
   if (d3.select('#capacityUnitSelectorDiv').empty()) {
-    const parentSection = d3.select('#capacityVisualizationContainer').node().parentElement;
+    const containerNode = d3.select('#capacityVisualizationContainer').node();
+    if (!containerNode) return;
+    const parentSection = containerNode.parentElement;
 
     const selectorDiv = d3.select(parentSection).insert('div', '#capacityVisualizationContainer')
       .attr('id', 'capacityUnitSelectorDiv')

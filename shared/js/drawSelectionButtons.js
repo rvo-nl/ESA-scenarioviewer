@@ -78,6 +78,11 @@ function setVersionLabels() {
     } else if (viewer.versionLabel) {
       versionLabel.textContent = viewer.versionLabel
       versionLabel.style.display = 'block'
+
+      if (viewer.hasChangeLog) {
+        versionLabel.classList.add('has-changelog')
+        versionLabel.addEventListener('click', openChangelogPopup)
+      }
     }
   }
 
@@ -91,6 +96,91 @@ function setVersionLabels() {
       topRightLabel.style.display = 'block'
     }
   }
+}
+
+function openChangelogPopup() {
+  // Create backdrop + popup if not yet in DOM
+  let backdrop = document.getElementById('changelog-backdrop')
+  if (!backdrop) {
+    backdrop = document.createElement('div')
+    backdrop.id = 'changelog-backdrop'
+    backdrop.innerHTML = `
+      <div id="changelog-popup">
+        <div id="changelog-popup-header">
+          <h2>Veranderlog</h2>
+          <button id="changelog-close" title="Sluiten">&#x2715;</button>
+        </div>
+        <div id="changelog-body"><p style="padding:20px 24px;color:#888;font-size:13px;">Laden…</p></div>
+      </div>`
+    document.body.appendChild(backdrop)
+
+    backdrop.addEventListener('click', function(e) {
+      if (e.target === backdrop) backdrop.classList.remove('open')
+    })
+    document.getElementById('changelog-close').addEventListener('click', function() {
+      backdrop.classList.remove('open')
+    })
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') backdrop.classList.remove('open')
+    })
+  }
+
+  backdrop.classList.add('open')
+
+  // Fetch and render changelog (only if not already loaded)
+  const body = document.getElementById('changelog-body')
+  if (body.dataset.loaded) return
+
+  function renderChangelog(yaml) {
+    const entries = parseSimpleYamlList(yaml)
+    if (!entries.length) {
+      body.innerHTML = '<p style="padding:20px 24px;color:#888;font-size:13px;">Geen wijzigingen gevonden.</p>'
+      return
+    }
+    // Show newest first
+    body.innerHTML = entries.reverse().map(e => `
+      <div class="changelog-entry">
+        <div class="changelog-entry-date">${e.date || ''}</div>
+        <div class="changelog-entry-note">${e.note || ''}</div>
+      </div>`).join('')
+    body.dataset.loaded = '1'
+  }
+
+  // Production: YAML was extracted from ZIP and stored on window
+  if (window.changelogYamlText) {
+    renderChangelog(window.changelogYamlText)
+  } else {
+    // Development: fetch directly from file
+    fetch('private/changelog.yaml')
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.text() })
+      .then(renderChangelog)
+      .catch(() => {
+        body.innerHTML = '<p style="padding:20px 24px;color:#888;font-size:13px;">Veranderlog kon niet worden geladen.</p>'
+      })
+  }
+}
+
+// Minimal parser for the simple list-of-objects YAML format used in changelog.yaml:
+//   - date: 1-1-2026
+//     note: Some text
+function parseSimpleYamlList(yaml) {
+  const entries = []
+  let current = null
+  for (const raw of yaml.split('\n')) {
+    const line = raw.trimEnd()
+    if (/^- /.test(line)) {
+      if (current) entries.push(current)
+      current = {}
+      const rest = line.slice(2)
+      const m = rest.match(/^(\w+):\s*(.*)$/)
+      if (m) current[m[1]] = m[2].trim()
+    } else if (current && /^\s+\w+:/.test(line)) {
+      const m = line.match(/^\s+(\w+):\s*(.*)$/)
+      if (m) current[m[1]] = m[2].trim()
+    }
+  }
+  if (current) entries.push(current)
+  return entries
 }
 
 // Hide/show sections based on viewer config flags

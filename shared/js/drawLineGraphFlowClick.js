@@ -492,22 +492,19 @@ function drawBarGraph(data, config) {
     })
   }
 
-  // Build scenario colors from config
-  // Clamp the bright end so categories with light/grey base colors don't
-  // produce a near-white shade (which would be invisible on the popup background).
-  const MAX_LIGHTNESS = 75 // HSL lightness cap for the brightest scenario in a category
-  function clampBright(baseColor, factor) {
-    const c = d3.hsl(d3.color(baseColor).brighter(factor))
-    if (c.l * 100 > MAX_LIGHTNESS) c.l = MAX_LIGHTNESS / 100
-    return c
-  }
+  // Build scenario colors from config using HSL interpolation for perceptually
+  // even lightness steps. Bright end is capped at 80% lightness to stay visible;
+  // dark end is capped at 20% to stay distinguishable from black.
   const scenarioColors = {}
   Object.values(categoryInfo).forEach(cat => {
-    const colorScale = d3.scaleLinear()
-      .domain([0, Math.max(1, cat.scenarios.length - 1)])
-      .range([clampBright(cat.baseColor, 1.5), d3.color(cat.baseColor).darker(1.5)])
+    const base = d3.hsl(d3.color(cat.baseColor))
+    const n = cat.scenarios.length
+    const lightHigh = Math.min(0.80, base.l + 0.28)
+    const lightLow  = Math.max(0.20, base.l - 0.28)
     cat.scenarios.forEach((scenario, i) => {
-      scenarioColors[scenario] = colorScale(i)
+      const t = n <= 1 ? 0 : i / (n - 1)
+      const l = lightHigh - t * (lightHigh - lightLow)
+      scenarioColors[scenario] = d3.hsl(base.h, base.s, l)
     })
   })
 
@@ -680,6 +677,7 @@ function drawBarGraph(data, config) {
         .attr('fill', 'none')
         .attr('stroke', color)
         .attr('stroke-width', 2)
+        .attr('stroke-opacity', 0.75)
         .attr('d', line)
 
       const symbolGenerator = d3.symbol().type(scenarioSymbols[scenarioName]).size(64)
@@ -689,6 +687,7 @@ function drawBarGraph(data, config) {
           .attr('class', 'scenario-dot')
           .attr('transform', `translate(${x(d.year)}, ${y(d.value)})`)
           .attr('fill', color)
+          .attr('fill-opacity', 0.75)
           .on('mouseover', function(event) {
             tooltip.raise().style('display', 'block')
 

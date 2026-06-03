@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <!-- Basic Page Needs
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta charset="utf-8">
+  <title>Flux | POTES </title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!-- Mobile Specific Metas
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- FONT
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link
+    href="//fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
+    rel="stylesheet" type="text/css">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+  <!-- CSS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="stylesheet" href="css/milligram.css">
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Favicon
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <!-- <link rel="icon" type="image/png" href="images/favicon.png"> -->
+
+</head>
+
+<script>
+  dataSource = 'production';
+  // let dataSource = 'development'
+</script>
+
+<body>
+  <div id="liner"></div>
+  <div id="loadFileDialog"></div>
+  <div id="showValueOnHover"></div>
+  <div id="cursorFlowTooltip"></div>
+  <div id="main-container">
+    <div class="content-fullwidth" style="padding:0px">
+      <div id="topRightLabel" class="Adconcept-label" style="float: right;">
+        CONCEPT
+      </div>
+      <div class="content-fullwidth" style="padding:0px;background-color: white;">
+        <div id="versionLabel" class="version-label" style="display: none;">
+        </div>
+      </div>
+
+      <div class="full-width-container">
+        <!-- Login section: shown when dataSource is 'production', hidden after successful login -->
+        <div id="loginSection" style="display: none; min-height: 100vh;">
+          <div class="content-constrained"
+            style="background-color: white; padding-top: 140px; padding-bottom: 100px; text-align: center; position: relative; min-height: 100vh; box-sizing: border-box;">
+            <div style="width: fit-content; margin: 0 auto; text-align: left;">
+              <p class="welcome-title"
+                style="font-size: 44px; font-weight: 300; color: #888; display: flex; align-items: center; gap: 20px; margin: 0 0 24px; white-space: nowrap;">
+                <span
+                  style="display:inline-grid;grid-template-columns:repeat(3,6px);gap:7px;flex-shrink:0;vertical-align:middle;">
+                  <span style="display:block;width:6px;height:6px;background:#F8D377;"></span>
+                  <span style="display:block;width:6px;height:6px;background:#7555F6;"></span>
+                  <span style="display:block;width:6px;height:6px;background:#DD5471;"></span>
+                  <span style="display:block;width:6px;height:6px;background:#3F88AE;"></span>
+                  <span style="display:block;width:6px;height:6px;background:#E99172;"></span>
+                  <span style="display:block;width:6px;height:6px;background:#777;"></span>
+                  <span style="display:block;width:6px;height:6px;background:#f8b8c1;"></span>
+                  <span style="display:block;width:6px;height:6px;background:#37765C;"></span>
+                  <span style="display:block;width:6px;height:6px;background:#62D3A4;"></span>
+                </span>
+                FLUX<span style="font-weight:100;color:#999;">|</span><span
+                  style="font-size:25px;color:#777">viewer</span><span style="font-weight:100;color:#999;">|</span><span
+                  style="font-weight:100"></span> <span style="font-size:12px; font-weight: 500;">POTES</span>
+              </p>
+
+              <!-- <div class="version-badge" style="margin-bottom: 36px;">AT &bull; TVKN &bull; WLO &bull; NBNL &bull; NPE &bull; KEV &bull; CBS</div> -->
+              <div class="input-wrapper" id="passphraseWrapper">
+                <!-- Passphrase input will be inserted here -->
+              </div>
+              <div class="button-group" id="buttonGroup" style="margin-top: 12px;">
+                <!-- Decrypt button will be inserted here -->
+              </div>
+              <div class="status-message" id="statusMessage">
+                <!-- Status messages will appear here -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Viewer content: hidden initially when dataSource is 'production', shown after login -->
+        <div id="viewerContent">
+          <div class="content-constrained" style="background-color: white;">
+            <br><br><br>
+            <h3 style="display:flex;align-items:center;gap:20px;">
+              <div style="display:inline-grid;grid-template-columns:repeat(3,6px);gap:7px;flex-shrink:0;">
+                <div style="width:6px;height:6px;background:#F8D377;"></div>
+                <div style="width:6px;height:6px;background:#7555F6;"></div>
+                <div style="width:6px;height:6px;background:#DD5471;"></div>
+                <div style="width:6px;height:6px;background:#3F88AE;"></div>
+                <div style="width:6px;height:6px;background:#E99172;"></div>
+                <div style="width:6px;height:6px;background:#777;"></div>
+                <div style="width:6px;height:6px;background:#f8b8c1;"></div>
+                <div style="width:6px;height:6px;background:#37765C;"></div>
+                <div style="width:6px;height:6px;background:#62D3A4;"></div>
+              </div><span style="font-weight:300;font-size:44px;color:#888">FLUX</span><span
+                style="font-weight:100;color:#bbb;font-size:44px;"> | </span><span
+                style="font-weight:300;font-size:25px;color:#777">viewer</span>
+            </h3>
+            <br><br>
+            <p style="line-height:30px; width: 70%;">
+              FLUX bundelt energiesysteemdata uit modelprojecties en statistiek in een interactieve viewer. FLUX is op
+              dit moment toegespitst op
+              het analyseren van energie- en materiaalstromen op nationaal niveau.
+              In toekomstige updates volgen nieuwe secties met verdieping in ruimtelijke, financiële,
+              temporele en beleidsmatige aspecten.</p>
+          </div>
+          <!-- <div class="content-fullwidth" style="padding:0px;background-color:#EDEAE5;height:40px;"></div> -->
+          <div class="content-fullwidth sticky" style="background-color:#EDEAE5;padding-bottom:0px;padding-top:0px;">
+            <div class="menuContainer" id="menuContainer">
+              <div class="menuContainer-part" id="scenarioButtons">
+                <div class="menu-label">Scenario</div>
+              </div>
+              <div class="menuContainer-part" id="yearButtons">
+                <div class="menu-label">Jaar</div>
+              </div>
+              <div class="menuContainer-part" id="sankeyEnergiestromenSelectieMenu">
+                <div class="menu-label">Scope</div>
+              </div>
+              <div class="menuContainer-part" id="exportButtonsContainer">
+                <div class="menu-label">Export</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="section-sankey">
+            <div class="content-fullwidth" style="padding:0px;background-color:#F5F3EF">
+              <div id="unitSelector"></div>
+              <div class="content-fullwidth" style="padding-bottom:0px;">
+                <br>
+                <h4 style="margin-bottom:0px;margin-left:15px;" id="sankeyTitle">Integraal</h4>
+              </div>
+
+              <div class="content-constrained" style="padding-bottom:0px;padding-top:30px;">
+              </div>
+            </div>
+
+            <div class="content-fullwidth" id="SVGContainer_energyflows">
+              <div id="popupContainer"> </div>
+            </div>
+
+            <div class="content-fullwidth" style="background-color:#F5F3EF">
+              <div class="content-constrained">
+                <blockquote style="background-color:none;margin-left:30px;border-left:0.5rem solid #999">
+                  <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#carriersCollapse"
+                    aria-expanded="false" aria-controls="carriersCollapse">
+                    <span class="toggle-icon">+</span>
+                    <span style="margin-left:30px;">Mapping dragers - flows
+                    </span>
+                  </div>
+
+                  <div class="collapse mt-2" id="carriersCollapse">
+                    <div class="card card-body" style="border:none;background-color: #F5F3EF;">
+                      <div style="width:100%;margin-left:0px;">
+                        <p>De energiedragers uit de OPERA, ETM en CBS-data zijn, conform de indeling in onderstaande
+                          tabel,
+                          samengevoegd tot 21 hoofdcategorieën en geaggregeerd in het diagram weergegeven.</p>
+                        <table style="font-size:12px;">
+                          <thead>
+                            <tr>
+                              <th>Diagram</th>
+                              <th>OPERA</th>
+                              <th>ETM</th>
+                              <th>CBS Energiebalans</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>Ammoniak</td>
+                              <td>Ammonia, Ammonia export, Ammonia import</td>
+                              <td>ammonia, imported_ammonia</td>
+                              <td></td>
+
+                            </tr>
+                            <tr>
+                              <td>Afval</td>
+                              <td>Afval (niet-biogeen)</td>
+                              <td>non_biogenic_waste</td>
+                              <td>Niet biogeen Indu afval + overige gassen, Niet hernieuwbaar huishuidelijk afval</td>
+                            </tr>
+                            <tr>
+                              <td>Biomassa ruw</td>
+                              <td>
+                                Biomassa (afval biogeen), Biomassa (AWZ, RWZ en STRT), Biomassa (GFT & VGI), Biomassa
+                                (hout
+                                binnenland),
+                                Biomassa (hout buitenland), Biomassa (hout buitenland), expensive part, Biomassa (hout),
+                                Biomassa
+                                (suikers), Biomassa (UCO buitenland), Biomassa (zetmeel) E-inhoud
+                                mest</td>
+                              <td>wet_biomass, dry_biomass, oily_biomass, biogenic_waste
+                              </td>
+                              <td>Vaste biomassa, exclusief houtskool, Hernieuwbaar huishoudelijk afval</td>
+                            </tr>
+                            <tr>
+                              <td>Biomassa product</td>
+                              <td>Bio-DME, Bio-ethanol, Bio-LNG for shipping, Bio-LPG, Bio-Methanol for shipping,
+                                Bio-restgassen, Biobenzine, Biodiesel, BioHFO, Biokerosine, Biomass
+                                Pyrolysis Oil, Biomethanol, Bionaphta, Overige bio-olieproducten, Bio-aromatics</td>
+                              <td>wood_pellets, biogas, bio_kerosene, biodiesel, bio_oil, greengas,
+                                torrefied_biomass_pellets, bio_ethanol, bio_lng
+                              </td>
+                              <td>Houtskool, Biobenzine puur, Biobenzine bijgemengd, Biodiesel puur, Biodiesel gemengd
+                                in
+                                gas- en dieselolie, Biokerosine puur, Biokerosine bijgemengd, Overige vloeibare
+                                biomassa,
+                                Biogas, </td>
+                            </tr>
+                            <tr>
+                              <td>Elektriciteit</td>
+                              <td>Electricity</td>
+                              <td>electricity</td>
+                              <td>Elektriciteit</td>
+                            </tr>
+                            <tr>
+                              <td>Overige</td>
+                              <td>Ethylene</td>
+                              <td>gas_power_fuelmix, waste_mix</td>
+                              <td>Gasexpansie-energie</td>
+                            </tr>
+                            <tr>
+                              <td>Geothermie</td>
+                              <td>Aardwarmte</td>
+                              <td>geothermal</td>
+                              <td>Aardwarmte</td>
+                            </tr>
+                            <tr>
+                              <td>Kolen(derivaten)</td>
+                              <td>Cokes, Cokesovengas, Hoogovengas, Kolen</td>
+                              <td>coal, cokes, coal_gas, lignite</td>
+                              <td>Steenkool en bruinkool, Antraciet, Cokeskool, Ketelkolen, Bruinkool, Cokesovencokes,
+                                Fabriekscokes, Bruinkoolbriketten, Steenkoolbriketten, Steenkoolteer, Fabrieksgas,
+                                Cokesovengas, Hoogovengas</td>
+                            </tr>
+                            <tr>
+                              <td>Methaan</td>
+                              <td>Aardgas, Aardgas feedstock, Gas winning, Biogas</td>
+                              <td>network_gas, lng, natural_gas, compressed_network_gas</td>
+                              <td>Aardgas</td>
+                            </tr>
+                            <tr>
+                              <td>Methanol (fossiel)</td>
+                              <td>Methanol, Methanol for shipping</td>
+                              <td>methanol</td>
+                              <td>-</td>
+                            </tr>
+                            <tr>
+                              <td>Ruwe aardoliegrondstoffen</td>
+                              <td>Olie, Oliegrondstoffen</td>
+                              <td>crude_oil</td>
+                              <td>Ruwe aardolie, Aardgascondensaat, Additieven, Overige aardoliegrondstoffen</td>
+                            </tr>
+                            <tr>
+                              <td>Olieproducten</td>
+                              <td>Benzine, Diesel, HFO, Kerosine, LNG for shipping, LPG, Naphta,
+                                Overige
+                                olieproducten, Restgassen, Aromatics</td>
+                              <td>diesel, kerosene, lpg, heavy_fuel_oil, gasoline, propane, refinery_gas</td>
+                              <td>Restgassen uit olie, Lpg, Nafta, Motorbenzine fossiele deel, Jetfuel op benzinebasis,
+                                Vliegtuigbenzine, Vliegtuigkerosine fossiel, Overige kerosine (petroleum), Gas- en
+                                dieselolie fossiele deel, Zware stookolie, Terpentine en speciale benzine,
+                                Smeermiddelen,
+                                Bitumen, Minerale wassen, Petroleumcokes, Overige aardolieproducten</td>
+                            </tr>
+                            <tr>
+                              <td>Omgevingswarmte</td>
+                              <td>Omgevingswarmte</td>
+                              <td>ambient_heat</td>
+                              <td>Omgevingsenergie</td>
+                            </tr>
+                            <tr>
+                              <td>Plastic afval</td>
+                              <td>Plastic waste, Rejected plastic waste</td>
+                              <td>-</td>
+                              <td>-</td>
+                            </tr>
+                            <tr>
+                              <td>Restwarmte</td>
+                              <td>Industrial Waste Heat</td>
+                              <td>-</td>
+                            </tr>
+                            <tr>
+                              <td>Synthetisch</td>
+                              <td>Synthetic benzine, Synthetic diesel, Synthetic HFO, Synthetic kerosine, Synthetic LNG
+                                for
+                                shipping,
+                                Synthetic LPG, Synthetic naphtha, Synthetic waste gasses, Synthetische brandstoffen uit
+                                FT,
+                                Synthetic methanol, Synthetic methanol for shipping,
+                                Other
+                                synthetic oil products, Synthetic aromatics</td>
+                              <td>-</td>
+                            </tr>
+                            <tr>
+                              <td>Uranium</td>
+                              <td>Uranium</td>
+                              <td>uranium_oxide</td>
+                              <td>Kernenergie</td>
+                            </tr>
+                            <tr>
+                              <td>Warmte</td>
+                              <td>Heat100to200, Heat200to400, HeatDir200to400, HeatHT400, Warmte</td>
+                              <td>steam_hot_water, imported_heat</td>
+                              <td>Warmte, Warmte uit chemische reacties</td>
+                            </tr>
+                            <tr>
+                              <td>Waterstof</td>
+                              <td>Hydrogen import, Hydrogen export, Waterstof</td>
+                              <td>hydrogen, liquid_hydrogen, lohc, imported_hydrogen, imported_liquid_hydrogen,
+                                imported_lohc</td>
+                              <td>Waterstof</td>
+                            </tr>
+                            <tr>
+                              <td>Wind</td>
+                              <td>Wind</td>
+                              <td>wind</td>
+                              <td>Windenergie op land, Windenergie op zee</td>
+                            </tr>
+                            <tr>
+                              <td>Zon</td>
+                              <td>Zon</td>
+                              <td>solar_radiation</td>
+                              <td>Zonnestroom</td>
+                            </tr>
+                            <tr>
+                              <td>Zon thermisch</td>
+                              <td>Zon thermisch</td>
+                              <td>solar_thermal</td>
+                              <td>Zonnewarmte</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </blockquote>
+
+                <br>
+                <script>
+                  document.addEventListener('DOMContentLoaded', () => {
+                    const toggleButtons = document.querySelectorAll('.collapse-toggle');
+
+                    toggleButtons.forEach(button => {
+                      button.addEventListener('click', function () {
+                        const icon = this.querySelector('.toggle-icon');
+                        const isExpanded = this.getAttribute('aria-expanded') === 'true';
+
+                        icon.textContent = isExpanded ? '-' : '+';
+                        icon.setAttribute('data-toggle-state', isExpanded ? '+' : '-');
+                      });
+                    });
+                  });
+                </script>
+
+              </div>
+            </div>
+          </div>
+          <!-- <div class=" content-fullwidth" style="height:600px;"></div> -->
+        </div><!-- /viewerContent -->
+      </div>
+    </div>
+  </div>
+  <script>
+    // Show login section or viewer content based on data source
+    if (typeof dataSource !== 'undefined' && dataSource === 'production') {
+      document.getElementById('loginSection').style.display = 'block';
+      document.getElementById('viewerContent').style.display = 'none';
+      // Hide the old loadFileDialog overlay since login is now embedded
+      document.getElementById('loadFileDialog').style.display = 'none';
+      // Hide the top liner bar and concept label during login
+      document.getElementById('liner').style.display = 'none';
+      document.getElementById('topRightLabel').style.display = 'none';
+    }
+  </script>
+  <!-- Shared libraries from central location -->
+  <script src="../shared/js/scrollBehavior.js"></script>
+</body>
+<!-- Shared libraries from central location -->
+<script src="../shared/js/jszip.min.js"></script>
+<script src="../shared/js/jszip-utils.min.js"></script>
+<script src="js/UIlisteners.js"></script>
+<script src="../shared/js/helpers.js"></script>
+<script src="../shared/js/xlsx.full.min.js"></script>
+<script src="../shared/js/exportData.js"></script>
+<script src="../shared/js/errorPopup.js"></script>
+<script src="../shared/js/d3-collection.v1.min.js"></script>
+<script src="../shared/js/d3-sankey-diagram.js"></script>
+<script src="../shared/js/drawSankey.js"></script>
+<script src="js/loadData.js"></script>
+<script src="../shared/js/fileLoadButton.js"></script>
+<!-- Generic JS files that load from config/viewer-config.json -->
+<script src="../shared/js/drawSelectionButtons.js"></script>
+<script src="../shared/js/drawLineGraphFlowClick.js"></script>
+<script src="../shared/js/drawNodeFlowPopup.js"></script>
+<script src="js/drawMainContainer.js" charset="utf-8"></script>
+<!-- <script src="../shared/js/drawWaterfall.js" charset="utf-8"></script> -->
+<!-- <script src="../shared/js/drawCijferBasis.js" charset="utf-8"></script> -->
+<!-- <script src="../shared/js/drawCapacityVisualization.js" charset="utf-8"></script> -->
+<!-- <script src="../shared/js/drawTVKNAnalysis.js" charset="utf-8"></script> -->
+<script src="../shared/js/scenarioSettings.js" charset="utf-8"></script>
+<script>
+  // Initialize TVKN Analysis section
+  // In development mode: initialize immediately
+  // In production mode: initialization happens in loadData.js after zip is loaded
+  if (typeof dataSource !== 'undefined' && dataSource === 'development') {
+    if (typeof window.initTVKNAnalysis === 'function' && typeof viewerConfig !== 'undefined' && viewerConfig?.viewer?.hasServiceDemandSection !== false) {
+      window.initTVKNAnalysis()
+    }
+  }
+</script>
+
+</html>

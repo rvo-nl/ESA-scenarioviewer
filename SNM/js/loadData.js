@@ -80,7 +80,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds17032026snm.enc.json');
+    const response = await fetch('public/ds15092026snm.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -130,8 +130,41 @@ let sankeyConfigs = []
 
 // Storage for multiple sankey diagram data
 let sankeyDataLibraries = {}
+// Exposed for shared modules (e.g. dashboardBuilder.js) that read the sankey dataset
+window.sankeyDataLibraries = sankeyDataLibraries
 let activeDiagramId = null
 let diagramConfigs = []
+
+// Build a map of { diagramId -> Set<scenarioId> } from all loaded diagram libraries
+function buildDiagramScenarioIndex() {
+  const index = {}
+  const allScenarioIds = new Set((viewerConfig?.scenarios || []).map(s => s.id))
+  const years = (viewerConfig?.years || []).map(y => y.id)
+
+  Object.entries(sankeyDataLibraries).forEach(([diagramId, rawData]) => {
+    const found = new Set()
+    // Check links in all scopes (system, electricity, etc.)
+    const scopeLinks = rawData.links || {}
+    Object.values(scopeLinks).forEach(links => {
+      if (!Array.isArray(links)) return
+      links.forEach(link => {
+        Object.keys(link).forEach(col => {
+          // Column format: "{year}_{scenarioId}"
+          years.forEach(year => {
+            if (col.startsWith(year + '_')) {
+              const scenarioId = col.slice((year + '_').length)
+              if (allScenarioIds.has(scenarioId)) {
+                found.add(scenarioId)
+              }
+            }
+          })
+        })
+      })
+    })
+    index[diagramId] = found
+  })
+  window.diagramScenarioIndex = index
+}
 
 // Function to switch between sankey diagrams
 function switchDiagram(diagramId) {
@@ -144,6 +177,7 @@ function switchDiagram(diagramId) {
 
   activeDiagramId = diagramId
   window.activeDiagramId = diagramId
+  if (window.DashboardBuilder) window.DashboardBuilder.invalidate()
   const rawSankeyData = sankeyDataLibraries[diagramId]
 
   // Clear existing sankey
@@ -267,6 +301,8 @@ function initTool () {
         // Make diagramConfigs globally available for buttons
         window.diagramConfigs = diagramConfigs
         window.activeDiagramId = activeDiagramId
+
+        buildDiagramScenarioIndex()
       })
     } else {
       // Fallback to single file loading (original behavior)
@@ -330,7 +366,7 @@ function loadSankeyDiagram(rawSankeyData) {
     if (typeof updateScenarioAvailability === 'function') {
       // Get the config object from the first sankey config
       const firstConfig = sankeyConfigs.length > 0 ? sankeyConfigs[0] : {}
-      updateScenarioAvailability({ scenarios: config.scenarios })
+      updateScenarioAvailability({ scenarios: firstConfig.scenarios })
     }
   }, 100)
 }
@@ -449,6 +485,7 @@ passphraseWrapper.appendChild(passphraseInput);
      const excelData = {};
      const csvData = {}; // Store CSV data separately
      const jsonData = {}; // Store JSON data separately
+     const dashboardTemplates = []; // Dashboard builder templates (private/dashboard_sjablonen/)
 
      const excelExtensions = /\.(xls[xmb]?|ods|xml)$/i;
      const csvExtensions = /\.(csv|tsv|txt)$/i;
@@ -487,6 +524,12 @@ passphraseWrapper.appendChild(passphraseInput);
            // Handle JSON files
            try {
              const jsonText = await zipFile.async('text');
+             // Templates keep their own list: jsonData is keyed by bare file name, so a
+             // template could otherwise overwrite a real config file of the same name.
+             if (/(^|\/)dashboard_sjablonen\//i.test(fileName)) {
+               dashboardTemplates.push({ file: fileName.split('/').pop(), config: JSON.parse(jsonText) });
+               continue;
+             }
              const baseName = fileName.split('/').pop().replace(/\.[^.]+$/, '');
              jsonData[baseName] = JSON.parse(jsonText);
            } catch (err) {
@@ -498,7 +541,10 @@ passphraseWrapper.appendChild(passphraseInput);
 
      console.log('Extracted Excel Data:', excelData);
      console.log('Extracted CSV Data:', csvData);
+     // Expose the extracted CSVs so shared modules can read their own files
+     window.viewerZipCSV = csvData;
      console.log('Extracted JSON Data:', jsonData);
+     window.viewerZipDashboardTemplates = dashboardTemplates;
      // Hide the login section and show the viewer content
      (function hideLoginShowViewer() {
        const loginSection = document.getElementById('loginSection');
@@ -583,8 +629,8 @@ passphraseWrapper.appendChild(passphraseInput);
        };
        console.log('TVKN CSV data stored from zip file');
 
-      // Initialize TVKN Analysis now that data is available (if enabled in viewer config)
-      if (typeof window.initTVKNAnalysis === 'function' && viewerConfig?.viewer?.hasServiceDemandSection !== false) {
+      // Initialize TVKN Analysis now that data is available
+      if (typeof window.initTVKNAnalysis === 'function') {
         window.initTVKNAnalysis();
       }
      }
@@ -637,6 +683,8 @@ passphraseWrapper.appendChild(passphraseInput);
        // Make diagramConfigs globally available for buttons
        window.diagramConfigs = diagramConfigs
        window.activeDiagramId = activeDiagramId
+
+       buildDiagramScenarioIndex()
 
        // Process the default diagram
        sankeyConfigs.forEach(element => {

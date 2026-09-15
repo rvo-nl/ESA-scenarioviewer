@@ -6,7 +6,7 @@
   <!-- Basic Page Needs
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <meta charset="utf-8">
-  <title>Flux | SNM </title>
+  <title>Flux | Scharniermomenten </title>
   <meta name="description" content="">
   <meta name="author" content="">
 
@@ -16,9 +16,6 @@
 
   <!-- FONT
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-  <link
-    href="//fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
-    rel="stylesheet" type="text/css">
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -38,16 +35,16 @@
 <script>
   dataSource = 'production';
   // let dataSource = 'development'
-  // let sankeyData = { links: [], nodes: [], order: [] }
 </script>
 
 <body>
   <div id="liner"></div>
   <div id="loadFileDialog"></div>
   <div id="showValueOnHover"></div>
+  <div id="cursorFlowTooltip"></div>
   <div id="main-container">
-    <div class="content-fullwidth" style="padding:0px">
-      <div id="topRightLabel" class="Adconcept-label" style="float: right;">
+    <div class="content-fullwidth" style="padding:0px; position: relative;">
+      <div id="topRightLabel" class="Adconcept-label" style="float: right; position: relative; z-index: 1;">
         CONCEPT
       </div>
       <div class="content-fullwidth" style="padding:0px;background-color: white;">
@@ -109,7 +106,9 @@
                 <div style="width:6px;height:6px;background:#f8b8c1;"></div>
                 <div style="width:6px;height:6px;background:#37765C;"></div>
                 <div style="width:6px;height:6px;background:#62D3A4;"></div>
-              </div><span style="font-weight:300;font-size:44px;color:#888">FLUX</span><span style="font-weight:100;color:#bbb;font-size:44px;"> | </span><span style="font-weight:300;font-size:25px;color:#777">viewer</span>
+              </div><span style="font-weight:300;font-size:44px;color:#888">FLUX</span><span
+                style="font-weight:100;color:#bbb;font-size:44px;"> | </span><span
+                style="font-weight:300;font-size:25px;color:#777">viewer</span>
             </h3>
             <br><br>
             <p style="line-height:30px; width: 70%;">
@@ -119,8 +118,8 @@
               In toekomstige updates volgen nieuwe secties met verdieping in ruimtelijke, financiële,
               temporele en beleidsmatige aspecten.</p>
           </div>
-          <!-- <div class="content-fullwidth" style="padding:0px;background-color:#DCE6EF;height:40px;"></div> -->
-          <div class="content-fullwidth sticky" style="background-color:#DCE6EF;padding-bottom:0px;padding-top:0px;">
+          <!-- <div class="content-fullwidth" style="padding:0px;background-color:#EDEAE5;height:40px;"></div> -->
+          <div class="content-fullwidth sticky" style="background-color:#EDEAE5;padding-bottom:0px;padding-top:0px;">
             <div class="menuContainer" id="menuContainer">
               <div class="menuContainer-part" id="scenarioButtons">
                 <div class="menu-label">Scenario</div>
@@ -138,7 +137,7 @@
           </div>
 
           <div id="section-sankey">
-            <div class="content-fullwidth" style="padding:0px;background-color:#EEF5FA">
+            <div class="content-fullwidth" style="padding:0px;background-color:#F5F3EF">
               <div id="unitSelector"></div>
               <div class="content-fullwidth" style="padding-bottom:0px;">
                 <br>
@@ -153,7 +152,7 @@
               <div id="popupContainer"> </div>
             </div>
 
-            <div class="content-fullwidth" style="background-color:#EEF5FA">
+            <div class="content-fullwidth" style="background-color:#F5F3EF">
               <div class="content-constrained">
                 <blockquote style="background-color:none;margin-left:30px;border-left:0.5rem solid #999">
                   <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#carriersCollapse"
@@ -164,7 +163,7 @@
                   </div>
 
                   <div class="collapse mt-2" id="carriersCollapse">
-                    <div class="card card-body" style="border:none;background-color: #EEF5FA;">
+                    <div class="card card-body" style="border:none;background-color: #F5F3EF;">
                       <div style="width:100%;margin-left:0px;">
                         <p>De energiedragers uit de OPERA, ETM en CBS-data zijn, conform de indeling in onderstaande
                           tabel,
@@ -371,56 +370,6 @@
           </div>
 
 
-          <div id="section-capacity" class="content-constrained"
-            style="padding-bottom:20px;padding-top:40px;background-color: #DCE6EF; margin-bottom:30px; position: relative;">
-            <h4>Opgesteld vermogen elektriciteitsproductie</h4>
-
-            <div id="capacityVisualizationContainer"></div>
-
-            <blockquote style="background-color:none;margin-left:30px;border-left:0.5rem solid #999;margin-top:30px;">
-              <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#capacityMappingsCollapse"
-                aria-expanded="false" aria-controls="capacityMappingsCollapse">
-                <span class="toggle-icon">+</span>
-                <span style="margin-left:30px;">Mapping production parameters - categories
-                </span>
-              </div>
-
-              <div class="collapse mt-2" id="capacityMappingsCollapse">
-                <div class="card card-body" style="border:none;background-color: #DCE6EF;">
-                  <div style="width:100%;margin-left:0px;">
-                    <p>De elektriciteitsproductietechnologieën uit de OPERA- en ETM-data zijn, conform de indeling
-                      hieronder,
-                      samengevoegd tot categorieën en weergegeven in de grafieken.</p>
-
-                    <h5 style="margin-top: 20px;">OPERA Mapping</h5>
-                    <div id="operaMappingContainer" style="font-size:12px; margin-bottom: 30px; line-height: 1.6;">
-                      <!-- Loaded dynamically from config/categoryConfig.json -->
-                    </div>
-
-                    <h5 style="margin-top: 20px;">ETM Mapping (Electricity Production Only)</h5>
-                    <div id="etmMappingContainer" style="font-size:12px; line-height: 1.6;">
-                      <!-- Loaded dynamically from config/categoryConfig.json -->
-                      <p style="font-style: italic; color: #666; margin-top: 20px;">Note: Many ETM technologies are
-                        mapped
-                        to "ignore" and are not shown here</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </blockquote>
-          </div>
-
-          <div id="section-tvkn" class="content-fullwidth"
-            style="padding:0;background-color: #EEF5FA; margin-bottom:30px; position: relative;">
-            <div class="content-constrained"
-              style="padding-bottom:24px;padding-top:40px;background-color: #EEF5FA; display: flex; align-items: center; justify-content: space-between;">
-              <h4 style="margin:0;">Service Demand</h4>
-              <div id="tvknTopControls" style="display: flex; align-items: center; gap: 12px;"></div>
-            </div>
-            <div id="tvknAnalysisContainer"></div>
-            <br>
-            <br>
-          </div>
 
           <!-- <div class="content-constrained"
           style="padding-bottom:20px;padding-top:40px;background-color: rgb(220, 230, 239); margin-bottom:30px;">
@@ -432,7 +381,7 @@
 
 
           <div id="section-waterfall">
-            <div class="content-fullwidth sticky" style="background-color:#DCE6EF;padding-bottom:0px;padding-top:0px;"
+            <div class="content-fullwidth sticky" style="background-color:#EDEAE5;padding-bottom:0px;padding-top:0px;"
               id="menuContainer2">
               <script>
                 d3.select('#menuContainer2').style('top', document.getElementById('menuContainer').offsetHeight + 'px')
@@ -513,9 +462,10 @@
 <script src="js/drawMainContainer.js" charset="utf-8"></script>
 <script src="../shared/js/drawWaterfall.js" charset="utf-8"></script>
 <script src="../shared/js/drawCijferBasis.js" charset="utf-8"></script>
-<script src="../shared/js/drawCapacityVisualization.js" charset="utf-8"></script>
-<script src="../shared/js/drawTVKNAnalysis.js" charset="utf-8"></script>
+<!-- <script src="../shared/js/drawCapacityVisualization.js" charset="utf-8"></script> -->
+<!-- <script src="../shared/js/drawTVKNAnalysis.js" charset="utf-8"></script> -->
 <script src="../shared/js/scenarioSettings.js" charset="utf-8"></script>
+<script src="../shared/js/dashboardBuilder.js" charset="utf-8"></script>
 <script>
   // Initialize TVKN Analysis section
   // In development mode: initialize immediately

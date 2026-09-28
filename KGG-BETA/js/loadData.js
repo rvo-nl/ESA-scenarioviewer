@@ -80,7 +80,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds16092026kggbeta.enc.json');
+    const response = await fetch('public/ds28092026kggbeta.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -633,6 +633,16 @@ passphraseWrapper.appendChild(passphraseInput);
       if (typeof window.initTVKNAnalysis === 'function') {
         window.initTVKNAnalysis();
       }
+     }
+
+     // Initialize the carrier treemaps; they wait for the sankey data themselves
+     if (typeof window.initCarrierTreemaps === 'function') {
+       window.initCarrierTreemaps();
+     }
+
+     // Initialize the ternary energy-mix plot; it waits for the sankey data itself
+     if (typeof window.initTernaryMix === 'function') {
+       window.initTernaryMix();
      }
 
      dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']

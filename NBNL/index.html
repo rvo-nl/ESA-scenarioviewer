@@ -121,6 +121,19 @@
               het analyseren van energie- en materiaalstromen op nationaal niveau.
               In toekomstige updates volgen nieuwe secties met verdieping in ruimtelijke, financiële,
               temporele en beleidsmatige aspecten.</p>
+            <details class="section-intro section-intro-page">
+              <summary>Zo gebruik je de viewer</summary>
+              <div class="section-intro-body">
+                <dl class="section-controls">
+                  <div><dt>Diagram</dt><dd>Wissel tussen het integrale energiesysteem en de vergelijking van scenario&rsquo;s met de CBS-energiebalans.</dd></div>
+                  <div><dt>Scenario en Jaar</dt><dd>Kies het scenario en zichtjaar dat de secties tonen. De kleuren groeperen scenario&rsquo;s per studie; grijze jaren zijn niet beschikbaar.</dd></div>
+                  <div><dt>Scope</dt><dd>Toon in het Sankey-diagram het hele systeem, of alleen de elektriciteits-, waterstof-, warmte- of koolstofketen.</dd></div>
+                  <div><dt>Dashboard samenstellen</dt><dd>Bouw een eigen dashboard met grafieken van zelfgekozen stromen en scenario&rsquo;s, te bewaren als sjabloon en te exporteren naar Excel.</dd></div>
+                  <div><dt>Instellingen</dt><dd>Kies via het tandwiel rechtsboven welke scenario&rsquo;s en secties je wilt zien.</dd></div>
+                  <div><dt>Menu</dt><dd>Het menu blijft bovenaan staan terwijl je door de secties scrolt.</dd></div>
+                </dl>
+              </div>
+            </details>
           </div>
           <!-- <div class="content-fullwidth" style="padding:0px;background-color:#EDEAE5;height:40px;"></div> -->
           <div class="content-fullwidth sticky" style="background-color:#EDEAE5;padding-bottom:0px;padding-top:0px;">
@@ -145,7 +158,22 @@
               <div id="unitSelector"></div>
               <div class="content-fullwidth" style="padding-bottom:0px;">
                 <br>
-                <h4 style="margin-bottom:0px;margin-left:15px;" id="sankeyTitle">Integraal</h4>
+                <h4 style="margin-bottom:0px;margin-left:15px;" id="sankeyTitle" data-prefix="Sankey diagram | "
+                  data-title-system="Integraal systeem">Sankey diagram | Integraal systeem</h4>
+                <details class="section-intro section-intro-sankey">
+                  <summary>Uitleg en bediening</summary>
+                  <div class="section-intro-body">
+                    <p>Het Sankey-diagram laat zien hoe energie door het systeem stroomt: van bronnen (productie en import), via conversie, zoals elektriciteitsproductie, raffinage en waterstofproductie, naar het finaal verbruik per sector en export. De breedte van een stroom is evenredig met de hoeveelheid energie.</p>
+                    <div class="section-controls-label">Bediening</div>
+                    <dl class="section-controls">
+                      <div><dt>Stroom aanwijzen</dt><dd>Toont de drager en de waarde van de stroom.</dd></div>
+                      <div><dt>Klik op een stroom</dt><dd>Opent een grafiek van die stroom over de jaren, voor alle scenario&rsquo;s.</dd></div>
+                      <div><dt>Klik op een knooppunt</dt><dd>Toont de inkomende en uitgaande stromen, voor het gekozen scenario of voor alle scenario&rsquo;s.</dd></div>
+                      <div><dt>Export</dt><dd>Download de getoonde data als Excel-bestand of kopieer ze naar het klembord.</dd></div>
+                      <div><dt>PJ | TWh</dt><dd>Wissel de eenheid.</dd></div>
+                    </dl>
+                  </div>
+                </details>
               </div>
 
               <div class="content-constrained" style="padding-bottom:0px;padding-top:30px;">
@@ -374,9 +402,75 @@
           </div>
 
 
+          <div id="section-treemaps" class="content-constrained"
+            style="padding-bottom:40px;padding-top:40px;background-color: #F5F3EF; margin-bottom:30px; position: relative;">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+              <div>
+                <h4 style="margin:0;">Treemaps en staafdiagrammen</h4>
+                <div id="treemapContext" class="ctm-context"></div>
+              </div>
+              <div id="treemapControls"></div>
+            </div>
+            <details class="section-intro">
+              <summary>Uitleg en bediening</summary>
+              <div class="section-intro-body">
+                <p>Welke energiedragers gebruikt elke sector, en welke dragers gaan de conversieprocessen in? Elk vlak staat voor één drager en is evenredig met de hoeveelheid, op dezelfde schaal voor alle blokken en scenario&rsquo;s. Zo zijn ook de omvang van sectoren direct te vergelijken.</p>
+                <div class="section-controls-label">Bediening</div>
+                <dl class="section-controls">
+                  <div><dt>Treemap | Staven</dt><dd>Toon de verdeling als vlakken of als gestapelde staven.</dd></div>
+                  <div><dt>Per sector | Per drager</dt><dd>Deel elke sector op naar drager, of elke drager naar sector.</dd></div>
+                  <div><dt>Aanwijzen</dt><dd>Licht dezelfde drager in alle blokken op.</dd></div>
+                  <div><dt>Klik op een blok</dt><dd>Vergelijk het blok met alle andere scenario&rsquo;s, als lijst of raster, gesorteerd van hoog naar laag of per studie. Terug met &larr;&nbsp;Overzicht of Esc.</dd></div>
+                  <div><dt>Export data (xlsx)</dt><dd>Download de getoonde waarden.</dd></div>
+                </dl>
+              </div>
+            </details>
+            <div id="treemapContainer"></div>
+          </div>
+
+          <div id="section-ternary" class="content-constrained"
+            style="padding-bottom:40px;padding-top:40px;background-color: #EDEAE5; margin-bottom:30px; position: relative;">
+            <h4 style="margin:0;">Energiemix-trajecten</h4>
+            <div id="ternaryContext" class="ter-context"></div>
+            <details class="section-intro">
+              <summary>Uitleg en bediening</summary>
+              <div class="section-intro-body">
+                <p>Hoe verschuift de energiemix door de tijd? Elk punt in de driehoek is een mix van drie groepen dragers: elektronen, fossiel en bio &amp; overig. Hoe dichter een punt bij een hoek ligt, hoe groter het aandeel van die groep. Elke lijn volgt één scenario van zichtjaar tot zichtjaar; het gekozen scenario is dik getekend.</p>
+                <div class="section-controls-label">Bediening</div>
+                <dl class="section-controls">
+                  <div><dt>Eindgebruik | Elektriciteitsproductie</dt><dd>Toon de mix van het finaal verbruik, of van de inzet voor elektriciteitsproductie: hernieuwbaar, regelbaar fossiel en regelbaar overig.</dd></div>
+                  <div><dt>Sectoren</dt><dd>Kies welke eindgebruikssectoren meetellen.</dd></div>
+                  <div><dt>Dragerindeling</dt><dd>Bepaal per drager bij welke groep hij hoort, of laat hem weg.</dd></div>
+                  <div><dt>Per scenario | Per sector</dt><dd>Eén lijn per scenario, of per sector voor alle scenario&rsquo;s tegelijk.</dd></div>
+                  <div><dt>Ingezoomd | Volledig</dt><dd>Zoom in op het deel van de driehoek waar de scenario&rsquo;s liggen, of toon de hele driehoek.</dd></div>
+                  <div><dt>Aanwijzen en legenda</dt><dd>Een punt aanwijzen toont de aandelen in dat jaar; klik op een legenda-item om het te verbergen.</dd></div>
+                </dl>
+              </div>
+            </details>
+            <div id="ternaryContainer"></div>
+            <p class="section-source">
+              Gebaseerd op
+              <a href="https://energy-history-ternary.electrotech-revolution.com/" target="_blank" rel="noopener">Historical
+                Final Energy Mix Trajectories (1900–2023)</a> van Ember (Electrotech Revolution).
+            </p>
+          </div>
+
           <div id="section-capacity" class="content-constrained"
             style="padding-bottom:20px;padding-top:40px;background-color: #EDEAE5; margin-bottom:30px; position: relative;">
             <h4>Opgesteld vermogen elektriciteitsproductie</h4>
+            <details class="section-intro">
+              <summary>Uitleg en bediening</summary>
+              <div class="section-intro-body">
+                <p>Het opgestelde vermogen voor elektriciteitsproductie per technologie in het gekozen scenario en jaar, gegroepeerd in koolstof, koolstof met CCS, hernieuwbaar en overige. Bij elke staaf staan de productie, het aantal vollasturen (FLH) en de benuttingsgraad.</p>
+                <div class="section-controls-label">Bediening</div>
+                <dl class="section-controls">
+                  <div><dt>Aanwijzen</dt><dd>Toont de details van een technologie.</dd></div>
+                  <div><dt>Klik op een staaf</dt><dd>Vergelijk die technologie tussen de scenario&rsquo;s in hetzelfde jaar.</dd></div>
+                  <div><dt>Notes and issues</dt><dd>Toelichting bij de genummerde markeringen onder de grafiek.</dd></div>
+                  <div><dt>PJ | TWh</dt><dd>Wissel de eenheid van de productie.</dd></div>
+                </dl>
+              </div>
+            </details>
 
             <div id="capacityVisualizationContainer"></div>
 
@@ -454,8 +548,20 @@
             </div>
 
             <div class="content-constrained" style="padding-bottom:0px;padding-top:20px;">
-              <h4>Finaal verbruik</h4>
+              <h4>Watervaldiagram finaal verbruik</h4>
               <span id="waterval-selection-display" style="font-size: 14px; color: #666; margin-left: 5px;"></span>
+              <details class="section-intro">
+                <summary>Uitleg en bediening</summary>
+                <div class="section-intro-body">
+                  <p>Hoe verandert het finaal verbruik per periode van vijf jaar? Het bovenste diagram toont de opbouw van CO2-vrije dragers, het onderste de afbouw van fossiele dragers. Elke stap is de toe- of afname van één drager tussen twee zichtjaren. Beschikbaar voor de TNO- en PBL TVKN-scenario&rsquo;s.</p>
+                  <div class="section-controls-label">Bediening</div>
+                  <dl class="section-controls">
+                    <div><dt>Toepassing</dt><dd>Filter op warmte, proces, transport of overige toepassingen.</dd></div>
+                    <div><dt>Sector</dt><dd>Filter op een sector of een industrietak.</dd></div>
+                    <div><dt>Aanwijzen</dt><dd>Toont de drager en de waarde van een segment.</dd></div>
+                  </dl>
+                </div>
+              </details>
             </div>
             <div class="scaled-wrapper-waterfall">
               <div class="content-fullwidth" id="SVGContainer_waterfalldiagram">
@@ -518,7 +624,10 @@
 <script src="../shared/js/drawCijferBasis.js" charset="utf-8"></script>
 <script src="../shared/js/drawCapacityVisualization.js" charset="utf-8"></script>
 <script src="../shared/js/drawTVKNAnalysis.js" charset="utf-8"></script>
+<script src="../shared/js/drawCarrierTreemaps.js" charset="utf-8"></script>
+<script src="../shared/js/drawTernaryMix.js" charset="utf-8"></script>
 <script src="../shared/js/scenarioSettings.js" charset="utf-8"></script>
+<script src="../shared/js/dashboardBuilder.js" charset="utf-8"></script>
 <script>
   // Initialize TVKN Analysis section
   // In development mode: initialize immediately
@@ -526,6 +635,12 @@
   if (typeof dataSource !== 'undefined' && dataSource === 'development') {
     if (typeof window.initTVKNAnalysis === 'function' && typeof viewerConfig !== 'undefined' && viewerConfig?.viewer?.hasServiceDemandSection !== false) {
       window.initTVKNAnalysis()
+    }
+    if (typeof window.initCarrierTreemaps === 'function') {
+      window.initCarrierTreemaps()
+    }
+    if (typeof window.initTernaryMix === 'function') {
+      window.initTernaryMix()
     }
   }
 </script>

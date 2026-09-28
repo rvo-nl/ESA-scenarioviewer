@@ -11,12 +11,15 @@
   let scenarioGroups = {};
   let allScenarios = [];
 
-  // Section visibility
+  // Section visibility, in page order
   const SECTIONS = [
     { id: 'section-sankey', label: 'Energiestromen (Sankey)' },
-    { id: 'section-capacity', label: 'Opgesteld vermogen' },
+    { id: 'section-treemaps', label: 'Treemaps en staafdiagrammen', configFlag: 'hasCarrierTreemaps' },
+    { id: 'section-ternary', label: 'Energiemix-trajecten', configFlag: 'hasTernaryMix' },
+    { id: 'section-capacity', label: 'Opgesteld vermogen', configFlag: 'hasCapacityVisualization' },
     { id: 'section-tvkn', label: 'Service Demand', configFlag: 'hasServiceDemandSection' },
-    { id: 'section-waterfall', label: 'Finaal verbruik (waterval)' }
+    { id: 'section-3dplot', label: 'Scenariotrajecten 2030–2050', configFlag: 'has3DPlot' },
+    { id: 'section-waterfall', label: 'Watervaldiagram finaal verbruik' }
   ];
   let sectionVisibility = {};
 
@@ -27,6 +30,12 @@
       return viewerConfig.viewer[section.configFlag] !== false;
     }
     return true;
+  }
+
+  // A section gets a toggle only when this viewer's page has it and its
+  // viewer-config flag allows it
+  function isSectionAvailable(section) {
+    return isSectionEnabledByConfig(section) && !!document.getElementById(section.id);
   }
 
   // Load settings from localStorage
@@ -123,6 +132,17 @@
             console.warn('Could not refresh waterfall:', e);
           }
         }
+        break;
+      // These re-render when their container regains its width; the update
+      // also covers browsers without ResizeObserver
+      case 'section-treemaps':
+        if (typeof window.updateCarrierTreemaps === 'function') window.updateCarrierTreemaps();
+        break;
+      case 'section-ternary':
+        if (typeof window.updateTernaryMix === 'function') window.updateTernaryMix();
+        break;
+      case 'section-3dplot':
+        if (typeof window.update3DPlotScenario === 'function') window.update3DPlotScenario();
         break;
     }
   }
@@ -742,7 +762,7 @@
 
     function buildSectionToggles() {
       sectionGrid.innerHTML = '';
-      SECTIONS.filter(s => isSectionEnabledByConfig(s)).forEach(section => {
+      SECTIONS.filter(isSectionAvailable).forEach(section => {
         const visible = isSectionVisible(section.id);
         const item = document.createElement('div');
         item.style.cssText = `

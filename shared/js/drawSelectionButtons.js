@@ -359,6 +359,21 @@ function drawSelectionButtons(config) {
     if (viewerConfig?.viewer?.hasServiceDemandSection !== false && (!window.ScenarioSettings || window.ScenarioSettings.isSectionVisible('section-tvkn')) && typeof updateTVKNScenario === 'function') {
       updateTVKNScenario()
     }
+
+    // Highlight the active scenario in the 3D scenario plot
+    if (typeof update3DPlotScenario === 'function') {
+      update3DPlotScenario()
+    }
+
+    // Refresh the carrier treemaps for the new scenario/year
+    if (typeof updateCarrierTreemaps === 'function') {
+      updateCarrierTreemaps()
+    }
+
+    // Refresh the ternary energy-mix plot (diagram, selected scenario/year)
+    if (typeof updateTernaryMix === 'function') {
+      updateTernaryMix()
+    }
   }
   window.setScenario = setScenario
 
@@ -840,6 +855,26 @@ function drawSelectionButtons(config) {
 }
 
 drawSankeyEnergiestromenSelectieButtons()
+
+// Heading of the Sankey section, naming the active scope. A viewer can prefix
+// it and rename a scope with data attributes on #sankeyTitle, e.g.
+// data-prefix="Sankey diagram | " data-title-system="Integraal systeem".
+const SANKEY_SCOPE_TITLES = {
+  system: 'Integraal',
+  electricity: 'Elektriciteitsketen',
+  hydrogen: 'Waterstofketen',
+  heat: 'Warmteketen',
+  carbon: 'Koolstofketen'
+}
+
+function setSankeyTitle (focusId) {
+  const heading = document.getElementById('sankeyTitle')
+  const title = SANKEY_SCOPE_TITLES[focusId]
+  if (!heading || !title) return
+  const key = 'title' + focusId.charAt(0).toUpperCase() + focusId.slice(1)
+  heading.textContent = (heading.dataset.prefix || '') + (heading.dataset[key] || title)
+}
+
 function drawSankeyEnergiestromenSelectieButtons() {
   // Wait for config to be loaded
   if (!viewerConfig) {
@@ -875,25 +910,7 @@ function drawSankeyEnergiestromenSelectieButtons() {
       globalActiveEnergyflowsSankey = focus
       globalActiveEnergyflowsFilter = focus.id
 
-      switch (focus.id) {
-        case 'system':
-          d3.select('#sankeyTitle').html('Integraal')
-          break
-        case 'electricity':
-          d3.select('#sankeyTitle').html('Elektriciteitsketen')
-          break
-        case 'hydrogen':
-          d3.select('#sankeyTitle').html('Waterstofketen')
-          break
-        case 'heat':
-          d3.select('#sankeyTitle').html('Warmteketen')
-          break
-        case 'carbon':
-          d3.select('#sankeyTitle').html('Koolstofketen')
-          break
-        default:
-          break
-      }
+      setSankeyTitle(focus.id)
 
       if (typeof window.setScenario === 'function') window.setScenario()
     }

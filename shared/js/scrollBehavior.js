@@ -8,6 +8,9 @@ function setupScrollBehavior () {
   if (!waterfallSection || !yearButtons || !scopeButtons || !menuContainer) return
 
   const observer = new IntersectionObserver((entries) => {
+    // Collapsing only saves room in a menu that stays in view; in a menu that
+    // scrolls with the page it would make the content jump.
+    if (getComputedStyle(menuContainer.parentElement).position !== 'sticky') return
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         // When waterfall section is in view, hide the buttons with transition

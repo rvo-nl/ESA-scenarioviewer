@@ -275,7 +275,7 @@
       return
     }
 
-    const matchingScenario = allScenarios.find(s => s && (s === globalId || s.includes(globalId.split('_')[0])))
+    const matchingScenario = findMatchingScenario(globalId)
 
     if (matchingScenario && matchingScenario !== selectedScenario) {
       selectedScenario = matchingScenario
@@ -355,7 +355,7 @@
       if (useGlobalScenario && window.globalActiveScenario && window.globalActiveScenario.id) {
         // Try to find matching scenario by ID
         const globalId = window.globalActiveScenario.id
-        const matchingScenario = allScenarios.find(s => s && (s === globalId || s.includes(globalId.split('_')[0])))
+        const matchingScenario = findMatchingScenario(globalId)
         selectedScenario = matchingScenario || allScenarios[0] || null
       } else {
         selectedScenario = allScenarios[0] || null
@@ -712,6 +712,14 @@
   }
 
   // ── data wrangling ─────────────────────────────────────────────────────
+
+  // Prefer an exact ID match; only fall back to a prefix match (e.g. 'TNOAT2024')
+  // when the global scenario has no service demand data of its own. Without the
+  // exact-match pass, all TNOAT2024_* variants resolved to TNOAT2024_ADAPT.
+  function findMatchingScenario(globalId) {
+    return allScenarios.find(s => s === globalId) ||
+      allScenarios.find(s => s && s.includes(globalId.split('_')[0]))
+  }
 
   function getServiceDemandValue(scenario, serviceDemand, option, year) {
     const sdMap = serviceDemandIndex[scenario]

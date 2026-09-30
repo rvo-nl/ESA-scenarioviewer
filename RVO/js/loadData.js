@@ -635,6 +635,16 @@ passphraseWrapper.appendChild(passphraseInput);
       }
      }
 
+     // Initialize the carrier treemaps; they wait for the sankey data themselves
+     if (typeof window.initCarrierTreemaps === 'function') {
+       window.initCarrierTreemaps();
+     }
+
+     // Initialize the ternary energy-mix plot; it waits for the sankey data itself
+     if (typeof window.initTernaryMix === 'function') {
+       window.initTernaryMix();
+     }
+
      dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']
      dataset_TRANSFORM_DEFAULT = excelData['data_watervaldiagram_C_TRANSFORM - Default']
      dataset_TRANSFORM_C_EN_I = excelData['data_watervaldiagram_B_TRANSFORM - Competitief en import']

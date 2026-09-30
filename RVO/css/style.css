@@ -344,6 +344,156 @@ body {
   padding: 0.5rem 1rem;
 }
 
+/* Sections are spaced by their bottom margin; the last visible one needs none,
+   or the margin shows as a light strip at the bottom of the page. Sections are
+   hidden with an inline display: none (settings, viewer-config flags). */
+#viewerContent > [id^="section-"]:not(:has(~ [id^="section-"]:not([style*="display: none"]):not([style*="display:none"]))) {
+  margin-bottom: 0 !important;
+}
+
+/* Section introductions: what a section shows, and how its controls work.
+   Foldable (<details>), folded by default. */
+.section-intro {
+  margin: 14px 0 22px;
+  color: #555;
+}
+
+.section-intro > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 0;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: #777;
+  transition: color 0.15s ease;
+}
+
+.section-intro > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Chevron: points right when folded, down when open */
+.section-intro > summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin: 0 1px 0 2px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
+}
+
+.section-intro[open] > summary::before {
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.section-intro > summary:hover {
+  color: #2b2b2b;
+}
+
+.section-intro > summary:focus-visible {
+  outline: 2px solid #999;
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.section-intro-body {
+  padding-top: 12px;
+}
+
+/* Smooth unfolding where supported; elsewhere it opens instantly */
+@supports (interpolate-size: allow-keywords) {
+  .section-intro {
+    interpolate-size: allow-keywords;
+  }
+
+  .section-intro::details-content {
+    height: 0;
+    overflow: clip;
+    transition: height 0.3s ease, content-visibility 0.3s allow-discrete;
+  }
+
+  .section-intro[open]::details-content {
+    height: auto;
+  }
+}
+
+.section-intro p {
+  max-width: 780px;
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.section-controls-label {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #999;
+}
+
+.section-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px 36px;
+  max-width: 1100px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.section-controls > div {
+  margin: 0;
+}
+
+.section-controls dt {
+  margin: 0;
+  font-weight: 500;
+  color: #2b2b2b;
+}
+
+.section-controls dd {
+  margin: 0;
+  color: #777;
+}
+
+.section-intro-page {
+  margin: 26px 0 10px;
+}
+
+/* Source credit at the foot of a section */
+.section-source {
+  margin: 20px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #999;
+}
+
+.section-source a {
+  color: #777;
+  text-decoration: underline;
+  text-decoration-color: #ccc;
+  text-underline-offset: 2px;
+}
+
+.section-source a:hover {
+  color: #2b2b2b;
+  text-decoration-color: currentColor;
+}
+
+/* Aligned with the Sankey title; its text starts below the export buttons
+   and unit toggle at the top right */
+.section-intro-sankey {
+  margin: 14px 0 0 15px;
+}
+
 #liner {
   position: absolute;
   top: 0px;

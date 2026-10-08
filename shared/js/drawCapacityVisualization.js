@@ -117,7 +117,7 @@ function populateMappingContainers() {
         </div>
       `;
     });
-    html += `<p style="font-style: italic; color: #666; margin-top: 20px;">Note: Many ETM technologies are mapped to "ignore" and are not shown here</p>`;
+    html += `<p style="font-style: italic; color: #666; margin-top: 20px;">Let op: veel ETM-technologieën zijn toegewezen aan "ignore" en worden hier niet getoond</p>`;
     etmContainer.innerHTML = html;
   }
 }
@@ -560,11 +560,11 @@ function createCombinedBarChart(allBarData, groupInfo, globalMaxCapacity, contai
           .style('visibility', 'visible')
           .html(`
             <strong>${getCategoryDisplayName(d.category)}</strong><br/>
-            Group: ${d.groupName}<br/>
-            Capacity: ${capacityText}<br/>
-            Volume: ${volumeText}<br/>
-            Full Load Hours: ${Math.round(d.fullLoadHours)} h<br/>
-            Capacity Factor: ${capacityFactor.toFixed(1)}%
+            Groep: ${d.groupName}<br/>
+            Vermogen: ${capacityText}<br/>
+            Productie: ${volumeText}<br/>
+            Vollasturen: ${Math.round(d.fullLoadHours)} uur<br/>
+            Benuttingsgraad: ${capacityFactor.toFixed(1)}%
           `);
       }
     })
@@ -635,7 +635,7 @@ function createCombinedBarChart(allBarData, groupInfo, globalMaxCapacity, contai
           .attr('dy', '1.4em')
           .style('font-size', '8px')
           .style('fill', valueColor)
-          .text(`FLH: ${fullLoadHours}`);
+          .text(`VLU: ${fullLoadHours}`);
 
         textElement.append('tspan')
           .attr('x', x(i) + x.bandwidth() / 2)
@@ -791,7 +791,7 @@ function createCombinedBarChart(allBarData, groupInfo, globalMaxCapacity, contai
 
     toggleRow.append('span')
       .style('font-weight', 'bold')
-      .text('Notes and issues');
+      .text('Notities en aandachtspunten');
 
     toggleRow.append('span')
       .style('color', '#999')
@@ -964,7 +964,7 @@ function showCapacityPopup(categoryData) {
     .attr('y', 75)
     .style('font-size', '12px')
     .style('fill', '#666')
-    .text(`Category: ${categoryData.category} | Group: ${categoryData.groupName}`);
+    .text(`Categorie: ${categoryData.category} | Groep: ${categoryData.groupName}`);
 
   // Close button
   const CLOSE_SIZE = 30;
@@ -1087,10 +1087,10 @@ function showCapacityPopup(categoryData) {
           .style('visibility', 'visible')
           .html(`
             <strong>${d.scenarioName}</strong><br/>
-            Capacity: ${capacityText}<br/>
-            Volume: ${volumeText}<br/>
-            Full Load Hours: ${Math.round(d.fullLoadHours)} h<br/>
-            Capacity Factor: ${capacityFactor.toFixed(1)}%
+            Vermogen: ${capacityText}<br/>
+            Productie: ${volumeText}<br/>
+            Vollasturen: ${Math.round(d.fullLoadHours)} uur<br/>
+            Benuttingsgraad: ${capacityFactor.toFixed(1)}%
           `);
       }
     })

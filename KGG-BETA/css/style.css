@@ -57,6 +57,10 @@ body {
   box-sizing: border-box;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   position: relative;
+  border-radius: 12px;
+  /* Clips the sections to the rounded corners; unlike overflow: hidden it
+     keeps the sticky menu bars working */
+  overflow: clip;
 }
 
 /* Add growing sidebars */

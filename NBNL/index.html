@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 
 <head>
 
@@ -32,6 +32,9 @@
   <!-- Favicon
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <!-- <link rel="icon" type="image/png" href="images/favicon.png"> -->
+
+  <script data-goatcounter="https://dataviewers.goatcounter.com/count"
+          async src="//gc.zgo.at/count.js"></script>
 
 </head>
 
@@ -190,7 +193,7 @@
                   <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#carriersCollapse"
                     aria-expanded="false" aria-controls="carriersCollapse">
                     <span class="toggle-icon">+</span>
-                    <span style="margin-left:30px;">Mapping dragers - flows
+                    <span style="margin-left:30px;">Koppeling dragers en stromen
                     </span>
                   </div>
 
@@ -421,7 +424,7 @@
                   <div><dt>Per sector | Per drager</dt><dd>Deel elke sector op naar drager, of elke drager naar sector.</dd></div>
                   <div><dt>Aanwijzen</dt><dd>Licht dezelfde drager in alle blokken op.</dd></div>
                   <div><dt>Klik op een blok</dt><dd>Vergelijk het blok met alle andere scenario&rsquo;s, als lijst of raster, gesorteerd van hoog naar laag of per studie. Terug met &larr;&nbsp;Overzicht of Esc.</dd></div>
-                  <div><dt>Export data (xlsx)</dt><dd>Download de getoonde waarden.</dd></div>
+                  <div><dt>Exporteer data (xlsx)</dt><dd>Download de getoonde waarden.</dd></div>
                 </dl>
               </div>
             </details>
@@ -461,12 +464,12 @@
             <details class="section-intro">
               <summary>Uitleg en bediening</summary>
               <div class="section-intro-body">
-                <p>Het opgestelde vermogen voor elektriciteitsproductie per technologie in het gekozen scenario en jaar, gegroepeerd in koolstof, koolstof met CCS, hernieuwbaar en overige. Bij elke staaf staan de productie, het aantal vollasturen (FLH) en de benuttingsgraad.</p>
+                <p>Het opgestelde vermogen voor elektriciteitsproductie per technologie in het gekozen scenario en jaar, gegroepeerd in koolstof, koolstof met CCS, hernieuwbaar en overige. Bij elke staaf staan de productie, het aantal vollasturen (VLU) en de benuttingsgraad.</p>
                 <div class="section-controls-label">Bediening</div>
                 <dl class="section-controls">
                   <div><dt>Aanwijzen</dt><dd>Toont de details van een technologie.</dd></div>
                   <div><dt>Klik op een staaf</dt><dd>Vergelijk die technologie tussen de scenario&rsquo;s in hetzelfde jaar.</dd></div>
-                  <div><dt>Notes and issues</dt><dd>Toelichting bij de genummerde markeringen onder de grafiek.</dd></div>
+                  <div><dt>Notities en aandachtspunten</dt><dd>Toelichting bij de genummerde markeringen onder de grafiek.</dd></div>
                   <div><dt>PJ | TWh</dt><dd>Wissel de eenheid van de productie.</dd></div>
                 </dl>
               </div>
@@ -478,7 +481,7 @@
               <div class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#capacityMappingsCollapse"
                 aria-expanded="false" aria-controls="capacityMappingsCollapse">
                 <span class="toggle-icon">+</span>
-                <span style="margin-left:30px;">Mapping production parameters - categories
+                <span style="margin-left:30px;">Koppeling productieparameters en categorieën
                 </span>
               </div>
 
@@ -489,17 +492,15 @@
                       hieronder,
                       samengevoegd tot categorieën en weergegeven in de grafieken.</p>
 
-                    <h5 style="margin-top: 20px;">OPERA Mapping</h5>
+                    <h5 style="margin-top: 20px;">Koppeling OPERA</h5>
                     <div id="operaMappingContainer" style="font-size:12px; margin-bottom: 30px; line-height: 1.6;">
                       <!-- Loaded dynamically from config/categoryConfig.json -->
                     </div>
 
-                    <h5 style="margin-top: 20px;">ETM Mapping (Electricity Production Only)</h5>
+                    <h5 style="margin-top: 20px;">Koppeling ETM (alleen elektriciteitsproductie)</h5>
                     <div id="etmMappingContainer" style="font-size:12px; line-height: 1.6;">
                       <!-- Loaded dynamically from config/categoryConfig.json -->
-                      <p style="font-style: italic; color: #666; margin-top: 20px;">Note: Many ETM technologies are
-                        mapped
-                        to "ignore" and are not shown here</p>
+                      <p style="font-style: italic; color: #666; margin-top: 20px;">Let op: veel ETM-technologieën zijn toegewezen aan "ignore" en worden hier niet getoond</p>
                     </div>
                   </div>
                 </div>

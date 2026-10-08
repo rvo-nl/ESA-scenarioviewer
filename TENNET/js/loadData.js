@@ -80,7 +80,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds28092026tennet.enc.json');
+    const response = await fetch('public/ds08102026tennet.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -119,7 +119,7 @@ async function decryptZipFile(passphrase) {
     } else if (error.message.includes('fetch')) {
       throw new Error('Kan encrypted bestand niet laden');
     } else {
-      throw new Error(`Decryption failed: ${error.message}`);
+      throw new Error(`Ontsleutelen mislukt: ${error.message}`);
     }
   }
 }
@@ -760,7 +760,7 @@ passphraseWrapper.appendChild(passphraseInput);
         // Set the inner HTML with the desired text and link
         document.getElementById('loadFileDialog').innerHTML = `
           <div style="max-width: 500px; word-wrap: break-word;line-height: 35px;font-size:15px; ">
-              <strong style="line-height: 40px; font-size:28px;font-weight:300;">Error</strong> <br><br>De identificatienummers van het opgegeven databestand (<strong>${settings[0].projectID}_${settings[0].productID}_${settings[0].versionID}</strong>) en het ingeladen visualisatiescript (<strong>${projectID}_${productID}_${versionID}</strong>) komen niet overeen.<br><br>Gebruik de onderstaande link om naar het script te gaan dat bij het opgegeven bestand hoort en probeer het opnieuw.&nbsp
+              <strong style="line-height: 40px; font-size:28px;font-weight:300;">Fout</strong> <br><br>De identificatienummers van het opgegeven databestand (<strong>${settings[0].projectID}_${settings[0].productID}_${settings[0].versionID}</strong>) en het ingeladen visualisatiescript (<strong>${projectID}_${productID}_${versionID}</strong>) komen niet overeen.<br><br>Gebruik de onderstaande link om naar het script te gaan dat bij het opgegeven bestand hoort en probeer het opnieuw.&nbsp
               <br><br>
               <a href="https://rvo-nl.github.io/visualisaties/${settings[0].projectID}/${settings[0].productID}/${settings[0].versionID}" style="color: blue; text-decoration: underline;">
                   https://rvo-nl.github.io/visualisaties/${settings[0].projectID}/${settings[0].productID}/${settings[0].versionID}

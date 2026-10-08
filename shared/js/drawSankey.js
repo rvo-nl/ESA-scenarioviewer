@@ -19,8 +19,8 @@ window.addEventListener('error', function(event) {
 
     if (typeof showErrorPopup === 'function') {
       showErrorPopup({
-        title: 'Sankey Rendering Error',
-        message: 'An error occurred while rendering the sankey diagram. This is often caused by missing or invalid node references in the data.',
+        title: 'Fout bij het tekenen van het Sankey-diagram',
+        message: 'Er is een fout opgetreden bij het tekenen van het Sankey-diagram. Dit komt vaak door ontbrekende of ongeldige verwijzingen naar knooppunten in de data.',
         error: event.error,
         context: {
           filename: event.filename,
@@ -1080,8 +1080,8 @@ function tick (config) {
       if (typeof showErrorPopup === 'function') {
         const errorScenarios = window.currentDiagramScenarios || config.scenarios
         showErrorPopup({
-          title: 'Sankey Data Processing Error',
-          message: 'Failed to process sankey data. This may be due to missing node/link data or invalid scenario configuration.',
+          title: 'Fout bij het verwerken van de Sankey-data',
+          message: 'De Sankey-data kon niet worden verwerkt. Mogelijk ontbreken gegevens van knooppunten of stromen, of is de scenarioconfiguratie ongeldig.',
           error: e,
           context: {
             function: 'tick',
@@ -1119,8 +1119,8 @@ function updateSankey (json, offsetX, offsetY, fontSize, fontFamily, config) {
     d3.select('#error').text(e)
     if (typeof showErrorPopup === 'function') {
       showErrorPopup({
-        title: 'JSON Parse Error',
-        message: 'Failed to parse sankey data JSON',
+        title: 'Fout bij het lezen van JSON',
+        message: 'De JSON met Sankey-data kon niet worden gelezen',
         error: e,
         context: {
           function: 'updateSankey',
@@ -1143,8 +1143,8 @@ function updateSankey (json, offsetX, offsetY, fontSize, fontFamily, config) {
   } catch (e) {
     if (typeof showErrorPopup === 'function') {
       showErrorPopup({
-        title: 'Sankey Diagram Error',
-        message: 'Failed to update sankey diagram. This usually happens when there is a missing node reference in the data.',
+        title: 'Fout in het Sankey-diagram',
+        message: 'Het Sankey-diagram kon niet worden bijgewerkt. Meestal ontbreekt er een verwijzing naar een knooppunt in de data.',
         error: e,
         context: {
           function: 'updateSankey',
@@ -1391,8 +1391,8 @@ function showValueOnHover (value) {
     tooltipHTML += '</div>'
 
     tooltipHTML += '<div class="tooltip-annotation">'
-    tooltipHTML += '<strong>From:</strong> ' + sourceId + '<br>'
-    tooltipHTML += '<strong>To:</strong> ' + targetId
+    tooltipHTML += '<strong>Van:</strong> ' + sourceId + '<br>'
+    tooltipHTML += '<strong>Naar:</strong> ' + targetId
     tooltipHTML += '</div>'
 
     return tooltipHTML

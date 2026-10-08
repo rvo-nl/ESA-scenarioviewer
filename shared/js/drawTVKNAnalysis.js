@@ -27,8 +27,8 @@
   ]
 
   const DEMAND_TYPES = [
-    { id: 'Activity', label: 'Activity' },
-    { id: 'Capacity', label: 'Capacity' }
+    { id: 'Activity', label: 'Activiteit' },
+    { id: 'Capacity', label: 'Capaciteit' }
   ]
 
   // Helper to get the correct service demand column name
@@ -134,7 +134,7 @@
 
     // Add "All" with total count
     const totalCount = Object.values(counts).reduce((sum, count) => sum + count, 0)
-    result.push({ value: 'All', label: `All (${totalCount})` })
+    result.push({ value: 'All', label: `Alle (${totalCount})` })
 
     // Add sectors that have data, sorted alphabetically
     allSectors
@@ -269,7 +269,7 @@
       selectedScenario = globalId
       const chartDiv = document.getElementById('tvkn-charts')
       if (chartDiv) {
-        chartDiv.innerHTML = '<p style="color:#888;font-size:13px;padding:16px;">Service demand data is not yet available for this scenario.</p>'
+        chartDiv.innerHTML = '<p style="color:#888;font-size:13px;padding:16px;">Voor dit scenario is nog geen service demand-data beschikbaar.</p>'
       }
       console.log(`TVKN Analysis: Scenario ${globalId} is not supported (ETM or OPERA WLO)`)
       return
@@ -292,7 +292,7 @@
       selectedScenario = null
       const chartDiv = document.getElementById('tvkn-charts')
       if (chartDiv) {
-        chartDiv.innerHTML = '<p style="color:#888;font-size:13px;padding:16px;">Service demand data is not yet available for this scenario.</p>'
+        chartDiv.innerHTML = '<p style="color:#888;font-size:13px;padding:16px;">Voor dit scenario is nog geen service demand-data beschikbaar.</p>'
       }
       console.warn(`TVKN Analysis: No matching scenario found for ${globalId}. Available scenarios:`, allScenarios)
     }
@@ -385,7 +385,7 @@
       topControls.innerHTML = ''
 
       const clipboardBtn = document.createElement('button')
-      clipboardBtn.textContent = 'Copy data to clipboard'
+      clipboardBtn.textContent = 'Kopieer data naar klembord'
       clipboardBtn.style.width = '130px'
       clipboardBtn.style.height = '26px'
       clipboardBtn.style.padding = '0'
@@ -406,13 +406,13 @@
       clipboardBtn.onmouseout = function () { this.style.backgroundColor = '#FFF' }
       clipboardBtn.addEventListener('click', () => {
         copyDataToClipboard()
-        clipboardBtn.textContent = 'Copied!'
-        setTimeout(() => { clipboardBtn.textContent = 'Copy data to clipboard' }, 2000)
+        clipboardBtn.textContent = 'Gekopieerd!'
+        setTimeout(() => { clipboardBtn.textContent = 'Kopieer data naar klembord' }, 2000)
       })
       topControls.appendChild(clipboardBtn)
 
       const xlsxBtn = document.createElement('button')
-      xlsxBtn.textContent = 'Export data (xlsx)'
+      xlsxBtn.textContent = 'Exporteer data (xlsx)'
       xlsxBtn.style.width = '100px'
       xlsxBtn.style.height = '26px'
       xlsxBtn.style.padding = '0'
@@ -534,7 +534,7 @@
       renderCharts()
     })
 
-    addSelect(selectorsCol, 'Activity / Capacity', 'tvkn-demandtype-select', DEMAND_TYPES, selectedDemandType, val => {
+    addSelect(selectorsCol, 'Activiteit / Capaciteit', 'tvkn-demandtype-select', DEMAND_TYPES, selectedDemandType, val => {
       selectedDemandType = val
       buildIndexes()
       updateSectorDropdown()
@@ -542,7 +542,7 @@
       renderCharts()
     })
 
-    addSelect(selectorsCol, 'Sector filter', 'tvkn-sector-select', getAvailableSectorsWithCounts(), selectedSector, val => {
+    addSelect(selectorsCol, 'Sectorfilter', 'tvkn-sector-select', getAvailableSectorsWithCounts(), selectedSector, val => {
       selectedSector = val
       updateServiceDemandDropdown()
       renderCharts()
@@ -781,7 +781,7 @@
     const yearsToUse = Array.from(availableYears).sort((a, b) => a - b)
 
     if (yearsToUse.length === 0) {
-      chartDiv.innerHTML = '<p style="color:#888;font-size:13px;padding:16px;">No data available for this service demand and scenario combination.</p>'
+      chartDiv.innerHTML = '<p style="color:#888;font-size:13px;padding:16px;">Geen data beschikbaar voor deze combinatie van service demand en scenario.</p>'
       return
     }
 
@@ -1879,7 +1879,7 @@
 
     // Export button
     const exportBtn = document.createElement('button')
-    exportBtn.textContent = 'Export data (xlsx)'
+    exportBtn.textContent = 'Exporteer data (xlsx)'
     exportBtn.style.cssText = 'font-size: 9px; padding: 2px 8px; line-height: 1; border: 1px solid #ccc; border-radius: 4px; background: #f8f8f8; color: #555; cursor: pointer; white-space: nowrap; font-family: inherit;'
     exportBtn.addEventListener('mouseenter', () => { exportBtn.style.background = '#eee' })
     exportBtn.addEventListener('mouseleave', () => { exportBtn.style.background = '#f8f8f8' })
@@ -2302,7 +2302,7 @@
         if (energyData && currentUnit) {
           const intensityLabel = document.createElement('div')
           intensityLabel.style.cssText = 'font-size:9px; color:#666; margin-top:2px;'
-          intensityLabel.textContent = `${d3.format('.2f')(intensity)} ${currentUnit}/unit`
+          intensityLabel.textContent = `${d3.format('.2f')(intensity)} ${currentUnit}/eenheid`
           yearBox.appendChild(intensityLabel)
         }
 
@@ -2775,7 +2775,7 @@
         .style('font-size', '11px')
         .style('font-weight', '600')
         .style('fill', '#333')
-        .text(`Total energy input (${currentUnit})`)
+        .text(`Totale energie-input (${currentUnit})`)
 
       const g = svg.append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`)
@@ -3222,7 +3222,7 @@
 
     const mainTitle = document.createElement('div')
     mainTitle.style.cssText = 'font-size: 12px; font-weight: 700; color: #222; margin-bottom: 10px;'
-    mainTitle.textContent = `Options related to service demand ${serviceDemandName}`
+    mainTitle.textContent = `Opties bij service demand ${serviceDemandName}`
     wrapper.appendChild(mainTitle)
 
     // Get options for current service demand
@@ -3243,7 +3243,7 @@
     if (options.length > 0) {
       const optionsTitle = document.createElement('div')
       optionsTitle.style.cssText = 'font-size: 10px; font-weight: 600; color: #333; margin-bottom: 6px;'
-      optionsTitle.textContent = `Options (${options.length}):`
+      optionsTitle.textContent = `Opties (${options.length}):`
       wrapper.appendChild(optionsTitle)
 
       const optionsList = document.createElement('div')
@@ -3320,14 +3320,14 @@
           if (optTotalOutput > 0) {
             const outputDiv = document.createElement('div')
             outputDiv.style.cssText = 'font-size: 8px; color: #666; font-weight: 400;'
-            outputDiv.textContent = `Out: ${d3.format('.1f')(convertUnit(optTotalOutput))} ${currentUnit}`
+            outputDiv.textContent = `Uit: ${d3.format('.1f')(convertUnit(optTotalOutput))} ${currentUnit}`
             optHeaderRight.appendChild(outputDiv)
           }
 
           if (optCO2Total !== 0) {
             const co2Div = document.createElement('div')
             const co2Color = optCO2Total < 0 ? '#000' : '#c44'
-            const co2Label = optCO2Total < 0 ? 'CO₂ captured:' : 'CO₂:'
+            const co2Label = optCO2Total < 0 ? 'CO₂ afgevangen:' : 'CO₂:'
             co2Div.style.cssText = `font-size: 8px; color: ${co2Color}; font-weight: 400;`
             co2Div.textContent = `${co2Label} ${d3.format('.1f')(Math.abs(optCO2Total))} Mt`
             optHeaderRight.appendChild(co2Div)
@@ -3489,7 +3489,7 @@
             .style('font-size', '13px')
             .style('font-weight', '600')
             .style('fill', '#333')
-            .text(`Energy input | ${optionName}`)
+            .text(`Energie-input | ${optionName}`)
 
           const eaX = d3.scalePoint().domain(years).range([0, eaInnerW])
 
@@ -3770,26 +3770,26 @@
 
           const fields = [
             { label: 'Sector', key: 'Sector' },
-            { label: 'Unit Capacity', key: 'Unit of Capacity' },
-            { label: 'Unit Activity', key: 'Eenheid activiteit' },
-            { label: 'Reference Option', key: 'ReferentieOptie' },
-            { label: 'Intro Year', key: 'Introduction Year' },
-            { label: 'Connector Point', key: 'ConnectorPointOption' },
-            { label: 'Energy Balance MONIT', key: 'EnergyBalancePresentationMONIT' },
-            { label: 'Sector Ref', key: 'SectorRef' },
-            { label: 'NG Admixture', key: 'NG admixture option' },
-            { label: 'Excl Max Admix', key: 'Excl for max admix value' },
-            { label: 'Heat Demand Profile', key: 'Heat demand profile followed' },
-            { label: 'Heat Supply Profile', key: 'Heat supply profile follows demand' },
-            { label: 'Carbon Balance', key: 'Koolstofbalans' },
-            { label: 'Ignore Emission Effect', key: 'Negeer emissieffect', transform: (v) => v === 'True' ? 'Yes' : v === 'False' ? 'No' : v },
-            { label: 'Fraction Feedstock', key: 'FractionFeedstock' },
-            { label: 'Lumpy', key: 'Lumpy', transform: (v) => v === 'True' ? 'Yes' : v === 'False' ? 'No' : v },
+            { label: 'Eenheid capaciteit', key: 'Unit of Capacity' },
+            { label: 'Eenheid activiteit', key: 'Eenheid activiteit' },
+            { label: 'Referentieoptie', key: 'ReferentieOptie' },
+            { label: 'Introductiejaar', key: 'Introduction Year' },
+            { label: 'Aansluitpunt', key: 'ConnectorPointOption' },
+            { label: 'Energiebalans MONIT', key: 'EnergyBalancePresentationMONIT' },
+            { label: 'Sectorreferentie', key: 'SectorRef' },
+            { label: 'Bijmenging aardgas', key: 'NG admixture option' },
+            { label: 'Uitgesloten van max. bijmenging', key: 'Excl for max admix value' },
+            { label: 'Warmtevraagprofiel', key: 'Heat demand profile followed' },
+            { label: 'Warmteaanbodprofiel', key: 'Heat supply profile follows demand' },
+            { label: 'Koolstofbalans', key: 'Koolstofbalans' },
+            { label: 'Negeer emissie-effect', key: 'Negeer emissieffect', transform: (v) => v === 'True' ? 'Ja' : v === 'False' ? 'Nee' : v },
+            { label: 'Aandeel feedstock', key: 'FractionFeedstock' },
+            { label: 'Lumpy', key: 'Lumpy', transform: (v) => v === 'True' ? 'Ja' : v === 'False' ? 'Nee' : v },
             { label: 'F56', key: 'F56' },
-            { label: 'Institute', key: 'Instituut' },
-            { label: 'Source', key: 'Source' },
-            { label: 'Cost Info', key: 'Kosten toelichting' },
-            { label: 'Other Effects', key: 'Overige effecten' }
+            { label: 'Instituut', key: 'Instituut' },
+            { label: 'Bron', key: 'Source' },
+            { label: 'Toelichting kosten', key: 'Kosten toelichting' },
+            { label: 'Overige effecten', key: 'Overige effecten' }
           ]
 
           fields.forEach(field => {
@@ -3838,7 +3838,7 @@
 
     const title = document.createElement('div')
     title.style.cssText = 'font-size: 11px; font-weight: 600; color: #333; margin-bottom: 10px;'
-    title.textContent = 'Legend'
+    title.textContent = 'Legenda'
     wrapper.appendChild(title)
 
     const legendGrid = document.createElement('div')
@@ -3922,7 +3922,7 @@
 
       const label = document.createElement('span')
       label.style.cssText = 'font-size: 11px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'
-      const displayName = item.type === 'output' ? item.name + ' (out)' : item.name
+      const displayName = item.type === 'output' ? item.name + ' (uit)' : item.name
       label.textContent = displayName
       label.title = displayName
       if (item.type === 'total') {

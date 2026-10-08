@@ -1497,7 +1497,7 @@
     controls.append('button')
       .attr('type', 'button')
       .attr('class', 'ctm-btn ctm-btn-export')
-      .text('Export data (xlsx)')
+      .text('Exporteer data (xlsx)')
       .on('click', exportXlsx)
   }
 

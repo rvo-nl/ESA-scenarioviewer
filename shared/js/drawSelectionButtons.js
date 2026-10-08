@@ -287,6 +287,34 @@ function drawSelectionButtons(config) {
   }
   globalActiveEnergyflowsFilter = defaults.energyflowsFilter || 'system'
 
+  // The scenario and year that were selected before the current ones. Clicking
+  // the selected scenario or year again switches back to it, to flip between two.
+  let previousScenarioId = null
+  let previousYearId = null
+  let scenarioButtonsById = {}
+  let autoSelectingScenario = false
+  let yearButtonsById = {}
+
+  // Years can be switched off in the settings menu (cog wheel)
+  const isYearIncluded = yearId => typeof window.ScenarioSettings === 'undefined' ||
+    typeof window.ScenarioSettings.isYearVisible !== 'function' || window.ScenarioSettings.isYearVisible(yearId)
+
+  // The included year closest to the given one, preferring a year the
+  // selected scenario has data for
+  function nearestIncludedYear(yearId) {
+    const included = years.filter(y => isYearIncluded(y.id))
+    const withData = included.filter(y => scenarioIdLookup[globalActiveScenario.id]?.[y.id] !== undefined)
+    const candidates = withData.length ? withData : included
+    const distance = y => Math.abs(parseInt(y.id) - parseInt(yearId))
+    return candidates.reduce((best, y) => (!best || distance(y) < distance(best)) ? y : best, null)
+  }
+
+  // The default year may have been switched off in the settings
+  if (!isYearIncluded(globalActiveYear.id)) {
+    const fallbackYear = nearestIncludedYear(globalActiveYear.id)
+    if (fallbackYear) globalActiveYear.id = fallbackYear.id
+  }
+
   function setScenario(scenario, type) {
     // Always refresh scenario availability up-front so the buttons reflect the
     // currently loaded diagram, even if we end up aborting below because the
@@ -298,22 +326,38 @@ function drawSelectionButtons(config) {
     // If the current scenario was just greyed out by updateScenarioAvailability
     // (i.e. it has no data or all-zero data in the newly loaded diagram), or
     // it has no entry in scenarioIdLookup at all, auto-pick the first
-    // scenario button that is still enabled so the user is never stuck on a
+    // scenario button that is not greyed out so the user is never stuck on a
     // greyed-out selection after switching diagrams.
-    const currentScenarioGreyed = typeof scenariosWithZeroValues !== 'undefined'
-      && scenariosWithZeroValues.has(globalActiveScenario.id)
-    const currentScenarioMissing = !scenarioIdLookup[globalActiveScenario.id]
-      || scenarioIdLookup[globalActiveScenario.id][globalActiveYear.id] === undefined
-    if (currentScenarioGreyed || currentScenarioMissing) {
-      const scenarioButtonsContainer = document.getElementById('scenarioButtons')
-      if (scenarioButtonsContainer) {
-        const firstAvailableScenarioBtn = Array.from(
-          scenarioButtonsContainer.getElementsByTagName('button')
-        ).find(btn => btn.style.pointerEvents !== 'none' && !btn.disabled)
-        if (firstAvailableScenarioBtn && firstAvailableScenarioBtn.textContent !== globalActiveScenario.title) {
-          firstAvailableScenarioBtn.click()
-          return
+    // If the scenario is in this diagram but not for the selected year, keep
+    // the scenario and let its own button move on to a year it has.
+    // The clicks below call setScenario again; autoSelectingScenario keeps
+    // that inner call from auto-picking a second time.
+    if (!autoSelectingScenario) {
+      const currentScenarioYears = scenarioIdLookup[globalActiveScenario.id]
+      const currentScenarioUnavailable = !currentScenarioYears
+        || (typeof scenariosWithZeroValues !== 'undefined' && scenariosWithZeroValues.has(globalActiveScenario.id))
+      const currentYearUnavailable = !currentScenarioUnavailable
+        && currentScenarioYears[globalActiveYear.id] === undefined
+
+      let buttonToClick = null
+      if (currentScenarioUnavailable) {
+        const scenarioButtonsContainer = document.getElementById('scenarioButtons')
+        if (scenarioButtonsContainer) {
+          buttonToClick = Array.from(scenarioButtonsContainer.getElementsByTagName('button'))
+            .find(btn => btn.dataset.greyed !== 'true' && !btn.disabled)
         }
+      } else if (currentYearUnavailable) {
+        buttonToClick = scenarioButtonsById[globalActiveScenario.id]
+      }
+
+      if (buttonToClick) {
+        autoSelectingScenario = true
+        try {
+          buttonToClick.click()
+        } finally {
+          autoSelectingScenario = false
+        }
+        return
       }
     }
 
@@ -425,6 +469,7 @@ function drawSelectionButtons(config) {
 
     const buttonWrapper = document.createElement('div')
     container.appendChild(buttonWrapper)
+    scenarioButtonsById = {}
 
     // Add buttons
     scenarios.forEach((scenario, index) => {
@@ -441,8 +486,22 @@ function drawSelectionButtons(config) {
         setButtonHighlighted(button, true)
       }
 
-      button.onclick = function() {
+      scenarioButtonsById[scenario.id] = button
+
+      button.onclick = function(event) {
         if (this.dataset.greyed === 'true') return
+
+        // A click on the selected scenario switches back to the previous one
+        // (only for a click by the user, not for one made from code)
+        if (event && event.isTrusted && globalActiveScenario.id === scenario.id) {
+          const previousButton = scenarioButtonsById[previousScenarioId]
+          if (previousButton && previousButton.dataset.greyed !== 'true') {
+            previousButton.click()
+            return
+          }
+        }
+        if (globalActiveScenario.id !== scenario.id) previousScenarioId = globalActiveScenario.id
+
         // Update button states with color restoration
         setButtonsInContainer(buttonWrapper, button, (btn) => {
           const btnScenario = scenarios.find(s => s.title === btn.textContent)
@@ -458,8 +517,8 @@ function drawSelectionButtons(config) {
         const yearButtonsContainer = document.getElementById('yearButtons')
         const yearButtons = yearButtonsContainer.getElementsByTagName('button')
 
-        Array.from(yearButtons).forEach((button, index) => {
-          const yearId = years[index]?.id
+        Array.from(yearButtons).forEach((button) => {
+          const yearId = button.dataset.yearId
           if (scenarioIdLookup[globalActiveScenario.id] && scenarioIdLookup[globalActiveScenario.id][yearId] !== undefined) {
             button.disabled = false
             button.style.opacity = '1'
@@ -526,10 +585,12 @@ function drawSelectionButtons(config) {
     label.className = 'menu-label'
     label.textContent = 'Jaar'
     container.appendChild(label)
+    yearButtonsById = {}
 
-    years.forEach((year, index) => {
+    years.filter(year => isYearIncluded(year.id)).forEach((year, index) => {
       let button = document.createElement('button')
       button.textContent = year.title
+      button.dataset.yearId = year.id
       createButton(button, -1)
 
       if (year.id === globalActiveYear.id) {
@@ -549,8 +610,21 @@ function drawSelectionButtons(config) {
 
       updateButtonState()
 
-      button.onclick = function() {
+      yearButtonsById[year.id] = button
+
+      button.onclick = function(event) {
         if (button.disabled) return
+
+        // A click on the selected year switches back to the previous one
+        // (only for a click by the user, not for one made from code)
+        if (event && event.isTrusted && globalActiveYear.id === year.id) {
+          const previousButton = yearButtonsById[previousYearId]
+          if (previousButton && !previousButton.disabled) {
+            previousButton.click()
+            return
+          }
+        }
+        if (globalActiveYear.id !== year.id) previousYearId = globalActiveYear.id
 
         setButtonsInContainer(container, button)
         globalActiveYear.id = year.id
@@ -564,6 +638,24 @@ function drawSelectionButtons(config) {
 
       container.appendChild(button)
     })
+  }
+
+  // The years included in the viewer changed (settings menu): redraw the
+  // year buttons, and move on to the nearest year if the selected one is gone.
+  // Called by the listener at the bottom of this file.
+  window.onYearVisibilityChanged = function () {
+    const selectedYearGone = !isYearIncluded(globalActiveYear.id)
+    if (selectedYearGone) {
+      const fallbackYear = nearestIncludedYear(globalActiveYear.id)
+      if (fallbackYear) {
+        globalActiveYear.id = fallbackYear.id
+        globalActiveYear.title = fallbackYear.title
+        window.globalActiveYear = globalActiveYear
+      }
+    }
+    if (!isYearIncluded(previousYearId)) previousYearId = null
+    drawYearButtons()
+    if (selectedYearGone) setScenario()
   }
 
   drawToepassingButtons()
@@ -1157,6 +1249,13 @@ if (typeof dataSource === 'undefined' || dataSource === 'development') {
     }
   })
 }
+
+// Listen for changes of the years included in the viewer and redraw the year buttons
+window.addEventListener('yearVisibilityChanged', function() {
+  if (typeof window.onYearVisibilityChanged === 'function') {
+    window.onYearVisibilityChanged();
+  }
+});
 
 // Listen for scenario visibility changes and redraw buttons
 window.addEventListener('scenarioVisibilityChanged', function() {

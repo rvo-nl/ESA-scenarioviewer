@@ -323,6 +323,11 @@ function exportLinegraphToXLSX(options) {
   // Add worksheet to workbook
   XLSX.utils.book_append_sheet(wb, ws, 'Data')
 
+  // Optional extra sheets, each { name, rows } with rows as an array of arrays
+  ;(options.extraSheets || []).forEach(sheet => {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet.rows), String(sheet.name).slice(0, 31))
+  })
+
   // Generate filename
   const safeTitle = nodeTitle.replace(/[^a-z0-9]/gi, '_')
   const filename = `linegraph_${safeTitle}_${unit}_${new Date().toISOString().slice(0, 10)}.xlsx`
@@ -410,7 +415,7 @@ function copyLinegraphToClipboard(options) {
  * @param {Function} exportFunction - Function to call when button is clicked
  * @param {string} label - Button label text
  */
-function createExportButton(containerId, exportFunction, label = 'Export (XLSX)') {
+function createExportButton(containerId, exportFunction, label = 'Exporteer (xlsx)') {
   const container = document.getElementById(containerId)
   if (!container) {
     console.warn(`Container ${containerId} not found`)
@@ -482,7 +487,7 @@ function initializeSankeyExportButton() {
 
         if (!sankeyData || !sankeyData.links || !sankeyData.nodes) {
           console.error('No sankey data available for export. Available keys:', Object.keys(sankeyDataObjects))
-          alert('No sankey data available for export')
+          alert('Geen sankeydata beschikbaar om te exporteren')
           return null
         }
 
@@ -529,10 +534,13 @@ function initializeSankeyExportButton() {
       // Create the export button
       const exportButton = document.createElement('button')
       exportButton.id = 'sankeyExportButton'
-      exportButton.textContent = 'Export data (xlsx)'
-      exportButton.style.width = '100px'
+      exportButton.textContent = 'Exporteer data (xlsx)'
+      // As wide as its label, with the same padding on both sides
+      exportButton.style.width = 'auto'
+      exportButton.style.flex = 'none'
+      exportButton.style.whiteSpace = 'nowrap'
       exportButton.style.height = '26px'
-      exportButton.style.padding = '0'
+      exportButton.style.padding = '0 10px'
       exportButton.style.fontSize = '11px'
       exportButton.style.fontWeight = '400'
       exportButton.style.fontFamily = 'Arial, sans-serif'
@@ -562,10 +570,13 @@ function initializeSankeyExportButton() {
       // Create the copy button
       const copyButton = document.createElement('button')
       copyButton.id = 'sankeyCopyButton'
-      copyButton.textContent = 'Copy data to clipboard'
-      copyButton.style.width = '130px'
+      copyButton.textContent = 'Kopieer data naar klembord'
+      // As wide as its label, with the same padding on both sides
+      copyButton.style.width = 'auto'
+      copyButton.style.flex = 'none'
+      copyButton.style.whiteSpace = 'nowrap'
       copyButton.style.height = '26px'
-      copyButton.style.padding = '0'
+      copyButton.style.padding = '0 10px'
       copyButton.style.fontSize = '11px'
       copyButton.style.fontWeight = '400'
       copyButton.style.fontFamily = 'Arial, sans-serif'
@@ -595,10 +606,13 @@ function initializeSankeyExportButton() {
       // Create the flux export button
       const fluxButton = document.createElement('button')
       fluxButton.id = 'sankeyFluxButton'
-      fluxButton.textContent = 'Export fluxfile (xlsx)'
-      fluxButton.style.width = '110px'
+      fluxButton.textContent = 'Exporteer fluxbestand (xlsx)'
+      // As wide as its label, with the same padding on both sides
+      fluxButton.style.width = 'auto'
+      fluxButton.style.flex = 'none'
+      fluxButton.style.whiteSpace = 'nowrap'
       fluxButton.style.height = '26px'
-      fluxButton.style.padding = '0'
+      fluxButton.style.padding = '0 10px'
       fluxButton.style.fontSize = '11px'
       fluxButton.style.fontWeight = '400'
       fluxButton.style.fontFamily = 'Arial, sans-serif'

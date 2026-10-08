@@ -306,7 +306,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     .style('font-size', '20px')
     .style('font-weight', 600)
     .style('fill', '#222')
-    .text(`Node: ${nodeTitle}`)
+    .text(`Knooppunt: ${nodeTitle}`)
 
   canvas.append('text')
     .attr('x', 50)
@@ -330,7 +330,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
       .style('font-size', '11px')
       .style('font-weight', 400)
       .style('fill', '#888')
-      .text(`Scenario: ${scenarioText} | Year: ${yearText}`)
+      .text(`Scenario: ${scenarioText} | Jaar: ${yearText}`)
   }
 
   // Get mapping info (will be displayed at the bottom)
@@ -399,12 +399,12 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     .style('font-size', '12px')
     .style('font-weight', '400')
     .style('pointer-events', 'none')
-    .text('Export data (xlsx)')
+    .text('Exporteer data (xlsx)')
 
   /* ----------  COPY TO CLIPBOARD BUTTON  ---------- */
-  const COPY_WIDTH = 140
+  const COPY_WIDTH = 170
   const COPY_HEIGHT = 28
-  const COPY_X = popupWidth - 350
+  const COPY_X = popupWidth - 380
   const COPY_Y = 30
 
   const copyGroup = canvas.append('g')
@@ -438,7 +438,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     .style('font-size', '12px')
     .style('font-weight', '400')
     .style('pointer-events', 'none')
-    .text('Copy data to clipboard')
+    .text('Kopieer data naar klembord')
 
   /* ----------  TAB SYSTEM  ---------- */
   const TAB_Y = 110
@@ -454,7 +454,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     const year = typeof globalActiveYear !== 'undefined' ? globalActiveYear?.id : null
 
     if (!scenarioId || !year) {
-      return 'Flow Details'
+      return 'Details stromen'
     }
 
     // Get scenario title from viewerConfig
@@ -581,7 +581,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     .style('font-size', '13px')
     .style('font-weight', 600)
     .style('fill', '#444')
-    .text(`Incoming Flows (${incomingData.length})`)
+    .text(`Inkomende stromen (${incomingData.length})`)
 
   if (incomingData.length > 0) {
     drawStackedBarChart(flowDetailsGroup, incomingData, leftChartX, chartTop + 20, chartWidth, chartHeight - 40, getValue, getUnit, 'incoming')
@@ -592,7 +592,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
       .attr('text-anchor', 'middle')
       .style('font-size', '13px')
       .style('fill', '#999')
-      .text('No incoming flows')
+      .text('Geen inkomende stromen')
   }
 
   /* ----------  OUTGOING FLOWS (RIGHT SIDE)  ---------- */
@@ -602,7 +602,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     .style('font-size', '13px')
     .style('font-weight', 600)
     .style('fill', '#444')
-    .text(`Outgoing Flows (${outgoingData.length})`)
+    .text(`Uitgaande stromen (${outgoingData.length})`)
 
   if (outgoingData.length > 0) {
     drawStackedBarChart(flowDetailsGroup, outgoingData, rightChartX, chartTop + 20, chartWidth, chartHeight - 40, getValue, getUnit, 'outgoing')
@@ -613,7 +613,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
       .attr('text-anchor', 'middle')
       .style('font-size', '13px')
       .style('fill', '#999')
-      .text('No outgoing flows')
+      .text('Geen uitgaande stromen')
   }
 
   /* ----------  TABLES  ---------- */
@@ -624,7 +624,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     .style('font-size', '12px')
     .style('font-weight', 600)
     .style('fill', '#444')
-    .text('Incoming Flow Details')
+    .text('Details inkomende stromen')
 
   drawFlowTable(flowDetailsHtmlContainer, incomingData, leftChartX, tableTop + 15, chartWidth, tableHeight - 30, getValue, getUnit, true)
 
@@ -635,7 +635,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     .style('font-size', '12px')
     .style('font-weight', 600)
     .style('fill', '#444')
-    .text('Outgoing Flow Details')
+    .text('Details uitgaande stromen')
 
   drawFlowTable(flowDetailsHtmlContainer, outgoingData, rightChartX, tableTop + 15, chartWidth, tableHeight - 30, getValue, getUnit, false)
 
@@ -654,7 +654,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
       .style('font-size', '10px')
       .style('font-weight', 500)
       .style('fill', '#333')
-      .text(`Mapped assets (${mappingInfo.modelType.toUpperCase()}, ${mappingInfo.assets.length}) (scrollable):`)
+      .text(`Gekoppelde assets (${mappingInfo.modelType.toUpperCase()}, ${mappingInfo.assets.length}) (scrolbaar):`)
 
     // Display assets in a scrollable div using foreignObject
     const assetsText = mappingInfo.assets.join(', ')
@@ -819,6 +819,9 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
       .filter(year => year !== null)
   )].sort((a, b) => a - b)
     .filter(year => {
+      // Years switched off in the settings menu (cog wheel) are left out
+      const settings = window.ScenarioSettings
+      if (settings && typeof settings.isYearVisible === 'function' && !settings.isYearVisible(year)) return false
       if (typeof viewerConfig !== 'undefined' && viewerConfig && viewerConfig.years) {
         const configYears = viewerConfig.years.map(y => parseInt(y.id))
         return configYears.includes(year)
@@ -885,7 +888,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     .style('font-size', '13px')
     .style('font-weight', 600)
     .style('fill', '#444')
-    .text('Flow Trends Across Scenarios')
+    .text('Stromen in alle scenario\'s')
 
   // Incoming/Outgoing toggle
   const toggleGroup = lineGraphGroup.append('g')
@@ -918,7 +921,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     .style('font-size', '11px')
     .style('fill', '#444')
     .style('pointer-events', 'none')
-    .text('Incoming')
+    .text('Inkomend')
 
   toggleGroup.append('text')
     .attr('x', toggleWidth * 3 / 4)
@@ -927,7 +930,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     .style('font-size', '11px')
     .style('fill', '#444')
     .style('pointer-events', 'none')
-    .text('Outgoing')
+    .text('Uitgaand')
 
   toggleGroup.append('rect')
     .attr('width', toggleWidth)
@@ -983,7 +986,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     .attr('y', -15)
     .style('font-size', '12px')
     .style('font-weight', 'bold')
-    .text('Scenarios')
+    .text('Scenario\'s')
 
   // Select All button
   const selectAllBtn = legendGroup.append('g')
@@ -1012,7 +1015,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     .style('font-size', '10px')
     .style('fill', '#444')
     .style('pointer-events', 'none')
-    .text('Select All')
+    .text('Alles tonen')
 
   // Deselect All button
   const deselectAllBtn = legendGroup.append('g')
@@ -1025,7 +1028,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     })
 
   deselectAllBtn.append('rect')
-    .attr('width', 80)
+    .attr('width', 96)
     .attr('height', 20)
     .attr('rx', 3)
     .attr('fill', '#f5f5f5')
@@ -1035,13 +1038,13 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
     .on('mouseout', function() { d3.select(this).attr('fill', '#f5f5f5') })
 
   deselectAllBtn.append('text')
-    .attr('x', 40)
+    .attr('x', 48)
     .attr('y', 14)
     .attr('text-anchor', 'middle')
     .style('font-size', '10px')
     .style('fill', '#444')
     .style('pointer-events', 'none')
-    .text('Deselect All')
+    .text('Alles verbergen')
 
   // Create legend items
   const itemsPerColumn = Math.ceil(varianten.length / 3)
@@ -1178,7 +1181,7 @@ async function drawNodeFlowPopup(node, sankeyData, config) {
       .attr('text-anchor', 'middle')
       .style('font-size', '10px')
       .style('fill', '#666')
-      .text(unit === 'TWh' ? 'TWh/year' : 'PJ/year')
+      .text(unit === 'TWh' ? 'TWh/jaar' : 'PJ/jaar')
 
     // Draw x-axis
     xAxisGroup.selectAll('*').remove()
@@ -1445,7 +1448,7 @@ function drawStackedBarChart(canvas, data, x, y, width, height, getValue, getUni
       .style('font-size', '11px')
       .style('fill', '#999')
       .style('font-style', 'italic')
-      .text(`... and ${data.length - maxBars} more (see table below)`)
+      .text(`... en nog ${data.length - maxBars} (zie tabel hieronder)`)
   }
 
   // Total line
@@ -1463,7 +1466,7 @@ function drawStackedBarChart(canvas, data, x, y, width, height, getValue, getUni
     .attr('text-anchor', 'end')
     .style('font-size', '11px')
     .style('fill', '#666')
-    .text(`Total: ${formatValue(total)} ${getUnit(data[0]?.legend || '')}`)
+    .text(`Totaal: ${formatValue(total)} ${getUnit(data[0]?.legend || '')}`)
 }
 
 /**
@@ -1489,7 +1492,7 @@ function drawFlowTable(container, data, x, y, width, height, getValue, getUnit, 
       .style('text-align', 'center')
       .style('color', '#999')
       .style('font-size', '12px')
-      .text('No flows')
+      .text('Geen stromen')
     return
   }
 
@@ -1506,8 +1509,8 @@ function drawFlowTable(container, data, x, y, width, height, getValue, getUnit, 
     .style('top', '0')
 
   const headers = isIncoming
-    ? ['Source', 'ID', 'Carrier', 'Value', 'Unit']
-    : ['Target', 'ID', 'Carrier', 'Value', 'Unit']
+    ? ['Bron', 'ID', 'Drager', 'Waarde', 'Eenheid']
+    : ['Bestemming', 'ID', 'Drager', 'Waarde', 'Eenheid']
 
   headers.forEach(h => {
     headerRow.append('th')
@@ -1596,7 +1599,7 @@ function drawFlowTable(container, data, x, y, width, height, getValue, getUnit, 
   totalRow.append('td')
     .style('padding', '8px 6px')
     .style('border-top', '2px solid #ddd')
-    .text('Total')
+    .text('Totaal')
 
   totalRow.append('td')
     .style('padding', '8px 6px')

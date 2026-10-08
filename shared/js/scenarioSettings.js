@@ -6,10 +6,16 @@
 
   const STORAGE_KEY = 'scenarioVisibilitySettings';
   const SECTION_STORAGE_KEY = 'sectionVisibilitySettings';
+  const YEAR_STORAGE_KEY = 'yearVisibilitySettings';
 
   let visibilitySettings = {};
   let scenarioGroups = {};
   let allScenarios = [];
+
+  // Year visibility: the years of viewer-config.json, each shown unless
+  // switched off here
+  let allYears = [];
+  let yearVisibility = {};
 
   // Section visibility, in page order
   const SECTIONS = [
@@ -71,10 +77,12 @@
       console.warn('Failed to load section settings:', e);
       sectionVisibility = {};
     }
-    // Initialize defaults for any missing sections
+    // Initialize defaults for any missing sections: visible, unless the
+    // viewer's page marks the section with data-default-hidden
     SECTIONS.forEach(s => {
       if (sectionVisibility[s.id] === undefined) {
-        sectionVisibility[s.id] = true;
+        const el = document.getElementById(s.id);
+        sectionVisibility[s.id] = !(el && el.hasAttribute('data-default-hidden'));
       }
     });
   }
@@ -167,6 +175,7 @@
     if (!config || !config.scenarios) return;
 
     allScenarios = config.scenarios;
+    allYears = config.years || [];
     scenarioGroups = {};
 
     // Group scenarios by scenarioGroup
@@ -261,24 +270,97 @@
     return visibilitySettings[groupKey] !== false;
   }
 
+  // Load year settings from localStorage
+  function loadYearSettings() {
+    try {
+      const stored = localStorage.getItem(YEAR_STORAGE_KEY);
+      if (stored) {
+        yearVisibility = JSON.parse(stored) || {};
+      }
+    } catch (e) {
+      console.warn('Failed to load year settings:', e);
+      yearVisibility = {};
+    }
+  }
+
+  // Save year settings to localStorage
+  function saveYearSettings() {
+    try {
+      localStorage.setItem(YEAR_STORAGE_KEY, JSON.stringify(yearVisibility));
+    } catch (e) {
+      console.warn('Failed to save year settings:', e);
+    }
+  }
+
+  // Check if a year is included in the viewer
+  function isYearVisible(yearId) {
+    return yearVisibility[String(yearId)] !== false;
+  }
+
+  // Get the years that are included in the viewer
+  function getVisibleYears() {
+    return allYears.filter(y => isYearVisible(y.id));
+  }
+
+  // Show or hide a set of years in one go; at least one year stays visible
+  function setYearsVisible(isVisible) {
+    const next = {};
+    allYears.forEach(y => { next[String(y.id)] = !!isVisible(y); });
+    if (allYears.length && !allYears.some(y => next[String(y.id)])) return;
+    Object.assign(yearVisibility, next);
+    saveYearSettings();
+    notifyYearChange();
+  }
+
+  // Toggle a year; the last visible year cannot be switched off
+  function toggleYear(yearId) {
+    const key = String(yearId);
+    setYearsVisible(y => String(y.id) === key ? !isYearVisible(key) : isYearVisible(y.id));
+  }
+
+  // Notify other components of year visibility changes
+  function notifyYearChange() {
+    window.dispatchEvent(new CustomEvent('yearVisibilityChanged', {
+      detail: { visibleYears: getVisibleYears() }
+    }));
+  }
+
+  // Distance of the cog wheel buttons from the right edge of their bar (px)
+  const COG_RIGHT = 15;
+
   // Create settings button and replace top-right label
   function createSettingsButton() {
     const topRightLabel = document.getElementById('topRightLabel');
-    if (!topRightLabel) return;
+    if (topRightLabel) {
+      // Clear existing content
+      topRightLabel.innerHTML = '';
+      topRightLabel.style.cssText = 'float: right; cursor: pointer;';
+      topRightLabel.appendChild(createCogButton(`margin: 10px ${COG_RIGHT}px 0 0;`));
+    }
 
-    // Clear existing content
-    topRightLabel.innerHTML = '';
-    topRightLabel.style.cssText = 'float: right; cursor: pointer;';
+    // A second button at the top right of the menu bar, so the settings stay
+    // within reach when the menu sticks while scrolling. Same size and same
+    // distance from the right edge as the one above, so the two line up.
+    const menu = document.getElementById('menuContainer');
+    if (menu && !document.getElementById('menuSettingsButton')) {
+      if (getComputedStyle(menu).position === 'static') menu.style.position = 'relative';
+      const menuBtn = createCogButton(`position: absolute; top: 4px; right: ${COG_RIGHT}px; z-index: 21; margin: 0;`);
+      menuBtn.id = 'menuSettingsButton';
+      menu.appendChild(menuBtn);
+    }
+  }
 
-    // Create settings icon button with cog wheel icon
+  // Settings icon button with cog wheel icon
+  function createCogButton(extraStyle) {
     const settingsBtn = document.createElement('button');
+    settingsBtn.type = 'button';
     settingsBtn.innerHTML = `
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
         <circle cx="12" cy="12" r="3"></circle>
       </svg>
     `;
-    settingsBtn.title = 'Scenario Settings';
+    settingsBtn.title = 'Instellingen';
     settingsBtn.style.cssText = `
       background: transparent;
       border: none;
@@ -289,8 +371,8 @@
       justify-content: center;
       color: white;
       transition: opacity 0.2s;
-      margin: 10px 15px 0 0;
       opacity: 0.9;
+      ${extraStyle}
     `;
 
     settingsBtn.addEventListener('mouseenter', function() {
@@ -303,744 +385,317 @@
 
     settingsBtn.addEventListener('click', openSettingsPopup);
 
-    topRightLabel.appendChild(settingsBtn);
+    return settingsBtn;
   }
+
+  // Show or hide one scenario. A scenario of a group that is switched off as
+  // a whole comes back on its own, without the rest of its group.
+  function setScenarioShown(scenario, shown) {
+    const groupName = scenario.scenarioGroup || 'Ungrouped';
+    if (shown && !isGroupVisible(groupName)) {
+      (scenarioGroups[groupName] || []).forEach(s => { visibilitySettings[s.id] = false; });
+      visibilitySettings[`group:${groupName}`] = true;
+    }
+    visibilitySettings[scenario.id] = shown;
+    saveSettings();
+  }
+
+  // Show or hide all scenarios of a group
+  function setGroupShown(groupName, shown) {
+    visibilitySettings[`group:${groupName}`] = shown;
+    if (shown) {
+      (scenarioGroups[groupName] || []).forEach(s => { visibilitySettings[s.id] = true; });
+    }
+    saveSettings();
+  }
+
+  // Styles of the settings popup. Scoped to its id, which also outranks the
+  // viewer's base stylesheet (Milligram) for buttons. Sizes are in px: the
+  // viewers set the root font size to 62.5%.
+  function injectSettingsStyles() {
+    if (document.getElementById('fst-styles')) return;
+    const INK = { text: '#2B2B2B', muted: '#8A857D', faint: '#A39D93', line: '#DCD7CF', panel: '#F5F3EF', hover: '#EAE6E0' };
+    const style = document.createElement('style');
+    style.id = 'fst-styles';
+    style.textContent = `
+#scenario-settings-popup{position:fixed;top:0;right:0;bottom:0;left:0;z-index:10000;display:flex;align-items:center;
+  justify-content:center;background:rgba(30,28,25,.42)}
+#scenario-settings-popup *{box-sizing:border-box}
+#scenario-settings-popup .fst-panel{display:flex;flex-direction:column;width:880px;max-width:calc(100vw - 48px);
+  max-height:calc(100vh - 48px);background:${INK.panel};border-radius:12px;overflow:hidden;color:${INK.text};
+  font-size:13px;line-height:1.4;text-align:left}
+#scenario-settings-popup button{margin:0;height:auto;min-height:0;padding:6px 11px;font:inherit;font-size:12px;
+  font-weight:400;line-height:1.3;letter-spacing:normal;text-transform:none;text-decoration:none;white-space:nowrap;
+  color:${INK.text};background:#fff;border:1px solid transparent;border-radius:3px;box-shadow:none;cursor:pointer;
+  transition:background .15s ease,color .15s ease,border-color .15s ease,box-shadow .15s ease}
+#scenario-settings-popup button:hover,#scenario-settings-popup button:focus{color:${INK.text};background:#fff;
+  border-color:transparent;outline:none}
+#scenario-settings-popup button:focus-visible{outline:2px solid ${INK.muted};outline-offset:2px}
+
+#scenario-settings-popup .fst-head{display:flex;align-items:flex-start;justify-content:space-between;gap:32px;
+  flex:none;padding:28px 36px 0}
+#scenario-settings-popup .fst-title{font-size:20px;font-weight:600;line-height:1.25;letter-spacing:-.2px}
+#scenario-settings-popup .fst-sub{margin-top:6px;font-size:12px;color:${INK.muted}}
+#scenario-settings-popup button.fst-close{display:inline-flex;align-items:center;justify-content:center;flex:none;
+  width:30px;height:30px;padding:0;background:none;color:${INK.muted}}
+#scenario-settings-popup button.fst-close:hover,#scenario-settings-popup button.fst-close:focus{background:${INK.hover};
+  color:${INK.text}}
+
+#scenario-settings-popup .fst-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:4px 36px 24px}
+#scenario-settings-popup .fst-block{padding-top:24px}
+#scenario-settings-popup .fst-block-head{display:flex;align-items:center;gap:6px;min-height:26px;margin-bottom:8px}
+#scenario-settings-popup .fst-block-title{font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
+  color:${INK.muted}}
+#scenario-settings-popup .fst-count{margin:0 10px 0 2px;font-size:12px;color:#C6C0B6;font-variant-numeric:tabular-nums}
+#scenario-settings-popup .fst-spacer{flex:1}
+#scenario-settings-popup button.fst-link{padding:5px 8px;background:none;color:${INK.muted}}
+#scenario-settings-popup button.fst-link:hover,#scenario-settings-popup button.fst-link:focus{background:${INK.hover};
+  color:${INK.text}}
+
+/* A chip is a switch: filled when shown, an outline when hidden - like the
+   available and unavailable buttons in the viewer's menu */
+#scenario-settings-popup .fst-chips{display:flex;flex-wrap:wrap;gap:6px}
+#scenario-settings-popup button.fst-chip{background:var(--fst-chip,#fff);font-variant-numeric:tabular-nums}
+#scenario-settings-popup button.fst-chip:hover,#scenario-settings-popup button.fst-chip:focus{
+  background:var(--fst-chip,#fff);box-shadow:inset 0 0 0 1px rgba(43,43,43,.28)}
+#scenario-settings-popup button.fst-chip.is-off{background:transparent;border-color:${INK.line};color:${INK.faint}}
+#scenario-settings-popup button.fst-chip.is-off:hover,#scenario-settings-popup button.fst-chip.is-off:focus{
+  background:transparent;border-color:${INK.muted};color:${INK.text};box-shadow:none}
+
+#scenario-settings-popup .fst-group{margin-top:14px}
+#scenario-settings-popup .fst-group:first-child{margin-top:0}
+#scenario-settings-popup button.fst-group-title{display:inline-flex;align-items:baseline;gap:8px;max-width:100%;
+  margin-bottom:5px;padding:2px 0;background:none;font-weight:500}
+#scenario-settings-popup button.fst-group-title:hover,#scenario-settings-popup button.fst-group-title:focus{
+  background:none}
+#scenario-settings-popup button.fst-group-title:hover .fst-group-name{text-decoration:underline;
+  text-decoration-color:#C6C0B6;text-underline-offset:3px}
+#scenario-settings-popup .fst-group-name{overflow:hidden;text-overflow:ellipsis}
+#scenario-settings-popup .fst-group-count{font-weight:400;color:#C6C0B6;font-variant-numeric:tabular-nums}
+
+/* The hairline shows where a longer list scrolls under the footer */
+#scenario-settings-popup .fst-foot{display:flex;justify-content:flex-end;flex:none;margin:0 36px;padding:18px 0 26px;
+  border-top:1px solid #E7E3DC}
+#scenario-settings-popup button.fst-done{padding:8px 24px;background:${INK.text};border-color:${INK.text};color:#fff}
+#scenario-settings-popup button.fst-done:hover,#scenario-settings-popup button.fst-done:focus{background:#4A4A4A;
+  border-color:#4A4A4A;color:#fff}
+`;
+    document.head.appendChild(style);
+  }
+
+  let settingsKeyHandler = null;
 
   // Create settings popup
   function openSettingsPopup() {
     // Remove existing popup if any
     const existingPopup = document.getElementById('scenario-settings-popup');
     if (existingPopup) {
-      existingPopup.remove();
+      closeSettingsPopup();
       return;
     }
 
-    // Track expanded state of groups
-    const expandedGroups = new Set();
+    injectSettingsStyles();
 
-    // Create overlay
-    const overlay = document.createElement('div');
+    const el = (tag, className, text) => {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    };
+
+    // A chip that switches something on or off
+    const chip = (text, isOn, onClick, color) => {
+      const node = el('button', 'fst-chip' + (isOn ? '' : ' is-off'), text);
+      node.type = 'button';
+      node.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+      if (color) node.style.setProperty('--fst-chip', color);
+      node.addEventListener('click', onClick);
+      return node;
+    };
+
+    // A block: a heading with a count and shortcuts, and the chips below
+    const block = (title, links) => {
+      const root = el('div', 'fst-block');
+      const head = el('div', 'fst-block-head');
+      head.appendChild(el('span', 'fst-block-title', title));
+      const count = el('span', 'fst-count');
+      head.appendChild(count);
+      head.appendChild(el('span', 'fst-spacer'));
+      (links || []).forEach(([text, onClick]) => {
+        const link = el('button', 'fst-link', text);
+        link.type = 'button';
+        link.addEventListener('click', onClick);
+        head.appendChild(link);
+      });
+      const content = el('div');
+      root.appendChild(head);
+      root.appendChild(content);
+      return { root, count, content };
+    };
+
+    const overlay = el('div');
     overlay.id = 'scenario-settings-popup';
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.6);
-      z-index: 10000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(2px);
-    `;
+    const panel = el('div', 'fst-panel');
+    overlay.appendChild(panel);
 
-    // Create popup content
-    const popup = document.createElement('div');
-    popup.style.cssText = `
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05);
-      max-width: 1000px;
-      max-height: 85vh;
-      width: 90%;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      position: relative;
-    `;
+    /* ---- header ---- */
+    const head = el('div', 'fst-head');
+    const heading = el('div');
+    heading.appendChild(el('div', 'fst-title', 'Instellingen'));
+    heading.appendChild(el('div', 'fst-sub', 'Kies welke secties, jaren en scenario\'s de viewer toont'));
+    const closeBtn = el('button', 'fst-close');
+    closeBtn.type = 'button';
+    closeBtn.title = 'Sluiten';
+    closeBtn.setAttribute('aria-label', 'Sluiten');
+    closeBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2l10 10M12 2L2 12"/></svg>';
+    closeBtn.addEventListener('click', closeSettingsPopup);
+    head.appendChild(heading);
+    head.appendChild(closeBtn);
+    panel.appendChild(head);
 
-    // Header
-    const header = document.createElement('div');
-    header.style.cssText = `
-      padding: 20px 24px;
-      border-bottom: 1px solid #d8d8d8;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      background: #f0f2f5;
-    `;
+    const body = el('div', 'fst-body');
+    panel.appendChild(body);
 
-    const title = document.createElement('h2');
-    title.textContent = 'Instellingen';
-    title.style.cssText = 'margin: 0; font-size: 18px; font-weight: 600; color: #1a1a1a; letter-spacing: -0.02em;';
-
-    const subtitle = document.createElement('p');
-    subtitle.textContent = 'Selecteer welke secties en scenario\'s je in de viewer wilt tonen';
-    subtitle.style.cssText = 'margin: 0; font-size: 13px; color: #5a5a5a; font-weight: 400;';
-
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '×';
-    closeBtn.style.cssText = `
-      background: transparent;
-      border: none;
-      font-size: 28px;
-      cursor: pointer;
-      color: #888;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 6px;
-      padding: 0;
-      line-height: 1;
-      transition: all 0.15s ease;
-      position: absolute;
-      top: 16px;
-      right: 20px;
-    `;
-
-    closeBtn.addEventListener('mouseenter', function() {
-      this.style.backgroundColor = '#e0e0e0';
-      this.style.color = '#333';
-    });
-    closeBtn.addEventListener('mouseleave', function() {
-      this.style.backgroundColor = 'transparent';
-      this.style.color = '#888';
-    });
-    closeBtn.addEventListener('click', () => overlay.remove());
-
-    header.appendChild(title);
-    header.appendChild(subtitle);
-    popup.appendChild(closeBtn);
-
-    // Content area (scrollable) - two column masonry-like layout
-    const content = document.createElement('div');
-    content.style.cssText = `
-      padding: 16px 24px;
-      overflow-y: auto;
-      flex: 1;
-      background: #fafafa;
-      columns: 2;
-      column-gap: 12px;
-    `;
-
-    // Scenario's title spanning both columns
-    const scenarioSectionTitle = document.createElement('div');
-    scenarioSectionTitle.style.cssText = 'column-span: all; font-size: 13px; font-weight: 600; color: #2c3e50; margin-bottom: 8px;';
-    scenarioSectionTitle.textContent = "Scenario's";
-    content.appendChild(scenarioSectionTitle);
-
-    // Build groups UI
-    const sortedGroups = Object.keys(scenarioGroups).sort();
-    sortedGroups.forEach((groupName, index) => {
-      const groupDiv = document.createElement('div');
-      groupDiv.style.cssText = `
-        margin-bottom: 12px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        overflow: hidden;
-        background: white;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-        break-inside: avoid;
-      `;
-
-      // Group header
-      const groupHeader = document.createElement('div');
-      groupHeader.style.cssText = `
-        padding: 10px 14px;
-        background: linear-gradient(to bottom, #f9fafb 0%, #f5f6f7 100%);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        cursor: pointer;
-        user-select: none;
-        transition: background 0.15s ease;
-      `;
-
-      // Create custom toggle button for group
-      const groupToggleContainer = document.createElement('div');
-      groupToggleContainer.style.cssText = `
-        width: 44px;
-        height: 24px;
-        background: ${isGroupVisible(groupName) ? '#14B8A6' : '#ccc'};
-        border-radius: 12px;
-        position: relative;
-        cursor: pointer;
-        transition: background 0.3s ease;
-        flex-shrink: 0;
-      `;
-
-      const groupToggleCircle = document.createElement('div');
-      groupToggleCircle.style.cssText = `
-        width: 18px;
-        height: 18px;
-        background: white;
-        border-radius: 50%;
-        position: absolute;
-        top: 3px;
-        left: ${isGroupVisible(groupName) ? '23px' : '3px'};
-        transition: left 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      `;
-
-      groupToggleContainer.appendChild(groupToggleCircle);
-
-      groupToggleContainer.addEventListener('click', function(e) {
-        e.stopPropagation();
-        toggleGroup(groupName);
-        refreshPopupContent();
-        notifyScenarioChange();
-      });
-
-      const groupTitle = document.createElement('strong');
-      groupTitle.textContent = groupName;
-      groupTitle.style.cssText = 'flex: 1; font-size: 13px; color: #2c3e50; font-weight: 600; line-height: 1.3;';
-
-      const groupCount = document.createElement('span');
-      const visibleCount = scenarioGroups[groupName].filter(s => isScenarioVisible(s.id)).length;
-      const totalCount = scenarioGroups[groupName].length;
-      groupCount.textContent = `${visibleCount}/${totalCount}`;
-      groupCount.style.cssText = `
-        font-size: 11px;
-        color: #7f8c8d;
-        background: white;
-        padding: 2px 7px;
-        border-radius: 10px;
-        font-weight: 500;
-        border: 1px solid #e0e0e0;
-        flex-shrink: 0;
-      `;
-
-      const expandIcon = document.createElement('span');
-      expandIcon.innerHTML = '▼';
-      expandIcon.style.cssText = 'font-size: 8px; color: #95a5a6; transition: transform 0.2s ease; flex-shrink: 0;';
-
-      groupHeader.appendChild(groupToggleContainer);
-      groupHeader.appendChild(groupTitle);
-      groupHeader.appendChild(groupCount);
-      groupHeader.appendChild(expandIcon);
-
-      // Scenarios list (collapsible)
-      const scenariosList = document.createElement('div');
-      scenariosList.style.cssText = `
-        display: none;
-        padding: 8px 14px;
-        background: #fcfcfc;
-        border-top: 1px solid #ececec;
-      `;
-
-      scenarioGroups[groupName].forEach((scenario, idx) => {
-        const scenarioDiv = document.createElement('div');
-        scenarioDiv.style.cssText = `
-          padding: 7px 10px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding-left: 26px;
-          border-radius: 5px;
-          transition: background 0.15s ease;
-          ${idx > 0 ? 'border-top: 1px solid #f0f0f0;' : ''}
-        `;
-        scenarioDiv.addEventListener('mouseenter', function() {
-          if (isGroupVisible(groupName)) {
-            this.style.background = '#f5f7fa';
-          }
-        });
-        scenarioDiv.addEventListener('mouseleave', function() {
-          this.style.background = 'transparent';
-        });
-
-        // Create custom toggle button for scenario
-        const isScenarioChecked = visibilitySettings[scenario.id] !== false;
-        const isEnabled = isGroupVisible(groupName);
-
-        const scenarioToggleContainer = document.createElement('div');
-        scenarioToggleContainer.style.cssText = `
-          width: 44px;
-          height: 24px;
-          background: ${isScenarioChecked && isEnabled ? '#14B8A6' : '#ccc'};
-          border-radius: 12px;
-          position: relative;
-          cursor: pointer;
-          transition: background 0.3s ease;
-          flex-shrink: 0;
-        `;
-
-        const scenarioToggleCircle = document.createElement('div');
-        scenarioToggleCircle.style.cssText = `
-          width: 18px;
-          height: 18px;
-          background: white;
-          border-radius: 50%;
-          position: absolute;
-          top: 3px;
-          left: ${isScenarioChecked ? '23px' : '3px'};
-          transition: left 0.3s ease;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        `;
-
-        scenarioToggleContainer.appendChild(scenarioToggleCircle);
-
-        scenarioToggleContainer.addEventListener('click', function() {
-          toggleScenario(scenario.id);
-          refreshPopupContent();
-          notifyScenarioChange();
-        });
-
-        const scenarioLabel = document.createElement('label');
-        scenarioLabel.textContent = scenario.title;
-        scenarioLabel.style.cssText = `
-          font-size: 12px;
-          color: #34495e;
-          cursor: pointer;
-          user-select: none;
-          flex: 1;
-          line-height: 1.3;
-        `;
-        scenarioLabel.addEventListener('click', function() {
-          toggleScenario(scenario.id);
-          refreshPopupContent();
-          notifyScenarioChange();
-        });
-
-        scenarioDiv.appendChild(scenarioToggleContainer);
-        scenarioDiv.appendChild(scenarioLabel);
-        scenariosList.appendChild(scenarioDiv);
-      });
-
-      // Toggle expand/collapse
-      groupHeader.addEventListener('click', function(e) {
-        if (e.target === groupToggleContainer || groupToggleContainer.contains(e.target)) return;
-        if (expandedGroups.has(groupName)) {
-          expandedGroups.delete(groupName);
-          scenariosList.style.display = 'none';
-          expandIcon.style.transform = 'rotate(0deg)';
-        } else {
-          expandedGroups.add(groupName);
-          scenariosList.style.display = 'block';
-          expandIcon.style.transform = 'rotate(-180deg)';
-        }
-      });
-
-      groupDiv.appendChild(groupHeader);
-      groupDiv.appendChild(scenariosList);
-      content.appendChild(groupDiv);
-    });
-
-    // Footer with action buttons
-    const footer = document.createElement('div');
-    footer.style.cssText = `
-      padding: 14px 24px;
-      border-top: 1px solid #e8e8e8;
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-      background: white;
-    `;
-
-    const showAllBtn = document.createElement('button');
-    showAllBtn.textContent = 'Alles tonen';
-    showAllBtn.style.cssText = `
-      padding: 8px 16px;
-      background: white;
-      border: 1px solid #d0d7de;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      color: #24292f;
-      transition: all 0.15s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-    `;
-    showAllBtn.addEventListener('mouseenter', function() {
-      this.style.background = '#f6f8fa';
-      this.style.borderColor = '#bcc5cf';
-    });
-    showAllBtn.addEventListener('mouseleave', function() {
-      this.style.background = 'white';
-      this.style.borderColor = '#d0d7de';
-    });
-    showAllBtn.addEventListener('click', function() {
-      Object.keys(scenarioGroups).forEach(g => setGroupVisibility(g, true));
-      allScenarios.forEach(s => setScenarioVisibility(s.id, true));
-      refreshPopupContent();
-      notifyScenarioChange();
-    });
-
-    const hideAllBtn = document.createElement('button');
-    hideAllBtn.textContent = 'Alles verbergen';
-    hideAllBtn.style.cssText = `
-      padding: 8px 16px;
-      background: white;
-      border: 1px solid #d0d7de;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      color: #24292f;
-      transition: all 0.15s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-    `;
-    hideAllBtn.addEventListener('mouseenter', function() {
-      this.style.background = '#f6f8fa';
-      this.style.borderColor = '#bcc5cf';
-    });
-    hideAllBtn.addEventListener('mouseleave', function() {
-      this.style.background = 'white';
-      this.style.borderColor = '#d0d7de';
-    });
-    hideAllBtn.addEventListener('click', function() {
-      Object.keys(scenarioGroups).forEach(g => setGroupVisibility(g, false));
-      allScenarios.forEach(s => setScenarioVisibility(s.id, false));
-      refreshPopupContent();
-      notifyScenarioChange();
-    });
-
-    const doneBtn = document.createElement('button');
-    doneBtn.textContent = 'Done';
-    doneBtn.style.cssText = `
-      padding: 8px 20px;
-      background: #0969da;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      transition: background 0.15s ease;
-      box-shadow: 0 1px 3px rgba(9, 105, 218, 0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-    `;
-    doneBtn.addEventListener('mouseenter', function() {
-      this.style.background = '#0860ca';
-    });
-    doneBtn.addEventListener('mouseleave', function() {
-      this.style.background = '#0969da';
-    });
-    doneBtn.addEventListener('click', () => {
-      // Check if current scenario is still visible
-      if (typeof window.globalActiveScenario !== 'undefined' && window.globalActiveScenario && window.globalActiveScenario.id) {
-        if (!isScenarioVisible(window.globalActiveScenario.id)) {
-          // Current scenario is hidden, select first visible scenario
-          const visibleScenarios = getVisibleScenarios();
-          if (visibleScenarios.length > 0) {
-            window.globalActiveScenario.id = visibleScenarios[0].id;
-            window.globalActiveScenario.title = visibleScenarios[0].title;
-            // Trigger a final update to refresh the viewer with the new scenario
-            notifyScenarioChange();
-          }
-        }
-      }
-      overlay.remove();
-    });
-
-    footer.appendChild(showAllBtn);
-    footer.appendChild(hideAllBtn);
-    footer.appendChild(doneBtn);
-
-    // Section toggles panel
-    const sectionPanel = document.createElement('div');
-    sectionPanel.style.cssText = `
-      padding: 16px 24px;
-      border-bottom: 1px solid #d8d8d8;
-      background: #fafafa;
-    `;
-
-    const sectionTitle = document.createElement('div');
-    sectionTitle.style.cssText = 'font-size: 13px; font-weight: 600; color: #2c3e50; margin-bottom: 10px;';
-    sectionTitle.textContent = 'Secties';
-    sectionPanel.appendChild(sectionTitle);
-
-    const sectionGrid = document.createElement('div');
-    sectionGrid.id = 'section-toggles-grid';
-    sectionGrid.style.cssText = `
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    `;
+    /* ---- sections ---- */
+    const sections = block('Secties');
+    sections.content.className = 'fst-chips';
+    sections.content.id = 'section-toggles-grid';
 
     function buildSectionToggles() {
-      sectionGrid.innerHTML = '';
-      SECTIONS.filter(isSectionAvailable).forEach(section => {
-        const visible = isSectionVisible(section.id);
-        const item = document.createElement('div');
-        item.style.cssText = `
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 8px 12px;
-          background: white;
-          border: 1px solid #e0e0e0;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: background 0.15s ease;
-        `;
-        item.addEventListener('mouseenter', function() { this.style.background = '#f5f7fa'; });
-        item.addEventListener('mouseleave', function() { this.style.background = 'white'; });
-
-        const toggle = document.createElement('div');
-        toggle.style.cssText = `
-          width: 44px;
-          height: 24px;
-          background: ${visible ? '#3B82F6' : '#ccc'};
-          border-radius: 12px;
-          position: relative;
-          transition: background 0.3s ease;
-          flex-shrink: 0;
-        `;
-
-        const circle = document.createElement('div');
-        circle.style.cssText = `
-          width: 18px;
-          height: 18px;
-          background: white;
-          border-radius: 50%;
-          position: absolute;
-          top: 3px;
-          left: ${visible ? '23px' : '3px'};
-          transition: left 0.3s ease;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        `;
-        toggle.appendChild(circle);
-
-        const label = document.createElement('span');
-        label.textContent = section.label;
-        label.style.cssText = 'font-size: 12px; color: #34495e; user-select: none;';
-
-        item.appendChild(toggle);
-        item.appendChild(label);
-
-        item.addEventListener('click', function() {
+      const available = SECTIONS.filter(isSectionAvailable);
+      sections.content.innerHTML = '';
+      sections.count.textContent = `${available.filter(s => isSectionVisible(s.id)).length} / ${available.length}`;
+      available.forEach(section => {
+        sections.content.appendChild(chip(section.label, isSectionVisible(section.id), () => {
           toggleSection(section.id);
           buildSectionToggles();
-        });
+        }));
+      });
+    }
+    buildSectionToggles();
+    body.appendChild(sections.root);
 
-        sectionGrid.appendChild(item);
+    /* ---- years ---- */
+    const years = block('Jaren', [
+      ['Alle jaren', () => { setYearsVisible(() => true); buildYearToggles(); }],
+      ['Elke 5 jaar', () => { setYearsVisible(y => parseInt(y.id) % 5 === 0); buildYearToggles(); }]
+    ]);
+    years.content.className = 'fst-chips';
+    years.content.id = 'year-toggles-grid';
+
+    function buildYearToggles() {
+      years.content.innerHTML = '';
+      years.count.textContent = `${getVisibleYears().length} / ${allYears.length}`;
+      allYears.forEach(year => {
+        years.content.appendChild(chip(year.title || year.id, isYearVisible(year.id), () => {
+          toggleYear(year.id);
+          buildYearToggles();
+        }));
+      });
+    }
+    buildYearToggles();
+    if (allYears.length > 1) body.appendChild(years.root);
+
+    /* ---- scenarios, per study ---- */
+    const scenarios = block('Scenario\'s', [
+      ['Alles tonen', () => {
+        Object.keys(scenarioGroups).forEach(groupName => setGroupShown(groupName, true));
+        scenariosChanged();
+      }],
+      ['Alles verbergen', () => {
+        Object.keys(scenarioGroups).forEach(groupName => setGroupShown(groupName, false));
+        scenariosChanged();
+      }]
+    ]);
+
+    // Scenario chips take the colour their buttons have in the viewer's menu
+    const scenarioColor = scenario => {
+      const colors = (typeof viewerConfig !== 'undefined' && viewerConfig && viewerConfig.colors) || {};
+      return colors[scenario.colorGroup] || '#fff';
+    };
+
+    function buildScenarioToggles() {
+      scenarios.content.innerHTML = '';
+      scenarios.count.textContent = `${getVisibleScenarios().length} / ${allScenarios.length}`;
+      Object.keys(scenarioGroups).forEach(groupName => {
+        const members = scenarioGroups[groupName];
+        const shownCount = members.filter(s => isScenarioVisible(s.id)).length;
+        const group = el('div', 'fst-group');
+
+        // The group's title switches the whole group
+        const title = el('button', 'fst-group-title');
+        title.type = 'button';
+        title.title = shownCount === members.length ? 'Klik om deze studie te verbergen' : 'Klik om deze studie te tonen';
+        title.appendChild(el('span', 'fst-group-name', groupName === 'Ungrouped' ? 'Overig' : groupName));
+        title.appendChild(el('span', 'fst-group-count', `${shownCount} / ${members.length}`));
+        title.addEventListener('click', () => {
+          setGroupShown(groupName, shownCount !== members.length);
+          scenariosChanged();
+        });
+        group.appendChild(title);
+
+        const chips = el('div', 'fst-chips');
+        members.forEach(scenario => {
+          const shown = isScenarioVisible(scenario.id);
+          chips.appendChild(chip(scenario.title, shown, () => {
+            setScenarioShown(scenario, !shown);
+            scenariosChanged();
+          }, scenarioColor(scenario)));
+        });
+        group.appendChild(chips);
+        scenarios.content.appendChild(group);
       });
     }
 
-    buildSectionToggles();
-    sectionPanel.appendChild(sectionGrid);
+    function scenariosChanged() {
+      buildScenarioToggles();
+      notifyScenarioChange();
+    }
 
-    popup.appendChild(header);
-    popup.appendChild(sectionPanel);
-    popup.appendChild(content);
-    popup.appendChild(footer);
-    overlay.appendChild(popup);
+    buildScenarioToggles();
+    body.appendChild(scenarios.root);
+
+    /* ---- footer ---- */
+    const foot = el('div', 'fst-foot');
+    const doneBtn = el('button', 'fst-done', 'Klaar');
+    doneBtn.type = 'button';
+    doneBtn.addEventListener('click', closeSettingsPopup);
+    foot.appendChild(doneBtn);
+    panel.appendChild(foot);
+
     document.body.appendChild(overlay);
 
-    // Close on overlay click
+    // Close on overlay click and on Escape
     overlay.addEventListener('click', function(e) {
-      if (e.target === overlay) {
-        overlay.remove();
-      }
+      if (e.target === overlay) closeSettingsPopup();
     });
+    settingsKeyHandler = e => { if (e.key === 'Escape') closeSettingsPopup(); };
+    document.addEventListener('keydown', settingsKeyHandler);
+  }
 
-    // Helper to refresh popup content
-    function refreshPopupContent() {
-      content.innerHTML = '';
-      // Re-add Scenario's title
-      const scenarioTitle = document.createElement('div');
-      scenarioTitle.style.cssText = 'column-span: all; font-size: 13px; font-weight: 600; color: #2c3e50; margin-bottom: 8px;';
-      scenarioTitle.textContent = "Scenario's";
-      content.appendChild(scenarioTitle);
-
-      const sortedGroups = Object.keys(scenarioGroups).sort();
-      sortedGroups.forEach((groupName, index) => {
-        const groupDiv = document.createElement('div');
-        groupDiv.style.cssText = `
-          margin-bottom: 12px;
-          border: 1px solid #e0e0e0;
-          border-radius: 8px;
-          overflow: hidden;
-          background: white;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-          break-inside: avoid;
-        `;
-
-        const groupHeader = document.createElement('div');
-        groupHeader.style.cssText = `
-          padding: 10px 14px;
-          background: linear-gradient(to bottom, #f9fafb 0%, #f5f6f7 100%);
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          cursor: pointer;
-          user-select: none;
-          transition: background 0.15s ease;
-        `;
-
-        // Create custom toggle button for group (in refresh)
-        const groupToggleContainer = document.createElement('div');
-        groupToggleContainer.style.cssText = `
-          width: 44px;
-          height: 24px;
-          background: ${isGroupVisible(groupName) ? '#14B8A6' : '#ccc'};
-          border-radius: 12px;
-          position: relative;
-          cursor: pointer;
-          transition: background 0.3s ease;
-          flex-shrink: 0;
-        `;
-
-        const groupToggleCircle = document.createElement('div');
-        groupToggleCircle.style.cssText = `
-          width: 18px;
-          height: 18px;
-          background: white;
-          border-radius: 50%;
-          position: absolute;
-          top: 3px;
-          left: ${isGroupVisible(groupName) ? '23px' : '3px'};
-          transition: left 0.3s ease;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        `;
-
-        groupToggleContainer.appendChild(groupToggleCircle);
-
-        groupToggleContainer.addEventListener('click', function(e) {
-          e.stopPropagation();
-          toggleGroup(groupName);
-          refreshPopupContent();
-          notifyScenarioChange();
-        });
-
-        const groupTitle = document.createElement('strong');
-        groupTitle.textContent = groupName;
-        groupTitle.style.cssText = 'flex: 1; font-size: 13px; color: #2c3e50; font-weight: 600; line-height: 1.3;';
-
-        const groupCount = document.createElement('span');
-        const visibleCount = scenarioGroups[groupName].filter(s => isScenarioVisible(s.id)).length;
-        const totalCount = scenarioGroups[groupName].length;
-        groupCount.textContent = `${visibleCount}/${totalCount}`;
-        groupCount.style.cssText = `
-          font-size: 11px;
-          color: #7f8c8d;
-          background: white;
-          padding: 2px 7px;
-          border-radius: 10px;
-          font-weight: 500;
-          border: 1px solid #e0e0e0;
-          flex-shrink: 0;
-        `;
-
-        const expandIcon = document.createElement('span');
-        expandIcon.innerHTML = '▼';
-        expandIcon.style.cssText = 'font-size: 8px; color: #95a5a6; transition: transform 0.2s ease; flex-shrink: 0;';
-
-        groupHeader.appendChild(groupToggleContainer);
-        groupHeader.appendChild(groupTitle);
-        groupHeader.appendChild(groupCount);
-        groupHeader.appendChild(expandIcon);
-
-        const scenariosList = document.createElement('div');
-        const isExpanded = expandedGroups.has(groupName);
-        scenariosList.style.cssText = `
-          display: ${isExpanded ? 'block' : 'none'};
-          padding: 8px 14px;
-          background: #fcfcfc;
-          border-top: 1px solid #ececec;
-        `;
-        expandIcon.style.transform = isExpanded ? 'rotate(-180deg)' : 'rotate(0deg)';
-
-        scenarioGroups[groupName].forEach((scenario, idx) => {
-          const scenarioDiv = document.createElement('div');
-          scenarioDiv.style.cssText = `
-            padding: 7px 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding-left: 26px;
-            border-radius: 5px;
-            transition: background 0.15s ease;
-            ${idx > 0 ? 'border-top: 1px solid #f0f0f0;' : ''}
-          `;
-          scenarioDiv.addEventListener('mouseenter', function() {
-            if (isGroupVisible(groupName)) {
-              this.style.background = '#f5f7fa';
-            }
-          });
-          scenarioDiv.addEventListener('mouseleave', function() {
-            this.style.background = 'transparent';
-          });
-
-          // Create custom toggle button for scenario (in refresh)
-          const isScenarioChecked = visibilitySettings[scenario.id] !== false;
-          const isEnabled = isGroupVisible(groupName);
-
-          const scenarioToggleContainer = document.createElement('div');
-          scenarioToggleContainer.style.cssText = `
-            width: 44px;
-            height: 24px;
-            background: ${isScenarioChecked && isEnabled ? '#14B8A6' : '#ccc'};
-            border-radius: 12px;
-            position: relative;
-            cursor: pointer;
-            transition: background 0.3s ease;
-            flex-shrink: 0;
-          `;
-
-          const scenarioToggleCircle = document.createElement('div');
-          scenarioToggleCircle.style.cssText = `
-            width: 18px;
-            height: 18px;
-            background: white;
-            border-radius: 50%;
-            position: absolute;
-            top: 3px;
-            left: ${isScenarioChecked ? '23px' : '3px'};
-            transition: left 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-          `;
-
-          scenarioToggleContainer.appendChild(scenarioToggleCircle);
-
-          scenarioToggleContainer.addEventListener('click', function() {
-            toggleScenario(scenario.id);
-            refreshPopupContent();
-            notifyScenarioChange();
-          });
-
-          const scenarioLabel = document.createElement('label');
-          scenarioLabel.textContent = scenario.title;
-          scenarioLabel.style.cssText = `
-            font-size: 12px;
-            color: #34495e;
-            cursor: pointer;
-            user-select: none;
-            flex: 1;
-            line-height: 1.3;
-          `;
-          scenarioLabel.addEventListener('click', function() {
-            toggleScenario(scenario.id);
-            refreshPopupContent();
-            notifyScenarioChange();
-          });
-
-          scenarioDiv.appendChild(scenarioToggleContainer);
-          scenarioDiv.appendChild(scenarioLabel);
-          scenariosList.appendChild(scenarioDiv);
-        });
-
-        groupHeader.addEventListener('click', function(e) {
-          if (e.target === groupToggleContainer || groupToggleContainer.contains(e.target)) return;
-          if (expandedGroups.has(groupName)) {
-            expandedGroups.delete(groupName);
-            scenariosList.style.display = 'none';
-            expandIcon.style.transform = 'rotate(0deg)';
-          } else {
-            expandedGroups.add(groupName);
-            scenariosList.style.display = 'block';
-            expandIcon.style.transform = 'rotate(-180deg)';
-          }
-        });
-
-        groupDiv.appendChild(groupHeader);
-        groupDiv.appendChild(scenariosList);
-        content.appendChild(groupDiv);
-      });
+  // Close the settings popup. If the scenario selected in the viewer was
+  // switched off, the viewer moves on to the first scenario that is shown.
+  function closeSettingsPopup() {
+    const overlay = document.getElementById('scenario-settings-popup');
+    if (!overlay) return;
+    if (settingsKeyHandler) {
+      document.removeEventListener('keydown', settingsKeyHandler);
+      settingsKeyHandler = null;
     }
+
+    if (typeof window.globalActiveScenario !== 'undefined' && window.globalActiveScenario && window.globalActiveScenario.id) {
+      if (!isScenarioVisible(window.globalActiveScenario.id)) {
+        // Current scenario is hidden, select first visible scenario
+        const visibleScenarios = getVisibleScenarios();
+        if (visibleScenarios.length > 0) {
+          window.globalActiveScenario.id = visibleScenarios[0].id;
+          window.globalActiveScenario.title = visibleScenarios[0].title;
+          // Trigger a final update to refresh the viewer with the new scenario
+          notifyScenarioChange();
+        }
+      }
+    }
+    overlay.remove();
   }
 
   // Notify other components of scenario visibility changes
@@ -1057,6 +712,7 @@
   // Initialize
   loadSettings();
   loadSectionSettings();
+  loadYearSettings();
 
   // Public API
   window.ScenarioSettings = {
@@ -1073,6 +729,9 @@
     setScenarioVisibility,
     isGroupVisible,
     isSectionVisible,
+    isYearVisible,
+    getVisibleYears,
+    toggleYear,
     toggleSection,
     applySectionVisibility,
     getSettings: () => visibilitySettings,

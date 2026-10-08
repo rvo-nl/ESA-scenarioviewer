@@ -12,8 +12,8 @@
  */
 function showErrorPopup(options) {
   const {
-    title = 'Error',
-    message = 'An error occurred',
+    title = 'Fout',
+    message = 'Er is een fout opgetreden',
     error = null,
     context = {},
     stackTrace = null
@@ -133,7 +133,7 @@ function showErrorPopup(options) {
       .style('margin', '0 0 10px 0')
       .style('font-size', '16px')
       .style('color', '#555')
-      .text('Error Details')
+      .text('Details van de fout')
 
     const detailsBox = detailsSection.append('div')
       .style('padding', '15px')
@@ -147,7 +147,7 @@ function showErrorPopup(options) {
     if (error.message) {
       detailsBox.append('div')
         .style('margin-bottom', '10px')
-        .html(`<strong>Message:</strong> ${error.message}`)
+        .html(`<strong>Melding:</strong> ${error.message}`)
     }
 
     if (error.name) {
@@ -166,7 +166,7 @@ function showErrorPopup(options) {
       .style('margin', '0 0 10px 0')
       .style('font-size', '16px')
       .style('color', '#555')
-      .text('Context Information')
+      .text('Context')
 
     const contextBox = contextSection.append('div')
       .style('padding', '15px')
@@ -224,7 +224,7 @@ function showErrorPopup(options) {
     .style('border-radius', '4px')
     .style('cursor', 'pointer')
     .style('font-size', '14px')
-    .text('Copy Error Details')
+    .text('Kopieer details van de fout')
     .on('click', function() {
       const errorDetails = `
 ${title}
@@ -250,13 +250,13 @@ Generated: ${new Date().toISOString()}
         // Show feedback
         const btn = d3.select(this)
         const originalText = btn.text()
-        btn.text('Copied!').style('background-color', '#4CAF50')
+        btn.text('Gekopieerd!').style('background-color', '#4CAF50')
         setTimeout(() => {
           btn.text(originalText).style('background-color', '#2196F3')
         }, 2000)
       }).catch(err => {
         console.error('Failed to copy to clipboard:', err)
-        alert('Failed to copy to clipboard')
+        alert('Kopiëren naar het klembord is mislukt')
       })
     })
     .on('mouseover', function() {

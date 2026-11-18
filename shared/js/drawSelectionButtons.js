@@ -375,6 +375,12 @@ function drawSelectionButtons(config) {
     currentScenarioID = activeScenario
     currentScenario = globalActiveScenario.id
 
+    // Let other parts of the viewer follow the selection, such as the scenario
+    // annotation under the sankey (js/scenarioAnnotations.js)
+    window.dispatchEvent(new CustomEvent('scenarioSelectionChanged', {
+      detail: { scenarioId: globalActiveScenario.id, yearId: globalActiveYear.id }
+    }))
+
     // update all sankeys (skip if section is hidden)
     console.log(sankeyInstances)
     if (!window.ScenarioSettings || window.ScenarioSettings.isSectionVisible('section-sankey')) {

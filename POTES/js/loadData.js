@@ -80,7 +80,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds03062026potes.enc.json');
+    const response = await fetch('public/ds19112026potes.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -119,7 +119,7 @@ async function decryptZipFile(passphrase) {
     } else if (error.message.includes('fetch')) {
       throw new Error('Kan encrypted bestand niet laden');
     } else {
-      throw new Error(`Decryption failed: ${error.message}`);
+      throw new Error(`Ontsleutelen mislukt: ${error.message}`);
     }
   }
 }
@@ -130,8 +130,41 @@ let sankeyConfigs = []
 
 // Storage for multiple sankey diagram data
 let sankeyDataLibraries = {}
+// Exposed for shared modules (e.g. dashboardBuilder.js) that read the sankey dataset
+window.sankeyDataLibraries = sankeyDataLibraries
 let activeDiagramId = null
 let diagramConfigs = []
+
+// Build a map of { diagramId -> Set<scenarioId> } from all loaded diagram libraries
+function buildDiagramScenarioIndex() {
+  const index = {}
+  const allScenarioIds = new Set((viewerConfig?.scenarios || []).map(s => s.id))
+  const years = (viewerConfig?.years || []).map(y => y.id)
+
+  Object.entries(sankeyDataLibraries).forEach(([diagramId, rawData]) => {
+    const found = new Set()
+    // Check links in all scopes (system, electricity, etc.)
+    const scopeLinks = rawData.links || {}
+    Object.values(scopeLinks).forEach(links => {
+      if (!Array.isArray(links)) return
+      links.forEach(link => {
+        Object.keys(link).forEach(col => {
+          // Column format: "{year}_{scenarioId}"
+          years.forEach(year => {
+            if (col.startsWith(year + '_')) {
+              const scenarioId = col.slice((year + '_').length)
+              if (allScenarioIds.has(scenarioId)) {
+                found.add(scenarioId)
+              }
+            }
+          })
+        })
+      })
+    })
+    index[diagramId] = found
+  })
+  window.diagramScenarioIndex = index
+}
 
 // Function to switch between sankey diagrams
 function switchDiagram(diagramId) {
@@ -144,6 +177,7 @@ function switchDiagram(diagramId) {
 
   activeDiagramId = diagramId
   window.activeDiagramId = diagramId
+  if (window.DashboardBuilder) window.DashboardBuilder.invalidate()
   const rawSankeyData = sankeyDataLibraries[diagramId]
 
   // Clear existing sankey
@@ -232,6 +266,11 @@ function initTool () {
   // console.log(sankeyConfigs)
 
   if (dataSource == 'development') {
+    // Scenario annotation texts shown under the sankey (js/scenarioAnnotations.js)
+    if (typeof window.loadScenarioAnnotations === 'function') {
+      window.loadScenarioAnnotations('private/scenario_annotations.json')
+    }
+
     // Check if viewerConfig has multiple sankey diagrams configured
     if (viewerConfig && viewerConfig.sankeyDiagrams && viewerConfig.sankeyDiagrams.length > 0) {
       diagramConfigs = viewerConfig.sankeyDiagrams
@@ -267,6 +306,8 @@ function initTool () {
         // Make diagramConfigs globally available for buttons
         window.diagramConfigs = diagramConfigs
         window.activeDiagramId = activeDiagramId
+
+        buildDiagramScenarioIndex()
       })
     } else {
       // Fallback to single file loading (original behavior)
@@ -449,10 +490,12 @@ passphraseWrapper.appendChild(passphraseInput);
      const excelData = {};
      const csvData = {}; // Store CSV data separately
      const jsonData = {}; // Store JSON data separately
+     const dashboardTemplates = []; // Dashboard builder templates (private/dashboard_sjablonen/)
 
      const excelExtensions = /\.(xls[xmb]?|ods|xml)$/i;
      const csvExtensions = /\.(csv|tsv|txt)$/i;
      const jsonExtensions = /\.json$/i;
+     const yamlExtensions = /\.ya?ml$/i;
 
      for (const fileName of Object.keys(zipContent.files)) {
        const zipFile = zipContent.files[fileName];
@@ -487,10 +530,27 @@ passphraseWrapper.appendChild(passphraseInput);
            // Handle JSON files
            try {
              const jsonText = await zipFile.async('text');
+             // Templates keep their own list: jsonData is keyed by bare file name, so a
+             // template could otherwise overwrite a real config file of the same name.
+             if (/(^|\/)dashboard_sjablonen\//i.test(fileName)) {
+               dashboardTemplates.push({ file: fileName.split('/').pop(), config: JSON.parse(jsonText) });
+               continue;
+             }
              const baseName = fileName.split('/').pop().replace(/\.[^.]+$/, '');
              jsonData[baseName] = JSON.parse(jsonText);
            } catch (err) {
              console.warn(`Failed to parse JSON file "${fileName}":`, err);
+           }
+         } else if (yamlExtensions.test(fileName)) {
+           // Handle YAML files (stored as raw text for changelog etc.)
+           try {
+             const yamlText = await zipFile.async('text');
+             const baseName = fileName.split('/').pop().replace(/\.[^.]+$/, '');
+             if (baseName === 'changelog') {
+               window.changelogYamlText = yamlText;
+             }
+           } catch (err) {
+             console.warn(`Failed to read YAML file "${fileName}":`, err);
            }
          }
        }
@@ -498,7 +558,10 @@ passphraseWrapper.appendChild(passphraseInput);
 
      console.log('Extracted Excel Data:', excelData);
      console.log('Extracted CSV Data:', csvData);
+     // Expose the extracted CSVs so shared modules can read their own files
+     window.viewerZipCSV = csvData;
      console.log('Extracted JSON Data:', jsonData);
+     window.viewerZipDashboardTemplates = dashboardTemplates;
      // Hide the login section and show the viewer content
      (function hideLoginShowViewer() {
        const loginSection = document.getElementById('loginSection');
@@ -537,6 +600,11 @@ passphraseWrapper.appendChild(passphraseInput);
      // Pass categoryConfig from ZIP if available
      if (jsonData['categoryConfig'] && typeof window.setCategoryConfigFromZip === 'function') {
        window.setCategoryConfigFromZip(jsonData['categoryConfig']);
+     }
+
+     // Scenario annotation texts shown under the sankey (js/scenarioAnnotations.js)
+     if (typeof window.setScenarioAnnotations === 'function') {
+       window.setScenarioAnnotations(jsonData['scenario_annotations'] || {});
      }
 
     // Set viewerConfig from ZIP if available (for drawSelectionButtons.js)
@@ -583,20 +651,30 @@ passphraseWrapper.appendChild(passphraseInput);
        };
        console.log('TVKN CSV data stored from zip file');
 
-      // Initialize TVKN Analysis now that data is available
-      if (typeof window.initTVKNAnalysis === 'function') {
+      // Initialize TVKN Analysis now that data is available (if enabled in viewer config)
+      if (typeof window.initTVKNAnalysis === 'function' && viewerConfig?.viewer?.hasServiceDemandSection !== false) {
         window.initTVKNAnalysis();
       }
      }
 
-    //  dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']
-    //  dataset_TRANSFORM_DEFAULT = excelData['data_watervaldiagram_C_TRANSFORM - Default']
-    //  dataset_TRANSFORM_C_EN_I = excelData['data_watervaldiagram_B_TRANSFORM - Competitief en import']
-    //  dataset_TRANSFORM_MC = excelData['data_watervaldiagram_D_TRANSFORM - Minder competitief']
-    //  dataset_TRANSFORM_MC_EN_I = excelData['data_watervaldiagram_E_TRANSFORM - Minder competitief en import']
-    //  dataset_PR40 = excelData['data_watervaldiagram_OP - CO2-opslag 40']
-    //  dataset_SR20 = excelData['data_watervaldiagram_OptimistischSelectiefFossilCarbonPenalty']
-    //  dataset_PB30 = excelData['data_watervaldiagram_PP_CCS_30_in_2050']
+     // Initialize the carrier treemaps; they wait for the sankey data themselves
+     if (typeof window.initCarrierTreemaps === 'function') {
+       window.initCarrierTreemaps();
+     }
+
+     // Initialize the ternary energy-mix plot; it waits for the sankey data itself
+     if (typeof window.initTernaryMix === 'function') {
+       window.initTernaryMix();
+     }
+
+     dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']
+     dataset_TRANSFORM_DEFAULT = excelData['data_watervaldiagram_C_TRANSFORM - Default']
+     dataset_TRANSFORM_C_EN_I = excelData['data_watervaldiagram_B_TRANSFORM - Competitief en import']
+     dataset_TRANSFORM_MC = excelData['data_watervaldiagram_D_TRANSFORM - Minder competitief']
+     dataset_TRANSFORM_MC_EN_I = excelData['data_watervaldiagram_E_TRANSFORM - Minder competitief en import']
+     dataset_PR40 = excelData['data_watervaldiagram_OP - CO2-opslag 40']
+     dataset_SR20 = excelData['data_watervaldiagram_OptimistischSelectiefFossilCarbonPenalty']
+     dataset_PB30 = excelData['data_watervaldiagram_PP_CCS_30_in_2050']
     //  dataset_WLO1 = excelData['data_watervaldiagram_WLO1']
     //  dataset_WLO2 = excelData['data_watervaldiagram_WLO2']
     //  dataset_WLO3 = excelData['data_watervaldiagram_WLO3']
@@ -639,6 +717,8 @@ passphraseWrapper.appendChild(passphraseInput);
        // Make diagramConfigs globally available for buttons
        window.diagramConfigs = diagramConfigs
        window.activeDiagramId = activeDiagramId
+
+       buildDiagramScenarioIndex()
 
        // Process the default diagram
        sankeyConfigs.forEach(element => {
@@ -704,7 +784,7 @@ passphraseWrapper.appendChild(passphraseInput);
         // Set the inner HTML with the desired text and link
         document.getElementById('loadFileDialog').innerHTML = `
           <div style="max-width: 500px; word-wrap: break-word;line-height: 35px;font-size:15px; ">
-              <strong style="line-height: 40px; font-size:28px;font-weight:300;">Error</strong> <br><br>De identificatienummers van het opgegeven databestand (<strong>${settings[0].projectID}_${settings[0].productID}_${settings[0].versionID}</strong>) en het ingeladen visualisatiescript (<strong>${projectID}_${productID}_${versionID}</strong>) komen niet overeen.<br><br>Gebruik de onderstaande link om naar het script te gaan dat bij het opgegeven bestand hoort en probeer het opnieuw.&nbsp
+              <strong style="line-height: 40px; font-size:28px;font-weight:300;">Fout</strong> <br><br>De identificatienummers van het opgegeven databestand (<strong>${settings[0].projectID}_${settings[0].productID}_${settings[0].versionID}</strong>) en het ingeladen visualisatiescript (<strong>${projectID}_${productID}_${versionID}</strong>) komen niet overeen.<br><br>Gebruik de onderstaande link om naar het script te gaan dat bij het opgegeven bestand hoort en probeer het opnieuw.&nbsp
               <br><br>
               <a href="https://rvo-nl.github.io/visualisaties/${settings[0].projectID}/${settings[0].productID}/${settings[0].versionID}" style="color: blue; text-decoration: underline;">
                   https://rvo-nl.github.io/visualisaties/${settings[0].projectID}/${settings[0].productID}/${settings[0].versionID}

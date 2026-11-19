@@ -31,6 +31,10 @@ body {
   box-sizing: border-box;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   position: relative;
+  border-radius: 12px;
+  /* Clips the sections to the rounded corners; unlike overflow: hidden it
+     keeps the sticky menu bars working */
+  overflow: clip;
 }
 
 /* Add growing sidebars */
@@ -95,6 +99,11 @@ body {
   padding: 8px 0;
   margin-bottom: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Menu bars that scroll with the page (STICKY_MENU = false in index.html) */
+.menu-static .sticky {
+  position: static;
 }
 
 .flexcontainer {
@@ -316,7 +325,252 @@ body {
 
   /* Equal padding on all sides */
   padding: 0.5rem 1rem;
-  border-radius: 0 0 6px 6px;
+
+  /* Rounded bottom corners; the top meets the grey bar */
+  border-radius: 0 0 8px 8px;
+}
+
+/* With viewer.hasChangeLog, the version label opens the changelog popup */
+.version-label.has-changelog {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.version-label.has-changelog:hover {
+  background-color: #777;
+}
+
+/* Changelog popup */
+#changelog-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+}
+#changelog-backdrop.open {
+  display: flex;
+}
+#changelog-popup {
+  background: #fff;
+  width: 480px;
+  max-height: 70vh;
+  border-radius: 2px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+#changelog-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid #e8e8e8;
+}
+#changelog-popup-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #111;
+}
+#changelog-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 2px;
+  transition: color 0.15s, background 0.15s;
+}
+#changelog-close:hover {
+  color: #111;
+  background: #f0f0f0;
+}
+#changelog-body {
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.changelog-entry {
+  padding: 14px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.changelog-entry:last-child {
+  border-bottom: none;
+}
+.changelog-entry-date {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #999;
+  margin-bottom: 4px;
+}
+.changelog-entry-note {
+  font-size: 13px;
+  color: #222;
+  line-height: 1.5;
+}
+
+/* Sections are spaced by their bottom margin; the last visible one needs none,
+   or the margin shows as a light strip at the bottom of the page. Sections are
+   hidden with an inline display: none (settings, viewer-config flags). */
+#viewerContent > [id^="section-"]:not(:has(~ [id^="section-"]:not([style*="display: none"]):not([style*="display:none"]))) {
+  margin-bottom: 0 !important;
+}
+
+/* Section introductions: what a section shows, and how its controls work.
+   Foldable (<details>), folded by default. */
+.section-intro {
+  margin: 14px 0 22px;
+  color: #555;
+}
+
+.section-intro > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 0;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: #777;
+  transition: color 0.15s ease;
+}
+
+.section-intro > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Chevron: points right when folded, down when open */
+.section-intro > summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin: 0 1px 0 2px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
+}
+
+.section-intro[open] > summary::before {
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.section-intro > summary:hover {
+  color: #2b2b2b;
+}
+
+.section-intro > summary:focus-visible {
+  outline: 2px solid #999;
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.section-intro-body {
+  padding-top: 12px;
+}
+
+/* Smooth unfolding where supported; elsewhere it opens instantly */
+@supports (interpolate-size: allow-keywords) {
+  .section-intro {
+    interpolate-size: allow-keywords;
+  }
+
+  .section-intro::details-content {
+    height: 0;
+    overflow: clip;
+    transition: height 0.3s ease, content-visibility 0.3s allow-discrete;
+  }
+
+  .section-intro[open]::details-content {
+    height: auto;
+  }
+}
+
+.section-intro p {
+  max-width: 780px;
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.section-controls-label {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #999;
+}
+
+.section-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px 36px;
+  max-width: 1100px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.section-controls > div {
+  margin: 0;
+}
+
+.section-controls dt {
+  margin: 0;
+  font-weight: 500;
+  color: #2b2b2b;
+}
+
+.section-controls dd {
+  margin: 0;
+  color: #777;
+}
+
+.section-intro-page {
+  margin: 26px 0 10px;
+}
+
+/* Source credit at the foot of a section */
+.section-source {
+  margin: 20px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #999;
+}
+
+.section-source a {
+  color: #777;
+  text-decoration: underline;
+  text-decoration-color: #ccc;
+  text-underline-offset: 2px;
+}
+
+.section-source a:hover {
+  color: #2b2b2b;
+  text-decoration-color: currentColor;
+}
+
+/* Aligned with the Sankey title; its text starts below the export buttons
+   and unit toggle at the top right */
+.section-intro-sankey {
+  margin: 14px 0 0 15px;
 }
 
 #liner {
@@ -1393,4 +1647,110 @@ body {
     max-width: none;
     border-radius: 20px;
   }
+}
+
+/* ── Scenario annotation under the sankey (js/scenarioAnnotations.js) ──────────────
+   Folded, the panel always has the same height -- also when the selected scenario has
+   no text -- so the sections below it do not move when switching scenarios. */
+.scenario-annotations {
+  --scenario-annotations-lines: 5;
+  position: relative;
+  max-width: 110ch;
+  margin: 0 15px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #555;
+}
+
+.scenario-annotations-text {
+  height: calc(var(--scenario-annotations-lines) * 1.6em);
+  overflow: hidden;
+}
+
+.scenario-annotations-text > :first-child {
+  margin-top: 0;
+}
+
+.scenario-annotations-text p,
+.scenario-annotations-text ul,
+.scenario-annotations-text ol {
+  margin-bottom: 0.6em;
+}
+
+.scenario-annotations-text li {
+  margin-bottom: 0;
+}
+
+/* Unfolded: the full text, with room below it for the button */
+.scenario-annotations.is-expanded .scenario-annotations-text {
+  height: auto;
+  padding-bottom: 1.8em;
+}
+
+/* Fades out the last folded lines when the text does not fit */
+.scenario-annotations-fade {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.4em;
+  background: linear-gradient(to bottom, rgba(245, 243, 239, 0), #f5f3ef 75%);
+  pointer-events: none;
+}
+
+.scenario-annotations.is-overflowing .scenario-annotations-fade {
+  display: block;
+}
+
+/* Styled like the "Uitleg en bediening" toggles; overrides milligram's button styles */
+.scenario-annotations .scenario-annotations-toggle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  height: auto;
+  margin: 0;
+  padding: 2px 0 2px 12px;
+  border: 0;
+  border-radius: 0;
+  background: #f5f3ef;
+  color: #777;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: normal;
+  line-height: 1.6;
+  text-transform: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.scenario-annotations .scenario-annotations-toggle[hidden] {
+  display: none;
+}
+
+.scenario-annotations .scenario-annotations-toggle:hover,
+.scenario-annotations .scenario-annotations-toggle:focus {
+  background: #f5f3ef;
+  color: #2b2b2b;
+}
+
+.scenario-annotations .scenario-annotations-toggle:focus-visible {
+  outline: 2px solid #999;
+  outline-offset: 3px;
+}
+
+/* Chevron: points down when folded, up when unfolded */
+.scenario-annotations .scenario-annotations-toggle::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 8px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.scenario-annotations.is-expanded .scenario-annotations-toggle::after {
+  transform: translateY(1px) rotate(-135deg);
 }

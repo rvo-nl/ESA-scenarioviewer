@@ -1,0 +1,1272 @@
+// Generic Selection Buttons Module
+// Loads configuration from viewer-config.json
+//
+// Button Color System:
+// - Default buttons: white background with black text
+// - Highlighted/Active buttons: black background with white text
+// - Scenario buttons: use colorGroup from config for inactive state
+// - All button styling managed through unified helper functions
+
+let globalActiveToepassing = 'alle'
+let globalActiveSector = 'alle'
+let viewerConfig = null
+let scenarioIdLookup = {}
+let lookup_ymaxvalues = {}
+
+// Load viewer configuration
+async function loadViewerConfig() {
+  // Check if viewerConfig is already loaded from jsonData (dataSource='production')
+  if (viewerConfig && viewerConfig.viewer) {
+    console.log('Viewer configuration already loaded from zip file:', viewerConfig.viewer.name)
+    scenarioIdLookup = viewerConfig.scenarioIdLookup || {}
+    lookup_ymaxvalues = viewerConfig.ymaxValues || {}
+    return viewerConfig
+  }
+
+  // Otherwise, fetch from URL (dataSource='development')
+  try {
+    const response = await fetch('private/viewer-config.json')
+    viewerConfig = await response.json()
+
+    // Set up configuration from loaded data
+    scenarioIdLookup = viewerConfig.scenarioIdLookup || {}
+    lookup_ymaxvalues = viewerConfig.ymaxValues || {}
+
+    console.log('Viewer configuration loaded from URL:', viewerConfig.viewer.name)
+    return viewerConfig
+  } catch (error) {
+    console.error('Error loading viewer configuration:', error)
+    return null
+  }
+}
+
+// Initialize and draw buttons once config is loaded
+async function initSelectionButtons(config) {
+  if (!viewerConfig) {
+    await loadViewerConfig()
+  }
+
+  if (!viewerConfig) {
+    console.error('Failed to load viewer configuration')
+    return
+  }
+
+  // Initialize ScenarioSettings (creates settings button, replaces topRightLabel)
+  if (typeof window.ScenarioSettings !== 'undefined' && typeof window.ScenarioSettings.initialize === 'function') {
+    window.ScenarioSettings.initialize(viewerConfig)
+  }
+
+  // Set version labels based on config (skipped if ScenarioSettings already placed the button)
+  setVersionLabels()
+  applySectionVisibilityFromConfig()
+
+  drawSelectionButtons(config)
+}
+
+function setVersionLabels() {
+  if (!viewerConfig || !viewerConfig.viewer) {
+    return
+  }
+
+  const viewer = viewerConfig.viewer
+
+  // Handle left-side version label
+  const versionLabel = document.getElementById('versionLabel')
+  if (versionLabel) {
+    if (viewer.showVersionLabel === false) {
+      versionLabel.style.display = 'none'
+    } else if (viewer.versionLabel) {
+      versionLabel.textContent = viewer.versionLabel
+      versionLabel.style.display = 'block'
+
+      if (viewer.hasChangeLog) {
+        versionLabel.classList.add('has-changelog')
+        versionLabel.addEventListener('click', openChangelogPopup)
+      }
+    }
+  }
+
+  // Handle top-right label — skip if ScenarioSettings has already replaced it with the settings button
+  const topRightLabel = document.getElementById('topRightLabel')
+  if (topRightLabel && !topRightLabel.querySelector('button')) {
+    if (viewer.showTopRightLabel === false) {
+      topRightLabel.style.display = 'none'
+    } else if (viewer.topRightLabel) {
+      topRightLabel.textContent = viewer.topRightLabel
+      topRightLabel.style.display = 'block'
+    }
+  }
+}
+
+function openChangelogPopup() {
+  // Create backdrop + popup if not yet in DOM
+  let backdrop = document.getElementById('changelog-backdrop')
+  if (!backdrop) {
+    backdrop = document.createElement('div')
+    backdrop.id = 'changelog-backdrop'
+    backdrop.innerHTML = `
+      <div id="changelog-popup">
+        <div id="changelog-popup-header">
+          <h2>Veranderlog</h2>
+          <button id="changelog-close" title="Sluiten">&#x2715;</button>
+        </div>
+        <div id="changelog-body"><p style="padding:20px 24px;color:#888;font-size:13px;">Laden…</p></div>
+      </div>`
+    document.body.appendChild(backdrop)
+
+    backdrop.addEventListener('click', function(e) {
+      if (e.target === backdrop) backdrop.classList.remove('open')
+    })
+    document.getElementById('changelog-close').addEventListener('click', function() {
+      backdrop.classList.remove('open')
+    })
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') backdrop.classList.remove('open')
+    })
+  }
+
+  backdrop.classList.add('open')
+
+  // Fetch and render changelog (only if not already loaded)
+  const body = document.getElementById('changelog-body')
+  if (body.dataset.loaded) return
+
+  function renderChangelog(yaml) {
+    const entries = parseSimpleYamlList(yaml)
+    if (!entries.length) {
+      body.innerHTML = '<p style="padding:20px 24px;color:#888;font-size:13px;">Geen wijzigingen gevonden.</p>'
+      return
+    }
+    // Show newest first
+    body.innerHTML = entries.reverse().map(e => `
+      <div class="changelog-entry">
+        <div class="changelog-entry-date">${e.date || ''}</div>
+        <div class="changelog-entry-note">${e.note || ''}</div>
+      </div>`).join('')
+    body.dataset.loaded = '1'
+  }
+
+  // Production: YAML was extracted from ZIP and stored on window
+  if (window.changelogYamlText) {
+    renderChangelog(window.changelogYamlText)
+  } else {
+    // Development: fetch directly from file
+    fetch('private/changelog.yaml')
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.text() })
+      .then(renderChangelog)
+      .catch(() => {
+        body.innerHTML = '<p style="padding:20px 24px;color:#888;font-size:13px;">Veranderlog kon niet worden geladen.</p>'
+      })
+  }
+}
+
+// Minimal parser for the simple list-of-objects YAML format used in changelog.yaml:
+//   - date: 1-1-2026
+//     note: Some text
+function parseSimpleYamlList(yaml) {
+  const entries = []
+  let current = null
+  for (const raw of yaml.split('\n')) {
+    const line = raw.trimEnd()
+    if (/^- /.test(line)) {
+      if (current) entries.push(current)
+      current = {}
+      const rest = line.slice(2)
+      const m = rest.match(/^(\w+):\s*(.*)$/)
+      if (m) current[m[1]] = m[2].trim()
+    } else if (current && /^\s+\w+:/.test(line)) {
+      const m = line.match(/^\s+(\w+):\s*(.*)$/)
+      if (m) current[m[1]] = m[2].trim()
+    }
+  }
+  if (current) entries.push(current)
+  return entries
+}
+
+// Hide/show sections based on viewer config flags
+function applySectionVisibilityFromConfig() {
+  if (!viewerConfig || !viewerConfig.viewer) return
+  const viewer = viewerConfig.viewer
+
+  const sectionMap = {
+    hasServiceDemandSection: 'section-tvkn'
+  }
+
+  Object.entries(sectionMap).forEach(([flag, sectionId]) => {
+    if (viewer[flag] === false) {
+      const el = document.getElementById(sectionId)
+      if (el) el.style.display = 'none'
+    }
+  })
+}
+
+// Make setVersionLabels globally available (and keep old function name for compatibility)
+window.setVersionLabels = setVersionLabels
+window.setTopRightLabel = setVersionLabels
+
+// UI-specific color defaults (not data colors)
+// Data colors (tno, pbl, etc.) come from viewer-config.json
+const uiDefaults = {
+  highlighted: '#000000',  // Color for active/selected buttons
+  default: '#FFFFFF'       // Default button background
+}
+
+// Module-level button helper functions (accessible to all functions in this file)
+function setButtonHighlighted(button, highlighted = true) {
+  const colors = { ...uiDefaults, ...(viewerConfig.colors || {}) }
+  if (highlighted) {
+    button.classList.add('highlighted')
+    button.style.backgroundColor = colors.highlighted
+    button.style.color = 'white'
+  } else {
+    button.classList.remove('highlighted')
+    button.style.backgroundColor = ''
+    button.style.color = ''
+  }
+}
+
+function setButtonsInContainer(container, activeButton, getButtonColor = null) {
+  const colors = { ...uiDefaults, ...(viewerConfig.colors || {}) }
+  const buttons = container.getElementsByTagName('button')
+  for (let i = 0; i < buttons.length; i++) {
+    const isActive = buttons[i] === activeButton
+    if (isActive) {
+      setButtonHighlighted(buttons[i], true)
+    } else {
+      buttons[i].classList.remove('highlighted')
+      // Restore original color if provided
+      if (getButtonColor) {
+        const bgColor = getButtonColor(buttons[i])
+        buttons[i].style.backgroundColor = bgColor || colors.default
+        buttons[i].style.color = 'black'
+      } else {
+        buttons[i].style.backgroundColor = colors.default
+        buttons[i].style.color = 'black'
+      }
+    }
+  }
+}
+
+function setButtonsInMultipleContainers(containers, activeButton, getButtonColor = null) {
+  const colors = { ...uiDefaults, ...(viewerConfig.colors || {}) }
+  containers.forEach(container => {
+    const buttons = container.getElementsByTagName('button')
+    for (let i = 0; i < buttons.length; i++) {
+      const isActive = buttons[i] === activeButton
+      if (isActive) {
+        setButtonHighlighted(buttons[i], true)
+      } else {
+        buttons[i].classList.remove('highlighted')
+        if (getButtonColor) {
+          const bgColor = getButtonColor(buttons[i])
+          buttons[i].style.backgroundColor = bgColor || colors.default
+          buttons[i].style.color = 'black'
+        } else {
+          buttons[i].style.backgroundColor = colors.default
+          buttons[i].style.color = 'black'
+        }
+      }
+    }
+  })
+}
+
+function drawSelectionButtons(config) {
+  // Merge: config colors take precedence, UI defaults as fallback
+  const colors = { ...uiDefaults, ...(viewerConfig.colors || {}) }
+  const years = viewerConfig.years || []
+  const defaults = viewerConfig.defaults || {}
+
+  // SET DEFAULTS
+  globalActiveScenario.id = defaults.scenario || 'TNOAT2024_ADAPT'
+  const defaultScenarioConfig = (viewerConfig.scenarios || []).find(s => s.id === globalActiveScenario.id)
+  globalActiveScenario.title = defaultScenarioConfig ? defaultScenarioConfig.title : ''
+  globalActiveYear.id = defaults.year || '2030'
+  globalActiveEnergyflowsSankey.id = defaults.energyflowsSankey || 'system'
+  globalSankeyInstancesActiveDataset = {
+    energyflows: {id: defaults.energyflowsSankey || 'system'}
+  }
+  globalActiveEnergyflowsFilter = defaults.energyflowsFilter || 'system'
+
+  // The scenario and year that were selected before the current ones. Clicking
+  // the selected scenario or year again switches back to it, to flip between two.
+  let previousScenarioId = null
+  let previousYearId = null
+  let scenarioButtonsById = {}
+  let autoSelectingScenario = false
+  let yearButtonsById = {}
+
+  // Years can be switched off in the settings menu (cog wheel)
+  const isYearIncluded = yearId => typeof window.ScenarioSettings === 'undefined' ||
+    typeof window.ScenarioSettings.isYearVisible !== 'function' || window.ScenarioSettings.isYearVisible(yearId)
+
+  // The included year closest to the given one, preferring a year the
+  // selected scenario has data for
+  function nearestIncludedYear(yearId) {
+    const included = years.filter(y => isYearIncluded(y.id))
+    const withData = included.filter(y => scenarioIdLookup[globalActiveScenario.id]?.[y.id] !== undefined)
+    const candidates = withData.length ? withData : included
+    const distance = y => Math.abs(parseInt(y.id) - parseInt(yearId))
+    return candidates.reduce((best, y) => (!best || distance(y) < distance(best)) ? y : best, null)
+  }
+
+  // The default year may have been switched off in the settings
+  if (!isYearIncluded(globalActiveYear.id)) {
+    const fallbackYear = nearestIncludedYear(globalActiveYear.id)
+    if (fallbackYear) globalActiveYear.id = fallbackYear.id
+  }
+
+  function setScenario(scenario, type) {
+    // Always refresh scenario availability up-front so the buttons reflect the
+    // currently loaded diagram, even if we end up aborting below because the
+    // current scenario is not available in this diagram.
+    if (typeof updateScenarioAvailability === 'function') {
+      updateScenarioAvailability(config)
+    }
+
+    // If the current scenario was just greyed out by updateScenarioAvailability
+    // (i.e. it has no data or all-zero data in the newly loaded diagram), or
+    // it has no entry in scenarioIdLookup at all, auto-pick the first
+    // scenario button that is not greyed out so the user is never stuck on a
+    // greyed-out selection after switching diagrams.
+    // If the scenario is in this diagram but not for the selected year, keep
+    // the scenario and let its own button move on to a year it has.
+    // The clicks below call setScenario again; autoSelectingScenario keeps
+    // that inner call from auto-picking a second time.
+    if (!autoSelectingScenario) {
+      const currentScenarioYears = scenarioIdLookup[globalActiveScenario.id]
+      const currentScenarioUnavailable = !currentScenarioYears
+        || (typeof scenariosWithZeroValues !== 'undefined' && scenariosWithZeroValues.has(globalActiveScenario.id))
+      const currentYearUnavailable = !currentScenarioUnavailable
+        && currentScenarioYears[globalActiveYear.id] === undefined
+
+      let buttonToClick = null
+      if (currentScenarioUnavailable) {
+        const scenarioButtonsContainer = document.getElementById('scenarioButtons')
+        if (scenarioButtonsContainer) {
+          buttonToClick = Array.from(scenarioButtonsContainer.getElementsByTagName('button'))
+            .find(btn => btn.dataset.greyed !== 'true' && !btn.disabled)
+        }
+      } else if (currentYearUnavailable) {
+        buttonToClick = scenarioButtonsById[globalActiveScenario.id]
+      }
+
+      if (buttonToClick) {
+        autoSelectingScenario = true
+        try {
+          buttonToClick.click()
+        } finally {
+          autoSelectingScenario = false
+        }
+        return
+      }
+    }
+
+    activeScenario = scenarioIdLookup[globalActiveScenario.id]?.[globalActiveYear.id]
+    if (activeScenario === undefined) {
+      console.warn(`Scenario ${globalActiveScenario.id} is not available for year ${globalActiveYear.id}. Aborting update.`)
+      return
+    }
+    // Use global scenarios from current diagram (updated on diagram switch)
+    const currentScenarios = window.currentDiagramScenarios || config.scenarios
+    if (!currentScenarios || activeScenario >= currentScenarios.length) {
+      console.warn(`Scenario index ${activeScenario} is out of bounds for the loaded data. Scenarios available: ${currentScenarios ? currentScenarios.length : 0}. Aborting update.`)
+      return
+    }
+    currentScenarioID = activeScenario
+    currentScenario = globalActiveScenario.id
+
+    // Let other parts of the viewer follow the selection, such as the scenario
+    // annotation under the sankey (js/scenarioAnnotations.js)
+    window.dispatchEvent(new CustomEvent('scenarioSelectionChanged', {
+      detail: { scenarioId: globalActiveScenario.id, yearId: globalActiveYear.id }
+    }))
+
+    // update all sankeys (skip if section is hidden)
+    console.log(sankeyInstances)
+    if (!window.ScenarioSettings || window.ScenarioSettings.isSectionVisible('section-sankey')) {
+      sankeyConfigs.forEach(element => {
+        config.sankeyDataID = element.sankeyDataID
+        tick(config)
+      })
+    }
+
+    // Update capacity visualization if available (skip if section is hidden)
+    if ((!window.ScenarioSettings || window.ScenarioSettings.isSectionVisible('section-capacity')) && typeof updateCapacityVisualization === 'function') {
+      updateCapacityVisualization()
+    }
+
+    // Update cijferbasis tables when scenario/year changes
+    if (typeof updateCijferBasisTables === 'function') {
+      updateCijferBasisTables()
+    }
+
+    // Update scenario availability after changing scenario/year
+    if (typeof updateScenarioAvailability === 'function') {
+      updateScenarioAvailability(config)
+    }
+
+    // Update TVKN Analysis scenario when global scenario changes (skip if section is hidden or disabled)
+    if (viewerConfig?.viewer?.hasServiceDemandSection !== false && (!window.ScenarioSettings || window.ScenarioSettings.isSectionVisible('section-tvkn')) && typeof updateTVKNScenario === 'function') {
+      updateTVKNScenario()
+    }
+
+    // Highlight the active scenario in the 3D scenario plot
+    if (typeof update3DPlotScenario === 'function') {
+      update3DPlotScenario()
+    }
+
+    // Refresh the carrier treemaps for the new scenario/year
+    if (typeof updateCarrierTreemaps === 'function') {
+      updateCarrierTreemaps()
+    }
+
+    // Refresh the ternary energy-mix plot (diagram, selected scenario/year)
+    if (typeof updateTernaryMix === 'function') {
+      updateTernaryMix()
+    }
+  }
+  window.setScenario = setScenario
+
+  function updateActiveScenarioIndicator(scenario) {
+    let scenarioTitles = {
+      IP2024_KA_2025: 'Getoond: SSS',
+      DUMMY_2050: 'Getoond: DUMMY - 2050'
+    }
+    const indicatorScenarios = window.currentDiagramScenarios || config.scenarios
+    if (indicatorScenarios && indicatorScenarios[activeScenario]) {
+      d3.select('#huidigGetoond').html(scenarioTitles[indicatorScenarios[activeScenario].title])
+    }
+  }
+
+  // Color lookup function
+  function getScenarioColor(colorGroup) {
+    return colors[colorGroup] || colors.default
+  }
+
+  drawScenarioButtons()
+
+  // Expose drawScenarioButtons globally so it can be called by event listeners
+  window.drawScenarioButtons = drawScenarioButtons;
+
+  function drawScenarioButtons() {
+    // Build scenarios from config, filtering by visibility settings
+    let scenariosFromConfig = viewerConfig.scenarios || [];
+
+    // Filter by visibility if ScenarioSettings is available
+    if (typeof window.ScenarioSettings !== 'undefined' && typeof window.ScenarioSettings.isScenarioVisible === 'function') {
+      scenariosFromConfig = scenariosFromConfig.filter(s => window.ScenarioSettings.isScenarioVisible(s.id));
+    }
+
+    const scenarios = scenariosFromConfig.map(s => ({
+      id: s.id,
+      title: s.title,
+      color: getScenarioColor(s.colorGroup)
+    }))
+
+    let container = document.getElementById('scenarioButtons')
+    if (!container) return
+    container.innerHTML = ''
+
+    // Add label
+    let label = document.createElement('div')
+    label.className = 'menu-label'
+    label.textContent = 'Scenario'
+    container.appendChild(label)
+
+    const buttonWrapper = document.createElement('div')
+    container.appendChild(buttonWrapper)
+    scenarioButtonsById = {}
+
+    // Add buttons
+    scenarios.forEach((scenario, index) => {
+      let button = document.createElement('button')
+      button.textContent = scenario.title
+      createButton(button, -1)
+
+      button.style.backgroundColor = scenario.color
+
+      // Highlight the currently active scenario, or the first one if none is active
+      const isCurrentScenario = globalActiveScenario && globalActiveScenario.id === scenario.id
+      const shouldHighlight = isCurrentScenario || (index === 0 && !globalActiveScenario)
+      if (shouldHighlight) {
+        setButtonHighlighted(button, true)
+      }
+
+      scenarioButtonsById[scenario.id] = button
+
+      button.onclick = function(event) {
+        if (this.dataset.greyed === 'true') return
+
+        // A click on the selected scenario switches back to the previous one
+        // (only for a click by the user, not for one made from code)
+        if (event && event.isTrusted && globalActiveScenario.id === scenario.id) {
+          const previousButton = scenarioButtonsById[previousScenarioId]
+          if (previousButton && previousButton.dataset.greyed !== 'true') {
+            previousButton.click()
+            return
+          }
+        }
+        if (globalActiveScenario.id !== scenario.id) previousScenarioId = globalActiveScenario.id
+
+        // Update button states with color restoration
+        setButtonsInContainer(buttonWrapper, button, (btn) => {
+          const btnScenario = scenarios.find(s => s.title === btn.textContent)
+          return btnScenario?.color
+        })
+
+        globalActiveScenario.id = scenario.id
+        globalActiveScenario.title = scenario.title
+
+        // Update window reference to maintain consistency
+        window.globalActiveScenario = globalActiveScenario
+
+        const yearButtonsContainer = document.getElementById('yearButtons')
+        const yearButtons = yearButtonsContainer.getElementsByTagName('button')
+
+        Array.from(yearButtons).forEach((button) => {
+          const yearId = button.dataset.yearId
+          if (scenarioIdLookup[globalActiveScenario.id] && scenarioIdLookup[globalActiveScenario.id][yearId] !== undefined) {
+            button.disabled = false
+            button.style.opacity = '1'
+          } else {
+            button.disabled = true
+            button.style.opacity = '0.5'
+          }
+        })
+
+        const highlightedButton = yearButtonsContainer.querySelector('.highlighted')
+        if (highlightedButton && highlightedButton.disabled) {
+          const firstAvailableButton = Array.from(yearButtons).find(btn => !btn.disabled)
+          if (firstAvailableButton) {
+            firstAvailableButton.click()
+          }
+        } else {
+          setScenario()
+        }
+
+        // Show or hide the NBNL overlay
+        if (scenario.id.includes('NBNL')) {
+          showNbnlOverlay()
+        } else if (scenario.id.includes('WLO')) {
+          showWloOverlay()
+        } else {
+          hideNbnlOverlay()
+          hideWloOverlay()
+        }
+
+        // Set waterfall view to same selection (skip if section is hidden)
+        if ((!window.ScenarioSettings || window.ScenarioSettings.isSectionVisible('section-waterfall')) && typeof switchRoutekaart === 'function') {
+          try {
+            switchRoutekaart({
+              scenario: globalActiveScenario.id,
+              sector: globalActiveSector,
+              routekaart: globalActiveToepassing,
+              yMax: getYMax(globalActiveToepassing, globalActiveSector),
+              titlesArray: currentTitlesArray,
+              colorsArray: currentColorsArray
+            })
+          } catch (error) {
+            console.error('Error in switchRoutekaart:', error)
+            const mainSectorEl = document.getElementById('mainSectorButtons')
+            const alleSectorenButton = mainSectorEl ? Array.from(mainSectorEl.getElementsByTagName('button')).find(btn => btn.textContent === 'Alle sectoren') : null
+            if (alleSectorenButton) {
+              alleSectorenButton.click()
+            }
+          }
+        }
+      }
+
+      buttonWrapper.appendChild(button)
+    })
+  }
+
+  drawYearButtons()
+  function drawYearButtons() {
+    let container = document.getElementById('yearButtons')
+    if (!container) return
+    container.innerHTML = ''
+
+    // Add label
+    let label = document.createElement('div')
+    label.className = 'menu-label'
+    label.textContent = 'Jaar'
+    container.appendChild(label)
+    yearButtonsById = {}
+
+    years.filter(year => isYearIncluded(year.id)).forEach((year, index) => {
+      let button = document.createElement('button')
+      button.textContent = year.title
+      button.dataset.yearId = year.id
+      createButton(button, -1)
+
+      if (year.id === globalActiveYear.id) {
+        setButtonHighlighted(button, true)
+      }
+
+      function updateButtonState() {
+        const yearId = year.id
+        if (scenarioIdLookup[globalActiveScenario.id] && scenarioIdLookup[globalActiveScenario.id][yearId] !== undefined) {
+          button.disabled = false
+          button.style.opacity = '1'
+        } else {
+          button.disabled = true
+          button.style.opacity = '0.5'
+        }
+      }
+
+      updateButtonState()
+
+      yearButtonsById[year.id] = button
+
+      button.onclick = function(event) {
+        if (button.disabled) return
+
+        // A click on the selected year switches back to the previous one
+        // (only for a click by the user, not for one made from code)
+        if (event && event.isTrusted && globalActiveYear.id === year.id) {
+          const previousButton = yearButtonsById[previousYearId]
+          if (previousButton && !previousButton.disabled) {
+            previousButton.click()
+            return
+          }
+        }
+        if (globalActiveYear.id !== year.id) previousYearId = globalActiveYear.id
+
+        setButtonsInContainer(container, button)
+        globalActiveYear.id = year.id
+        globalActiveYear.title = year.title
+
+        // Update window reference to maintain consistency
+        window.globalActiveYear = globalActiveYear
+
+        setScenario()
+      }
+
+      container.appendChild(button)
+    })
+  }
+
+  // The years included in the viewer changed (settings menu): redraw the
+  // year buttons, and move on to the nearest year if the selected one is gone.
+  // Called by the listener at the bottom of this file.
+  window.onYearVisibilityChanged = function () {
+    const selectedYearGone = !isYearIncluded(globalActiveYear.id)
+    if (selectedYearGone) {
+      const fallbackYear = nearestIncludedYear(globalActiveYear.id)
+      if (fallbackYear) {
+        globalActiveYear.id = fallbackYear.id
+        globalActiveYear.title = fallbackYear.title
+        window.globalActiveYear = globalActiveYear
+      }
+    }
+    if (!isYearIncluded(previousYearId)) previousYearId = null
+    drawYearButtons()
+    if (selectedYearGone) setScenario()
+  }
+
+  drawToepassingButtons()
+  function drawToepassingButtons() {
+    const toepassing = viewerConfig.toepassingen || [
+      {id: 'alle', title: 'Alle toepassingen'},
+      {id: 'warmte', title: 'Warmte'},
+      {id: 'proces', title: 'Proces'},
+      {id: 'transport', title: 'Transport'},
+      {id: 'overige', title: 'Overige'}
+    ]
+
+    const container = document.getElementById('toepassingenButtons')
+    if (!container) return
+    container.innerHTML = ''
+
+    let label = document.createElement('div')
+    label.className = 'menu-label'
+    label.textContent = 'Toepassing'
+    container.appendChild(label)
+
+    toepassing.forEach((toepassing, index) => {
+      const button = document.createElement('button')
+      button.textContent = toepassing.title
+      createButton(button, index)
+
+      button.onclick = function() {
+        setButtonsInContainer(container, button)
+        globalActiveToepassing = toepassing.id
+
+        updateButtonStates()
+
+        if (typeof switchRoutekaart === 'function') {
+          try {
+            switchRoutekaart({
+              scenario: currentScenario,
+              sector: globalActiveSector,
+              routekaart: toepassing.id,
+              yMax: getYMax(toepassing.id, globalActiveSector),
+              titlesArray: currentTitlesArray,
+              colorsArray: currentColorsArray
+            })
+          } catch (error) {
+            console.error('Error in switchRoutekaart:', error)
+            const mainSectorEl = document.getElementById('mainSectorButtons')
+            const alleSectorenButton = mainSectorEl ? Array.from(mainSectorEl.getElementsByTagName('button')).find(btn => btn.textContent === 'Alle sectoren') : null
+            if (alleSectorenButton) {
+              alleSectorenButton.click()
+            }
+          }
+        }
+      }
+
+      container.appendChild(button)
+    })
+  }
+
+  function updateButtonStates() {
+    const mainSectorEl = document.getElementById('mainSectorButtons')
+    const toepassingEl = document.getElementById('toepassingenButtons')
+    const subSectorEl = document.getElementById('subSectorButtons')
+    const mainSectorButtons = mainSectorEl ? mainSectorEl.getElementsByTagName('button') : []
+    const toepassingButtons = toepassingEl ? toepassingEl.getElementsByTagName('button') : []
+    const subSectorButtons = subSectorEl ? subSectorEl.getElementsByTagName('button') : []
+
+    Array.from(mainSectorButtons).forEach(btn => {
+      btn.disabled = false
+      btn.style.opacity = '1'
+    })
+    Array.from(toepassingButtons).forEach(btn => {
+      btn.disabled = false
+      btn.style.opacity = '1'
+    })
+    Array.from(subSectorButtons).forEach(btn => {
+      btn.disabled = false
+      btn.style.opacity = '1'
+    })
+
+    if (globalActiveToepassing === 'warmte') {
+      Array.from(mainSectorButtons).forEach(btn => {
+        if (btn.textContent === 'Mobiliteit nationaal' || btn.textContent === 'Mobiliteit internationaal') {
+          btn.disabled = true
+          btn.style.opacity = '0.5'
+        }
+      })
+    }
+
+    if (globalActiveSector === 'hh' || globalActiveSector === 'ut') {
+      Array.from(toepassingButtons).forEach(btn => {
+        if (btn.textContent === 'Transport' || btn.textContent === 'Proces') {
+          btn.disabled = true
+          btn.style.opacity = '0.5'
+        }
+      })
+    }
+
+    if (globalActiveToepassing === 'transport') {
+      Array.from(mainSectorButtons).forEach(btn => {
+        if (btn.textContent !== 'Mobiliteit nationaal' &&
+            btn.textContent !== 'Mobiliteit internationaal' &&
+            btn.textContent !== 'Alle sectoren') {
+          btn.disabled = true
+          btn.style.opacity = '0.5'
+        }
+      })
+
+      Array.from(subSectorButtons).forEach(btn => {
+        btn.disabled = true
+        btn.style.opacity = '0.5'
+      })
+    }
+  }
+
+  drawSectorButtons()
+  function drawSectorButtons() {
+    let mainSectoren = viewerConfig.mainSectoren || [
+      {id: 'alle', title: 'Alle sectoren'},
+      {id: 'hh', title: 'Huishoudens'},
+      {id: 'ut', title: 'Utiliteit'},
+      {id: 'lb', title: 'Landbouw'},
+      {id: 'mob_nat', title: 'Mobiliteit nationaal'},
+      {id: 'mob_int', title: 'Mobiliteit internationaal'},
+      {id: 'overige', title: 'Overige'}
+    ]
+
+    let subsectoren = viewerConfig.subsectoren || [
+      {id: 'ind_alle', title: 'Alle industrie'},
+      {id: 'ind_ch', title: 'Chemie'},
+      {id: 'ind_km', title: 'Kunstmest'},
+      {id: 'ind_fe', title: 'Ferro'},
+      {id: 'ind_nf', title: 'Non-ferro'},
+      {id: 'ind_fd', title: 'Voedsel'},
+      {id: 'ind_ws', title: 'Afval'},
+      {id: 'ind_ov', title: 'Industrie Overige'}
+    ]
+
+    let mainContainer = document.getElementById('mainSectorButtons')
+    let subContainer = document.getElementById('subSectorButtons')
+
+    if (!mainContainer || !subContainer) return
+    mainContainer.innerHTML = ''
+    subContainer.innerHTML = ''
+
+    let mainLabel = document.createElement('div')
+    mainLabel.className = 'menu-label'
+    mainLabel.textContent = 'Sector'
+    mainContainer.appendChild(mainLabel)
+
+    mainSectoren.forEach((sector, index) => {
+      let button = document.createElement('button')
+      button.textContent = sector.title
+      createButton(button, index)
+
+      button.onclick = function() {
+        setButtonsInMultipleContainers([mainContainer, subContainer], button)
+        globalActiveSector = sector.id
+
+        updateButtonStates()
+
+        if (typeof switchRoutekaart === 'function') {
+          try {
+            switchRoutekaart({
+              scenario: currentScenario,
+              sector: sector.id,
+              routekaart: globalActiveToepassing,
+              yMax: getYMax(globalActiveToepassing, sector.id),
+              titlesArray: currentTitlesArray,
+              colorsArray: currentColorsArray
+            })
+          } catch (error) {
+            console.error('Error in switchRoutekaart:', error)
+            const alleSectorenButton = Array.from(mainButtons).find(btn => btn.textContent === 'Alle sectoren')
+            if (alleSectorenButton) {
+              alleSectorenButton.click()
+            }
+          }
+        }
+      }
+
+      mainContainer.appendChild(button)
+    })
+
+    let subLabel = document.createElement('div')
+    subLabel.className = 'menu-label'
+    subLabel.textContent = ''
+    subContainer.appendChild(subLabel)
+
+    subsectoren.forEach((sector, index) => {
+      let button = document.createElement('button')
+      button.textContent = sector.title
+      createButton(button, -1)
+
+      button.onclick = function() {
+        setButtonsInMultipleContainers([mainContainer, subContainer], button)
+        globalActiveSector = sector.id
+
+        updateButtonStates()
+
+        try {
+          switchRoutekaart({
+            scenario: currentScenario,
+            sector: sector.id,
+            routekaart: globalActiveToepassing,
+            yMax: getYMax(globalActiveToepassing, sector.id),
+            titlesArray: currentTitlesArray,
+            colorsArray: currentColorsArray
+          })
+        } catch (error) {
+          console.error('Error in switchRoutekaart:', error)
+          const alleSectorenButton = Array.from(mainButtons).find(btn => btn.textContent === 'Alle sectoren')
+          if (alleSectorenButton) {
+            alleSectorenButton.click()
+          }
+        }
+      }
+
+      subContainer.appendChild(button)
+    })
+  }
+
+  drawDiagramButtons()
+  function drawDiagramButtons() {
+    // Wait for config to be loaded
+    if (!viewerConfig) {
+      setTimeout(drawDiagramButtons, 100)
+      return
+    }
+
+    // Check if multiple sankey diagrams are configured
+    const diagramConfigs = viewerConfig.sankeyDiagrams
+    if (!diagramConfigs || diagramConfigs.length <= 1) {
+      // Don't show buttons if only one or no diagrams configured
+      return
+    }
+
+    // Find or create the diagram buttons container
+    let container = document.getElementById('diagramButtons')
+    if (!container) {
+      // Create container at the top of menuContainer
+      const menuContainer = document.getElementById('menuContainer')
+      if (!menuContainer) {
+        console.warn('menuContainer not found, cannot add diagram buttons')
+        return
+      }
+      container = document.createElement('div')
+      container.id = 'diagramButtons'
+      container.className = 'menuContainer-part'
+      menuContainer.insertBefore(container, menuContainer.firstChild)
+    }
+
+    container.innerHTML = ''
+
+    // Add label
+    let label = document.createElement('div')
+    label.className = 'menu-label'
+    label.textContent = 'Diagram'
+    container.appendChild(label)
+
+    // Find default/active diagram
+    const activeDiagramId = window.activeDiagramId || (diagramConfigs.find(d => d.default) || diagramConfigs[0]).id
+
+    // Add buttons for each diagram
+    diagramConfigs.forEach((diagramConfig, index) => {
+      let button = document.createElement('button')
+      button.textContent = diagramConfig.title
+      button.className = 'diagram-selection-button'
+      button.dataset.diagramId = diagramConfig.id
+      createButton(button, -1)
+
+      // Highlight the active diagram
+      if (diagramConfig.id === activeDiagramId) {
+        setButtonHighlighted(button, true)
+      }
+
+      button.onclick = function() {
+        setButtonsInContainer(container, button)
+
+        // Switch to the selected diagram
+        if (typeof window.switchDiagram === 'function') {
+          window.switchDiagram(diagramConfig.id)
+        } else {
+          console.error('switchDiagram function not available')
+        }
+      }
+
+      container.appendChild(button)
+    })
+  }
+}
+
+drawSankeyEnergiestromenSelectieButtons()
+
+// Heading of the Sankey section, naming the active scope. A viewer can prefix
+// it and rename a scope with data attributes on #sankeyTitle, e.g.
+// data-prefix="Sankey diagram | " data-title-system="Integraal systeem".
+const SANKEY_SCOPE_TITLES = {
+  system: 'Integraal',
+  electricity: 'Elektriciteitsketen',
+  hydrogen: 'Waterstofketen',
+  heat: 'Warmteketen',
+  carbon: 'Koolstofketen'
+}
+
+function setSankeyTitle (focusId) {
+  const heading = document.getElementById('sankeyTitle')
+  const title = SANKEY_SCOPE_TITLES[focusId]
+  if (!heading || !title) return
+  const key = 'title' + focusId.charAt(0).toUpperCase() + focusId.slice(1)
+  heading.textContent = (heading.dataset.prefix || '') + (heading.dataset[key] || title)
+}
+
+function drawSankeyEnergiestromenSelectieButtons() {
+  // Wait for config to be loaded
+  if (!viewerConfig) {
+    setTimeout(drawSankeyEnergiestromenSelectieButtons, 100)
+    return
+  }
+
+  let focusOptions = viewerConfig.focusOptions || [
+    {id: 'system', title: 'Integraal'},
+    {id: 'electricity', title: 'Elektriciteitsketen'},
+    {id: 'hydrogen', title: 'Waterstofketen'},
+    {id: 'heat', title: 'Warmteketen'},
+    {id: 'carbon', title: 'Koolstofketen'}
+  ]
+
+  let container = document.getElementById('sankeyEnergiestromenSelectieMenu')
+  if (!container) return
+  container.innerHTML = ''
+
+  let label = document.createElement('div')
+  label.className = 'menu-label'
+  label.textContent = 'Scope'
+  container.appendChild(label)
+
+  focusOptions.forEach((focus, index) => {
+    let button = document.createElement('button')
+    button.textContent = focus.title
+    createButton(button, index)
+
+    button.onclick = function() {
+      setButtonsInContainer(container, button)
+
+      globalActiveEnergyflowsSankey = focus
+      globalActiveEnergyflowsFilter = focus.id
+
+      setSankeyTitle(focus.id)
+
+      if (typeof window.setScenario === 'function') window.setScenario()
+    }
+
+    container.appendChild(button)
+  })
+
+  // Apply per-diagram scope visibility for the initial diagram
+  if (typeof updateScopeButtonsForDiagram === 'function') {
+    updateScopeButtonsForDiagram(window.activeDiagramId)
+  }
+}
+
+// Show/hide scope buttons based on the active diagram's `scopes` field in
+// viewer-config.json. If a diagram has no `scopes` array, all scopes are
+// shown (legacy behavior). If the currently active scope is hidden by the
+// new diagram, auto-switch to the first scope that is still visible.
+function updateScopeButtonsForDiagram(diagramId) {
+  if (!viewerConfig) {
+    console.warn('[scopes] viewerConfig not yet loaded, skipping scope visibility for', diagramId)
+    return
+  }
+  const container = document.getElementById('sankeyEnergiestromenSelectieMenu')
+  if (!container) {
+    console.warn('[scopes] sankeyEnergiestromenSelectieMenu container not found')
+    return
+  }
+
+  const diagramConfigs = viewerConfig.sankeyDiagrams || []
+  // If no diagramId was passed, fall back to whatever the viewer thinks is
+  // active right now, or to the diagram marked as default in viewer-config.
+  if (!diagramId) {
+    diagramId = window.activeDiagramId
+      || (diagramConfigs.find(d => d.default) || diagramConfigs[0] || {}).id
+  }
+  const diagramConfig = diagramConfigs.find(d => d.id === diagramId)
+  // allowedScopes === null means "no restriction" (show all)
+  const allowedScopes = (diagramConfig && Array.isArray(diagramConfig.scopes))
+    ? diagramConfig.scopes
+    : null
+  console.log('[scopes] updateScopeButtonsForDiagram', { diagramId, foundDiagram: !!diagramConfig, allowedScopes })
+
+  const buttons = container.getElementsByTagName('button')
+  const focusOptions = viewerConfig.focusOptions || [
+    {id: 'system', title: 'Integraal'},
+    {id: 'electricity', title: 'Elektriciteitsketen'},
+    {id: 'hydrogen', title: 'Waterstofketen'},
+    {id: 'heat', title: 'Warmteketen'},
+    {id: 'carbon', title: 'Koolstofketen'}
+  ]
+
+  let activeStillVisible = false
+  let firstVisibleButton = null
+
+  Array.from(buttons).forEach((btn, idx) => {
+    const focus = focusOptions[idx]
+    if (!focus) return
+    const visible = allowedScopes === null || allowedScopes.includes(focus.id)
+    btn.style.display = visible ? '' : 'none'
+    if (visible) {
+      if (!firstVisibleButton) firstVisibleButton = btn
+      if (typeof globalActiveEnergyflowsSankey !== 'undefined'
+        && globalActiveEnergyflowsSankey
+        && globalActiveEnergyflowsSankey.id === focus.id) {
+        activeStillVisible = true
+      }
+    }
+  })
+
+  if (!activeStillVisible && firstVisibleButton) {
+    firstVisibleButton.click()
+  }
+}
+window.updateScopeButtonsForDiagram = updateScopeButtonsForDiagram
+
+// Y-MAX LOOKUP
+function getYMax(toepassing, sector) {
+  const baseKey = `${toepassing}_${sector}`
+  const values = lookup_ymaxvalues[baseKey] ?? [2500, 500, 2500]
+  return ['boven', 'midden', 'onder'].map((_, i) => values[i])
+}
+
+function showNbnlOverlay() {
+  const waterfallContainer = document.getElementById('SVGContainer_waterfalldiagram')
+  if (waterfallContainer) {
+    waterfallContainer.style.display = 'none'
+  }
+
+  const wrapper = document.querySelector('.scaled-wrapper-waterfall')
+  if (wrapper) {
+    let messageElement = wrapper.querySelector('#nbnl-message')
+    if (!messageElement) {
+      messageElement = document.createElement('div')
+      messageElement.id = 'nbnl-message'
+      messageElement.style.textAlign = 'center'
+      messageElement.style.padding = '200px 0'
+      messageElement.style.fontSize = '13px'
+      messageElement.style.color = '#333'
+      messageElement.textContent = "Dit diagram is nog niet beschikbaar voor scenario's afkomstig uit het ETM."
+      wrapper.appendChild(messageElement)
+    }
+    messageElement.style.display = 'block'
+  }
+
+  const menuContainer2 = document.getElementById('menuContainer2')
+  if (menuContainer2) {
+    menuContainer2.style.opacity = '0.5'
+    const buttons = menuContainer2.getElementsByTagName('button')
+    for (const button of buttons) {
+      button.disabled = true
+    }
+  }
+}
+
+function hideNbnlOverlay() {
+  const waterfallContainer = document.getElementById('SVGContainer_waterfalldiagram')
+  if (waterfallContainer) {
+    waterfallContainer.style.display = 'block'
+  }
+
+  const wrapper = document.querySelector('.scaled-wrapper-waterfall')
+  if (wrapper) {
+    const messageElement = wrapper.querySelector('#nbnl-message')
+    if (messageElement) {
+      messageElement.style.display = 'none'
+    }
+  }
+
+  const menuContainer2 = document.getElementById('menuContainer2')
+  if (menuContainer2) {
+    menuContainer2.style.opacity = '1'
+    const buttons = menuContainer2.getElementsByTagName('button')
+    for (const button of buttons) {
+      button.disabled = false
+    }
+  }
+}
+
+function showWloOverlay() {
+  const waterfallContainer = document.getElementById('SVGContainer_waterfalldiagram')
+  if (waterfallContainer) {
+    waterfallContainer.style.display = 'none'
+  }
+
+  const wrapper = document.querySelector('.scaled-wrapper-waterfall')
+  if (wrapper) {
+    let messageElement = wrapper.querySelector('#wlo-message')
+    if (!messageElement) {
+      messageElement = document.createElement('div')
+      messageElement.id = 'wlo-message'
+      messageElement.style.textAlign = 'center'
+      messageElement.style.padding = '200px 0'
+      messageElement.style.fontSize = '13px'
+      messageElement.style.color = '#333'
+      messageElement.textContent = "Dit diagram is niet beschikbaar voor het geslecteerde scenario."
+      wrapper.appendChild(messageElement)
+    }
+    messageElement.style.display = 'block'
+  }
+
+  const menuContainer2 = document.getElementById('menuContainer2')
+  if (menuContainer2) {
+    menuContainer2.style.opacity = '0.5'
+    const buttons = menuContainer2.getElementsByTagName('button')
+    for (const button of buttons) {
+      button.disabled = true
+    }
+  }
+}
+
+function hideWloOverlay() {
+  const waterfallContainer = document.getElementById('SVGContainer_waterfalldiagram')
+  if (waterfallContainer) {
+    waterfallContainer.style.display = 'block'
+  }
+
+  const wrapper = document.querySelector('.scaled-wrapper-waterfall')
+  if (wrapper) {
+    const messageElement = wrapper.querySelector('#wlo-message')
+    if (messageElement) {
+      messageElement.style.display = 'none'
+    }
+  }
+
+  const menuContainer2 = document.getElementById('menuContainer2')
+  if (menuContainer2) {
+    menuContainer2.style.opacity = '1'
+    const buttons = menuContainer2.getElementsByTagName('button')
+    for (const button of buttons) {
+      button.disabled = false
+    }
+  }
+}
+
+function createButton(button, index) {
+  // Base button styles - consistent across all button types
+  const baseStyles = {
+    className: 'button-black button-outline',
+    textTransform: 'lowercase',
+    display: 'inline-block',
+    margin: '3px',
+    fontWeight: '300',
+    border: '0px solid black',
+    color: 'black',
+    backgroundColor: 'white',
+    padding: '4px 8px',
+    lineHeight: '1.2',
+    fontSize: '12px',
+    textAlign: 'center',
+    height: '26px',
+    width: 'auto',
+    minWidth: 'auto',
+    maxWidth: 'none',
+    borderRadius: '3px',
+    transition: 'all 0.2s ease',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
+  }
+
+  button.className = baseStyles.className
+  Object.keys(baseStyles).forEach(key => {
+    if (key !== 'className') {
+      button.style[key] = baseStyles[key]
+    }
+  })
+
+  if (index === 0) {
+    button.classList.add('highlighted')
+  }
+}
+
+// Auto-load config when script loads (only for development mode, not for production mode)
+// When dataSource='production', the config will be loaded from the zip file by loadData.js
+if (typeof dataSource === 'undefined' || dataSource === 'development') {
+  loadViewerConfig().then(() => {
+    // Apply version labels immediately after config loads
+    setVersionLabels()
+    applySectionVisibilityFromConfig()
+
+    // Initialize scenario settings in URL mode
+    if (typeof window.ScenarioSettings !== 'undefined' && typeof window.ScenarioSettings.initialize === 'function') {
+      window.ScenarioSettings.initialize(viewerConfig);
+    }
+  })
+}
+
+// Listen for changes of the years included in the viewer and redraw the year buttons
+window.addEventListener('yearVisibilityChanged', function() {
+  if (typeof window.onYearVisibilityChanged === 'function') {
+    window.onYearVisibilityChanged();
+  }
+});
+
+// Listen for scenario visibility changes and redraw buttons
+window.addEventListener('scenarioVisibilityChanged', function() {
+  console.log('Scenario visibility changed, redrawing buttons');
+  if (typeof window.drawScenarioButtons === 'function') {
+    window.drawScenarioButtons();
+  }
+});

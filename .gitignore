@@ -1,0 +1,22 @@
+.DS_Store
+# /KGG/private
+# .vscode/settings.json
+# /PBL/private
+# /TENNET/private
+# TENNET/README.md
+/VIVET/private
+/CBS/private
+/KGG-BETA/private
+/KGG/private
+/NBNL/private
+/PBL/private
+/SNM/private
+/TENNET/private
+/TNO/private
+s2027/css/milligram.css
+s2027/css/style.css
+s2027/index.html
+s2027/js/drawMainContainer.js
+s2027/js/loadData.js
+s2027/js/UIlisteners.js
+s2027/public/ds17092026nbnl2027.enc.json

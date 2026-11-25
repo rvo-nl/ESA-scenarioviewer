@@ -80,7 +80,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds15092026snm.enc.json');
+    const response = await fetch('public/ds25112026snm.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -119,7 +119,7 @@ async function decryptZipFile(passphrase) {
     } else if (error.message.includes('fetch')) {
       throw new Error('Kan encrypted bestand niet laden');
     } else {
-      throw new Error(`Decryption failed: ${error.message}`);
+      throw new Error(`Ontsleutelen mislukt: ${error.message}`);
     }
   }
 }
@@ -266,6 +266,11 @@ function initTool () {
   // console.log(sankeyConfigs)
 
   if (dataSource == 'development') {
+    // Scenario annotation texts shown under the sankey (js/scenarioAnnotations.js)
+    if (typeof window.loadScenarioAnnotations === 'function') {
+      window.loadScenarioAnnotations('private/scenario_annotations.json')
+    }
+
     // Check if viewerConfig has multiple sankey diagrams configured
     if (viewerConfig && viewerConfig.sankeyDiagrams && viewerConfig.sankeyDiagrams.length > 0) {
       diagramConfigs = viewerConfig.sankeyDiagrams
@@ -490,6 +495,7 @@ passphraseWrapper.appendChild(passphraseInput);
      const excelExtensions = /\.(xls[xmb]?|ods|xml)$/i;
      const csvExtensions = /\.(csv|tsv|txt)$/i;
      const jsonExtensions = /\.json$/i;
+     const yamlExtensions = /\.ya?ml$/i;
 
      for (const fileName of Object.keys(zipContent.files)) {
        const zipFile = zipContent.files[fileName];
@@ -534,6 +540,17 @@ passphraseWrapper.appendChild(passphraseInput);
              jsonData[baseName] = JSON.parse(jsonText);
            } catch (err) {
              console.warn(`Failed to parse JSON file "${fileName}":`, err);
+           }
+         } else if (yamlExtensions.test(fileName)) {
+           // Handle YAML files (stored as raw text for changelog etc.)
+           try {
+             const yamlText = await zipFile.async('text');
+             const baseName = fileName.split('/').pop().replace(/\.[^.]+$/, '');
+             if (baseName === 'changelog') {
+               window.changelogYamlText = yamlText;
+             }
+           } catch (err) {
+             console.warn(`Failed to read YAML file "${fileName}":`, err);
            }
          }
        }
@@ -585,6 +602,11 @@ passphraseWrapper.appendChild(passphraseInput);
        window.setCategoryConfigFromZip(jsonData['categoryConfig']);
      }
 
+     // Scenario annotation texts shown under the sankey (js/scenarioAnnotations.js)
+     if (typeof window.setScenarioAnnotations === 'function') {
+       window.setScenarioAnnotations(jsonData['scenario_annotations'] || {});
+     }
+
     // Set viewerConfig from ZIP if available (for drawSelectionButtons.js)
     if (jsonData['viewer-config']) {
       viewerConfig = jsonData['viewer-config'];
@@ -629,10 +651,20 @@ passphraseWrapper.appendChild(passphraseInput);
        };
        console.log('TVKN CSV data stored from zip file');
 
-      // Initialize TVKN Analysis now that data is available
-      if (typeof window.initTVKNAnalysis === 'function') {
+      // Initialize TVKN Analysis now that data is available (if enabled in viewer config)
+      if (typeof window.initTVKNAnalysis === 'function' && viewerConfig?.viewer?.hasServiceDemandSection !== false) {
         window.initTVKNAnalysis();
       }
+     }
+
+     // Initialize the carrier treemaps; they wait for the sankey data themselves
+     if (typeof window.initCarrierTreemaps === 'function') {
+       window.initCarrierTreemaps();
+     }
+
+     // Initialize the ternary energy-mix plot; it waits for the sankey data itself
+     if (typeof window.initTernaryMix === 'function') {
+       window.initTernaryMix();
      }
 
      dataset_ADAPT = excelData['data_watervaldiagram_A_ADAPT']
@@ -648,7 +680,9 @@ passphraseWrapper.appendChild(passphraseInput);
     //  dataset_WLO3 = excelData['data_watervaldiagram_WLO3']
     //  dataset_WLO4 = excelData['data_watervaldiagram_WLO4']
 
-     initWaterfallDiagram()
+     if (viewerConfig?.viewer?.hasWaterfall !== false && typeof initWaterfallDiagram === 'function') {
+       initWaterfallDiagram()
+     }
 
     //  alert('Excel data extracted — check the console!');
 
@@ -750,7 +784,7 @@ passphraseWrapper.appendChild(passphraseInput);
         // Set the inner HTML with the desired text and link
         document.getElementById('loadFileDialog').innerHTML = `
           <div style="max-width: 500px; word-wrap: break-word;line-height: 35px;font-size:15px; ">
-              <strong style="line-height: 40px; font-size:28px;font-weight:300;">Error</strong> <br><br>De identificatienummers van het opgegeven databestand (<strong>${settings[0].projectID}_${settings[0].productID}_${settings[0].versionID}</strong>) en het ingeladen visualisatiescript (<strong>${projectID}_${productID}_${versionID}</strong>) komen niet overeen.<br><br>Gebruik de onderstaande link om naar het script te gaan dat bij het opgegeven bestand hoort en probeer het opnieuw.&nbsp
+              <strong style="line-height: 40px; font-size:28px;font-weight:300;">Fout</strong> <br><br>De identificatienummers van het opgegeven databestand (<strong>${settings[0].projectID}_${settings[0].productID}_${settings[0].versionID}</strong>) en het ingeladen visualisatiescript (<strong>${projectID}_${productID}_${versionID}</strong>) komen niet overeen.<br><br>Gebruik de onderstaande link om naar het script te gaan dat bij het opgegeven bestand hoort en probeer het opnieuw.&nbsp
               <br><br>
               <a href="https://rvo-nl.github.io/visualisaties/${settings[0].projectID}/${settings[0].productID}/${settings[0].versionID}" style="color: blue; text-decoration: underline;">
                   https://rvo-nl.github.io/visualisaties/${settings[0].projectID}/${settings[0].productID}/${settings[0].versionID}

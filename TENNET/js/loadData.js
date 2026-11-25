@@ -80,7 +80,7 @@ async function decryptData(encryptedData, key, iv) {
 async function decryptZipFile(passphrase) {
   try {
     // Fetch the encrypted file
-    const response = await fetch('public/ds08102026tennet.enc.json');
+    const response = await fetch('public/ds25112026tennet.enc.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch encrypted file: ${response.status}`);
     }
@@ -266,6 +266,11 @@ function initTool () {
   // console.log(sankeyConfigs)
 
   if (dataSource == 'development') {
+    // Scenario annotation texts shown under the sankey (js/scenarioAnnotations.js)
+    if (typeof window.loadScenarioAnnotations === 'function') {
+      window.loadScenarioAnnotations('private/scenario_annotations.json')
+    }
+
     // Check if viewerConfig has multiple sankey diagrams configured
     if (viewerConfig && viewerConfig.sankeyDiagrams && viewerConfig.sankeyDiagrams.length > 0) {
       diagramConfigs = viewerConfig.sankeyDiagrams
@@ -490,6 +495,7 @@ passphraseWrapper.appendChild(passphraseInput);
      const excelExtensions = /\.(xls[xmb]?|ods|xml)$/i;
      const csvExtensions = /\.(csv|tsv|txt)$/i;
      const jsonExtensions = /\.json$/i;
+     const yamlExtensions = /\.ya?ml$/i;
 
      for (const fileName of Object.keys(zipContent.files)) {
        const zipFile = zipContent.files[fileName];
@@ -534,6 +540,17 @@ passphraseWrapper.appendChild(passphraseInput);
              jsonData[baseName] = JSON.parse(jsonText);
            } catch (err) {
              console.warn(`Failed to parse JSON file "${fileName}":`, err);
+           }
+         } else if (yamlExtensions.test(fileName)) {
+           // Handle YAML files (stored as raw text for changelog etc.)
+           try {
+             const yamlText = await zipFile.async('text');
+             const baseName = fileName.split('/').pop().replace(/\.[^.]+$/, '');
+             if (baseName === 'changelog') {
+               window.changelogYamlText = yamlText;
+             }
+           } catch (err) {
+             console.warn(`Failed to read YAML file "${fileName}":`, err);
            }
          }
        }
@@ -583,6 +600,11 @@ passphraseWrapper.appendChild(passphraseInput);
      // Pass categoryConfig from ZIP if available
      if (jsonData['categoryConfig'] && typeof window.setCategoryConfigFromZip === 'function') {
        window.setCategoryConfigFromZip(jsonData['categoryConfig']);
+     }
+
+     // Scenario annotation texts shown under the sankey (js/scenarioAnnotations.js)
+     if (typeof window.setScenarioAnnotations === 'function') {
+       window.setScenarioAnnotations(jsonData['scenario_annotations'] || {});
      }
 
     // Set viewerConfig from ZIP if available (for drawSelectionButtons.js)
@@ -658,7 +680,9 @@ passphraseWrapper.appendChild(passphraseInput);
     //  dataset_WLO3 = excelData['data_watervaldiagram_WLO3']
     //  dataset_WLO4 = excelData['data_watervaldiagram_WLO4']
 
-     initWaterfallDiagram()
+     if (viewerConfig?.viewer?.hasWaterfall !== false && typeof initWaterfallDiagram === 'function') {
+       initWaterfallDiagram()
+     }
 
     //  alert('Excel data extracted — check the console!');
 
